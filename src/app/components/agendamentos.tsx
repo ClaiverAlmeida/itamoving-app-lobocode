@@ -1,0 +1,943 @@
+import { useState, useMemo } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Textarea } from './ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Calendar } from './ui/calendar';
+import { Badge } from './ui/badge';
+import { useData } from '../context/DataContext';
+import { Agendamento } from '../types';
+import { 
+  Plus, 
+  Calendar as CalendarIcon, 
+  MapPin, 
+  Clock, 
+  User,
+  Search,
+  Filter,
+  Download,
+  LayoutGrid,
+  List,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  Package,
+  Truck,
+  Phone,
+  Navigation,
+  TrendingUp,
+  BarChart3,
+  X
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { format, isToday, isTomorrow, isPast, isSameDay, addDays, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import { ptBR } from 'date-fns/locale/pt-BR';
+import { motion, AnimatePresence } from 'motion/react';
+
+type ViewMode = 'calendar' | 'list' | 'timeline';
+
+export default function AgendamentosView() {
+  const { agendamentos, addAgendamento, updateAgendamento, deleteAgendamento, clientes } = useData();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [viewMode, setViewMode] = useState<ViewMode>('calendar');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null);
+  const [filters, setFilters] = useState({
+    status: [] as string[],
+    atendente: '',
+    periodo: 'todos' as 'todos' | 'hoje' | 'semana' | 'mes',
+  });
+  
+  const [formData, setFormData] = useState({
+    clienteId: '',
+    dataColeta: '',
+    horaColeta: '',
+    observacoes: '',
+    atendente: '',
+  });
+
+  const resetForm = () => {
+    setFormData({
+      clienteId: '',
+      dataColeta: '',
+      horaColeta: '',
+      observacoes: '',
+      atendente: '',
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const cliente = clientes.find(c => c.id === formData.clienteId);
+    if (!cliente) {
+      toast.error('Cliente não encontrado');
+      return;
+    }
+
+    const novoAgendamento: Agendamento = {
+      id: Date.now().toString(),
+      clienteId: formData.clienteId,
+      clienteNome: cliente.nome,
+      dataColeta: formData.dataColeta,
+      horaColeta: formData.horaColeta,
+      endereco: `${cliente.enderecoUSA.rua}, ${cliente.enderecoUSA.numero}, ${cliente.enderecoUSA.cidade}, ${cliente.enderecoUSA.estado} ${cliente.enderecoUSA.zipCode}`,
+      status: 'pendente',
+      observacoes: formData.observacoes,
+      atendente: formData.atendente,
+    };
+
+    addAgendamento(novoAgendamento);
+    toast.success('Agendamento criado com sucesso!');
+    resetForm();
+    setIsDialogOpen(false);
+  };
+
+  const handleStatusChange = (id: string, status: Agendamento['status']) => {
+    updateAgendamento(id, { status });
+    toast.success('Status atualizado!');
+  };
+
+  const handleDelete = (id: string, clienteNome: string) => {
+    if (window.confirm(`Tem certeza que deseja excluir o agendamento de ${clienteNome}?`)) {
+      deleteAgendamento(id);
+      toast.success('Agendamento excluído!');
+      setSelectedAgendamento(null);
+    }
+  };
+
+  const statusConfig = {
+    pendente: { 
+      label: 'Pendente', 
+      color: 'bg-yellow-500', 
+      textColor: 'text-yellow-700',
+      bgLight: 'bg-yellow-50',
+      icon: AlertCircle 
+    },
+    confirmado: { 
+      label: 'Confirmado', 
+      color: 'bg-green-500', 
+      textColor: 'text-green-700',
+      bgLight: 'bg-green-50',
+      icon: CheckCircle2 
+    },
+    coletado: { 
+      label: 'Coletado', 
+      color: 'bg-blue-500', 
+      textColor: 'text-blue-700',
+      bgLight: 'bg-blue-50',
+      icon: Package 
+    },
+    cancelado: { 
+      label: 'Cancelado', 
+      color: 'bg-red-500', 
+      textColor: 'text-red-700',
+      bgLight: 'bg-red-50',
+      icon: XCircle 
+    },
+  };
+
+  const filteredAgendamentos = useMemo(() => {
+    return agendamentos.filter(agendamento => {
+      // Search
+      const matchesSearch = 
+        agendamento.clienteNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        agendamento.endereco.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        agendamento.atendente.toLowerCase().includes(searchTerm.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      // Status
+      if (filters.status.length > 0 && !filters.status.includes(agendamento.status)) {
+        return false;
+      }
+
+      // Atendente
+      if (filters.atendente && !agendamento.atendente.toLowerCase().includes(filters.atendente.toLowerCase())) {
+        return false;
+      }
+
+      // Período
+      if (filters.periodo !== 'todos') {
+        const now = new Date();
+        const agendamentoDate = new Date(agendamento.dataColeta + 'T00:00:00');
+        
+        if (filters.periodo === 'hoje') {
+          if (!isToday(agendamentoDate)) return false;
+        } else if (filters.periodo === 'semana') {
+          const weekStart = startOfWeek(now, { locale: ptBR });
+          const weekEnd = endOfWeek(now, { locale: ptBR });
+          if (agendamentoDate < weekStart || agendamentoDate > weekEnd) return false;
+        } else if (filters.periodo === 'mes') {
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          if (agendamentoDate < monthAgo) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [agendamentos, searchTerm, filters]);
+
+  const agendamentosDosDia = useMemo(() => {
+    return filteredAgendamentos.filter(ag => 
+      isSameDay(new Date(ag.dataColeta + 'T00:00:00'), selectedDate)
+    );
+  }, [filteredAgendamentos, selectedDate]);
+
+  const statistics = useMemo(() => {
+    const total = filteredAgendamentos.length;
+    const pendentes = filteredAgendamentos.filter(a => a.status === 'pendente').length;
+    const confirmados = filteredAgendamentos.filter(a => a.status === 'confirmado').length;
+    const coletados = filteredAgendamentos.filter(a => a.status === 'coletado').length;
+    const hoje = filteredAgendamentos.filter(a => isToday(new Date(a.dataColeta + 'T00:00:00'))).length;
+    const amanha = filteredAgendamentos.filter(a => isTomorrow(new Date(a.dataColeta + 'T00:00:00'))).length;
+    const atrasados = filteredAgendamentos.filter(a => 
+      isPast(new Date(a.dataColeta + 'T00:00:00')) && 
+      a.status === 'pendente' &&
+      !isToday(new Date(a.dataColeta + 'T00:00:00'))
+    ).length;
+
+    return { total, pendentes, confirmados, coletados, hoje, amanha, atrasados };
+  }, [filteredAgendamentos]);
+
+  const getDateLabel = (date: Date) => {
+    if (isToday(date)) return 'Hoje';
+    if (isTomorrow(date)) return 'Amanhã';
+    return format(date, "EEEE, dd 'de' MMMM", { locale: ptBR });
+  };
+
+  const getDatesWithAgendamentos = () => {
+    return agendamentos.map(a => new Date(a.dataColeta + 'T00:00:00'));
+  };
+
+  const TimelineView = () => {
+    const weekStart = startOfWeek(new Date(), { locale: ptBR });
+    const weekEnd = endOfWeek(new Date(), { locale: ptBR });
+    const daysOfWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+    return (
+      <div className="space-y-4">
+        {daysOfWeek.map((day) => {
+          const dayAgendamentos = filteredAgendamentos.filter(ag =>
+            isSameDay(new Date(ag.dataColeta + 'T00:00:00'), day)
+          );
+
+          return (
+            <Card key={day.toString()} className={`${isToday(day) ? 'border-blue-500 border-2' : ''}`}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{format(day, "EEEE, dd 'de' MMMM", { locale: ptBR })}</CardTitle>
+                    <CardDescription>
+                      {dayAgendamentos.length} agendamento(s)
+                    </CardDescription>
+                  </div>
+                  {isToday(day) && (
+                    <Badge className="bg-blue-500">Hoje</Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {dayAgendamentos.length > 0 ? (
+                  <div className="space-y-2">
+                    {dayAgendamentos
+                      .sort((a, b) => a.horaColeta.localeCompare(b.horaColeta))
+                      .map((agendamento) => {
+                        const config = statusConfig[agendamento.status];
+                        const StatusIcon = config.icon;
+                        
+                        return (
+                          <motion.div
+                            key={agendamento.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className={`p-4 rounded-lg border-l-4 ${config.bgLight} hover:shadow-md transition-all cursor-pointer`}
+                            style={{ borderLeftColor: config.color.replace('bg-', '#').replace('500', '600') }}
+                            onClick={() => setSelectedAgendamento(agendamento)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3 flex-1">
+                                <div className={`p-2 rounded-full ${config.color} bg-opacity-20`}>
+                                  <StatusIcon className={`w-4 h-4 ${config.textColor}`} />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-semibold">{agendamento.horaColeta}</span>
+                                    <span className="text-muted-foreground">•</span>
+                                    <span>{agendamento.clienteNome}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <MapPin className="w-3 h-3" />
+                                    <span className="truncate">{agendamento.endereco}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <Badge className={config.bgLight}>
+                                <span className={config.textColor}>{config.label}</span>
+                              </Badge>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8 text-sm">
+                    Nenhum agendamento para este dia
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Agendamentos</h2>
+            <p className="text-muted-foreground mt-1">
+              Gerencie coletas de caixas e entregas
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant={showFilters ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Filtros
+            </Button>
+            <Button variant="outline" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              Exportar
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) resetForm();
+            }}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Agendamento
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Novo Agendamento</DialogTitle>
+                  <DialogDescription>
+                    Agende uma coleta de caixas
+                  </DialogDescription>
+                </DialogHeader>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="clienteId">Cliente *</Label>
+                    <Select
+                      value={formData.clienteId}
+                      onValueChange={(value) => setFormData({ ...formData, clienteId: value })}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o cliente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clientes.map(cliente => (
+                          <SelectItem key={cliente.id} value={cliente.id}>
+                            {cliente.nome} - {cliente.enderecoUSA.cidade}, {cliente.enderecoUSA.estado}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="dataColeta">Data da Coleta *</Label>
+                      <Input
+                        id="dataColeta"
+                        type="date"
+                        value={formData.dataColeta}
+                        onChange={(e) => setFormData({ ...formData, dataColeta: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="horaColeta">Horário *</Label>
+                      <Input
+                        id="horaColeta"
+                        type="time"
+                        value={formData.horaColeta}
+                        onChange={(e) => setFormData({ ...formData, horaColeta: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="atendente">Atendente *</Label>
+                    <Input
+                      id="atendente"
+                      value={formData.atendente}
+                      onChange={(e) => setFormData({ ...formData, atendente: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="observacoes">Observações</Label>
+                    <Textarea
+                      id="observacoes"
+                      value={formData.observacoes}
+                      onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                      placeholder="Informações adicionais..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => {
+                      resetForm();
+                      setIsDialogOpen(false);
+                    }}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit">
+                      Agendar
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* Métricas Principais */}
+        <div className="grid grid-cols-6 gap-4">
+          <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-blue-900">Hoje</span>
+              <CalendarIcon className="w-5 h-5 text-blue-600" />
+            </div>
+            <p className="text-3xl font-bold text-blue-900">{statistics.hoje}</p>
+            <p className="text-xs text-blue-700 mt-1">Agendamentos</p>
+          </Card>
+
+          <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-purple-900">Amanhã</span>
+              <Clock className="w-5 h-5 text-purple-600" />
+            </div>
+            <p className="text-3xl font-bold text-purple-900">{statistics.amanha}</p>
+            <p className="text-xs text-purple-700 mt-1">Programados</p>
+          </Card>
+
+          <Card className="p-5 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-yellow-900">Pendentes</span>
+              <AlertCircle className="w-5 h-5 text-yellow-600" />
+            </div>
+            <p className="text-3xl font-bold text-yellow-900">{statistics.pendentes}</p>
+            <p className="text-xs text-yellow-700 mt-1">Aguardando</p>
+          </Card>
+
+          <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-green-900">Confirmados</span>
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+            </div>
+            <p className="text-3xl font-bold text-green-900">{statistics.confirmados}</p>
+            <p className="text-xs text-green-700 mt-1">Prontos</p>
+          </Card>
+
+          <Card className="p-5 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-red-900">Atrasados</span>
+              <AlertCircle className="w-5 h-5 text-red-600" />
+            </div>
+            <p className="text-3xl font-bold text-red-900">{statistics.atrasados}</p>
+            <p className="text-xs text-red-700 mt-1">Urgente</p>
+          </Card>
+
+          <Card className="p-5 bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-900">Total</span>
+              <BarChart3 className="w-5 h-5 text-slate-600" />
+            </div>
+            <p className="text-3xl font-bold text-slate-900">{statistics.total}</p>
+            <p className="text-xs text-slate-700 mt-1">Agendamentos</p>
+          </Card>
+        </div>
+
+        {/* Barra de Busca e View Mode */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por cliente, endereço ou atendente..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex gap-1 border border-border rounded-lg p-1">
+            <Button
+              variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('calendar')}
+            >
+              <CalendarIcon className="w-4 h-4 mr-2" />
+              Calendário
+            </Button>
+            <Button
+              variant={viewMode === 'timeline' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('timeline')}
+            >
+              <LayoutGrid className="w-4 h-4 mr-2" />
+              Timeline
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="w-4 h-4 mr-2" />
+              Lista
+            </Button>
+          </div>
+        </div>
+
+        {/* Painel de Filtros */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <Card className="p-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Período</label>
+                    <select
+                      value={filters.periodo}
+                      onChange={(e) => setFilters({ ...filters, periodo: e.target.value as any })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                    >
+                      <option value="todos">Todos</option>
+                      <option value="hoje">Hoje</option>
+                      <option value="semana">Esta Semana</option>
+                      <option value="mes">Este Mês</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Status</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {(['pendente', 'confirmado', 'coletado'] as const).map((s) => (
+                        <Button
+                          key={s}
+                          variant={filters.status.includes(s) ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => {
+                            setFilters({
+                              ...filters,
+                              status: filters.status.includes(s)
+                                ? filters.status.filter(x => x !== s)
+                                : [...filters.status, s]
+                            });
+                          }}
+                        >
+                          {statusConfig[s].label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Atendente</label>
+                    <Input
+                      placeholder="Filtrar por atendente..."
+                      value={filters.atendente}
+                      onChange={(e) => setFilters({ ...filters, atendente: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFilters({
+                      status: [],
+                      atendente: '',
+                      periodo: 'todos',
+                    })}
+                  >
+                    Limpar Filtros
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Content Views */}
+      {viewMode === 'calendar' && (
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card className="md:col-span-1">
+            <CardHeader>
+              <CardTitle>Calendário</CardTitle>
+              <CardDescription>
+                Selecione uma data
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                locale={ptBR}
+                className="rounded-md border"
+                modifiers={{
+                  agendado: getDatesWithAgendamentos(),
+                }}
+                modifiersStyles={{
+                  agendado: {
+                    fontWeight: 'bold',
+                    textDecoration: 'underline',
+                    color: '#5DADE2',
+                  },
+                }}
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>{getDateLabel(selectedDate)}</CardTitle>
+              <CardDescription>
+                {agendamentosDosDia.length} agendamento(s) programado(s)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <AnimatePresence>
+                  {agendamentosDosDia
+                    .sort((a, b) => a.horaColeta.localeCompare(b.horaColeta))
+                    .map((agendamento) => {
+                      const config = statusConfig[agendamento.status];
+                      const StatusIcon = config.icon;
+                      
+                      return (
+                        <motion.div
+                          key={agendamento.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          className="group"
+                        >
+                          <Card 
+                            className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${config.bgLight}`}
+                            style={{ borderLeftColor: config.color.replace('bg-', '#').replace('500', '600') }}
+                            onClick={() => setSelectedAgendamento(agendamento)}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start gap-3 flex-1">
+                                  <div className={`p-2 rounded-full ${config.color} bg-opacity-20`}>
+                                    <StatusIcon className={`w-5 h-5 ${config.textColor}`} />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="font-semibold text-lg">{agendamento.horaColeta}</span>
+                                      <Badge className={config.bgLight}>
+                                        <span className={config.textColor}>{config.label}</span>
+                                      </Badge>
+                                    </div>
+                                    <h4 className="font-semibold mb-1">{agendamento.clienteNome}</h4>
+                                    <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
+                                      <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                      <span>{agendamento.endereco}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                      <div className="flex items-center gap-1">
+                                        <User className="w-3 h-3" />
+                                        <span>{agendamento.atendente}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.endereco)}`, '_blank');
+                                    }}
+                                  >
+                                    <Navigation className="w-4 h-4 mr-1" />
+                                    Rota
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      );
+                    })}
+                </AnimatePresence>
+
+                {agendamentosDosDia.length === 0 && (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Nenhum agendamento para esta data</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {viewMode === 'timeline' && <TimelineView />}
+
+      {viewMode === 'list' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Todos os Agendamentos</CardTitle>
+            <CardDescription>
+              {filteredAgendamentos.length} agendamento(s) encontrado(s)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {filteredAgendamentos
+                .sort((a, b) => {
+                  const dateCompare = a.dataColeta.localeCompare(b.dataColeta);
+                  if (dateCompare !== 0) return dateCompare;
+                  return a.horaColeta.localeCompare(b.horaColeta);
+                })
+                .map((agendamento) => {
+                  const config = statusConfig[agendamento.status];
+                  const StatusIcon = config.icon;
+                  const agDate = new Date(agendamento.dataColeta + 'T00:00:00');
+                  const isAtrasado = isPast(agDate) && agendamento.status === 'pendente' && !isToday(agDate);
+                  
+                  return (
+                    <motion.div
+                      key={agendamento.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="group"
+                    >
+                      <Card 
+                        className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${
+                          isAtrasado ? 'bg-red-50 border-red-500' : config.bgLight
+                        }`}
+                        style={{ 
+                          borderLeftColor: isAtrasado 
+                            ? '#EF4444' 
+                            : config.color.replace('bg-', '#').replace('500', '600') 
+                        }}
+                        onClick={() => setSelectedAgendamento(agendamento)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-3 flex-1">
+                              <div className={`p-2 rounded-full ${config.color} bg-opacity-20`}>
+                                <StatusIcon className={`w-5 h-5 ${config.textColor}`} />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  <span className="font-semibold">
+                                    {format(agDate, "dd/MM/yyyy")}
+                                  </span>
+                                  <span className="text-muted-foreground">•</span>
+                                  <span className="font-semibold">{agendamento.horaColeta}</span>
+                                  <Badge className={config.bgLight}>
+                                    <span className={config.textColor}>{config.label}</span>
+                                  </Badge>
+                                  {isAtrasado && (
+                                    <Badge className="bg-red-100">
+                                      <span className="text-red-700">Atrasado</span>
+                                    </Badge>
+                                  )}
+                                </div>
+                                <h4 className="font-semibold mb-1">{agendamento.clienteNome}</h4>
+                                <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
+                                  <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                  <span>{agendamento.endereco}</span>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    <User className="w-3 h-3" />
+                                    <span>{agendamento.atendente}</span>
+                                  </div>
+                                  {agendamento.observacoes && (
+                                    <span className="text-xs italic truncate max-w-md">
+                                      Obs: {agendamento.observacoes}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.endereco)}`, '_blank');
+                                }}
+                              >
+                                <Navigation className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+
+              {filteredAgendamentos.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Nenhum agendamento encontrado</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Painel Lateral - Detalhes do Agendamento */}
+      <AnimatePresence>
+        {selectedAgendamento && (
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25 }}
+            className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-2xl border-l border-border z-50 overflow-y-auto"
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-border p-6 z-10">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold text-foreground mb-2">{selectedAgendamento.clienteNome}</h2>
+                  <Badge className={statusConfig[selectedAgendamento.status].bgLight}>
+                    <span className={statusConfig[selectedAgendamento.status].textColor}>
+                      {statusConfig[selectedAgendamento.status].label}
+                    </span>
+                  </Badge>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedAgendamento(null)}>
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              {/* Data e Hora */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <CalendarIcon className="w-4 h-4" />
+                  <span>{format(new Date(selectedAgendamento.dataColeta + 'T00:00:00'), "dd/MM/yyyy")}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="w-4 h-4" />
+                  <span>{selectedAgendamento.horaColeta}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Endereço */}
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Endereço de Coleta
+                </h3>
+                <p className="text-sm text-muted-foreground">{selectedAgendamento.endereco}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedAgendamento.endereco)}`, '_blank')}
+                >
+                  <Navigation className="w-4 h-4 mr-2" />
+                  Abrir no Google Maps
+                </Button>
+              </div>
+
+              {/* Atendente */}
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Atendente Responsável
+                </h3>
+                <p className="text-sm text-muted-foreground">{selectedAgendamento.atendente}</p>
+              </div>
+
+              {/* Observações */}
+              {selectedAgendamento.observacoes && (
+                <div>
+                  <h3 className="font-semibold mb-2">Observações</h3>
+                  <p className="text-sm text-muted-foreground italic">{selectedAgendamento.observacoes}</p>
+                </div>
+              )}
+
+              {/* Alterar Status */}
+              <div>
+                <h3 className="font-semibold mb-2">Alterar Status</h3>
+                <Select
+                  value={selectedAgendamento.status}
+                  onValueChange={(value) => {
+                    handleStatusChange(selectedAgendamento.id, value as Agendamento['status']);
+                    setSelectedAgendamento({ ...selectedAgendamento, status: value as Agendamento['status'] });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="confirmado">Confirmado</SelectItem>
+                    <SelectItem value="coletado">Coletado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Ações */}
+              <div className="space-y-2 pt-4 border-t">
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => handleDelete(selectedAgendamento.id, selectedAgendamento.clienteNome)}
+                >
+                  Excluir Agendamento
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
