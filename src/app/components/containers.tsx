@@ -322,17 +322,17 @@ export default function ContainersView() {
   }, [filteredContainers]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Gerenciamento de Containers</h2>
-            <p className="text-muted-foreground mt-1">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Gerenciamento de Containers</h2>
+            <p className="text-muted-foreground mt-1 text-sm lg:text-base">
               Rastreamento e controle de containers internacionais
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 flex-wrap">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -519,64 +519,64 @@ export default function ContainersView() {
         </div>
 
         {/* Métricas Principais */}
-        <div className="grid grid-cols-6 gap-4">
-          <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-blue-900">Total Containers</span>
-              <ContainerIcon className="w-5 h-5 text-blue-600" />
+              <span className="text-xs lg:text-sm font-medium text-blue-900">Total Containers</span>
+              <ContainerIcon className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
             </div>
-            <p className="text-3xl font-bold text-blue-900">{statistics.total}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-blue-900">{statistics.total}</p>
             <p className="text-xs text-blue-700 mt-1">Containers ativos</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-yellow-900">Em Preparação</span>
-              <Package className="w-5 h-5 text-yellow-600" />
+              <span className="text-xs lg:text-sm font-medium text-yellow-900">Em Preparação</span>
+              <Package className="w-4 h-4 lg:w-5 lg:h-5 text-yellow-600" />
             </div>
-            <p className="text-3xl font-bold text-yellow-900">{statistics.emPreparacao}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-yellow-900">{statistics.emPreparacao}</p>
             <p className="text-xs text-yellow-700 mt-1">Sendo carregados</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-purple-900">Em Trânsito</span>
-              <Ship className="w-5 h-5 text-purple-600" />
+              <span className="text-xs lg:text-sm font-medium text-purple-900">Em Trânsito</span>
+              <Ship className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
             </div>
-            <p className="text-3xl font-bold text-purple-900">{statistics.emTransito}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-purple-900">{statistics.emTransito}</p>
             <p className="text-xs text-purple-700 mt-1">No oceano</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-green-900">Entregues</span>
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              <span className="text-xs lg:text-sm font-medium text-green-900">Entregues</span>
+              <CheckCircle2 className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
             </div>
-            <p className="text-3xl font-bold text-green-900">{statistics.entregues}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-green-900">{statistics.entregues}</p>
             <p className="text-xs text-green-700 mt-1">Completos</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-orange-900">Total Caixas</span>
-              <Boxes className="w-5 h-5 text-orange-600" />
+              <span className="text-xs lg:text-sm font-medium text-orange-900">Total Caixas</span>
+              <Boxes className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" />
             </div>
-            <p className="text-3xl font-bold text-orange-900">{statistics.totalCaixas}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-orange-900">{statistics.totalCaixas}</p>
             <p className="text-xs text-orange-700 mt-1">Unidades</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-900">Peso Total</span>
-              <Weight className="w-5 h-5 text-slate-600" />
+              <span className="text-xs lg:text-sm font-medium text-slate-900">Peso Total</span>
+              <Weight className="w-4 h-4 lg:w-5 lg:h-5 text-slate-600" />
             </div>
-            <p className="text-3xl font-bold text-slate-900">{statistics.pesoTotal.toFixed(0)}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-slate-900">{statistics.pesoTotal.toFixed(0)}</p>
             <p className="text-xs text-slate-700 mt-1">Quilogramas</p>
           </Card>
         </div>
 
         {/* Barra de Busca e View Mode */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -586,27 +586,33 @@ export default function ContainersView() {
               className="pl-10"
             />
           </div>
-          <div className="flex gap-1 border border-border rounded-lg p-1">
+          <div className="flex gap-1 border border-border rounded-lg p-1 bg-muted/30">
             <Button
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('grid')}
+              className="flex-1 sm:flex-none"
             >
-              <LayoutGrid className="w-4 h-4" />
+              <LayoutGrid className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Grid</span>
             </Button>
             <Button
               variant={viewMode === 'list' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('list')}
+              className="flex-1 sm:flex-none"
             >
-              <List className="w-4 h-4" />
+              <List className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Lista</span>
             </Button>
             <Button
               variant={viewMode === 'kanban' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('kanban')}
+              className="flex-1 sm:flex-none"
             >
-              <Boxes className="w-4 h-4" />
+              <Boxes className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Kanban</span>
             </Button>
           </div>
         </div>
@@ -619,43 +625,73 @@ export default function ContainersView() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
             >
-              <Card className="p-4">
-                <div className="grid grid-cols-3 gap-4">
+              <Card className="p-4 bg-gradient-to-br from-slate-50 to-slate-100">
+                <div className="space-y-4">
+                  {/* Filtro de Status */}
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Status</label>
-                    <select
-                      value={filters.status}
-                      onChange={(e) => setFilters({ ...filters, status: e.target.value as any })}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                    >
-                      <option value="todos">Todos</option>
-                      <option value="preparacao">Em Preparação</option>
-                      <option value="transito">Em Trânsito</option>
-                      <option value="entregue">Entregue</option>
-                      <option value="cancelado">Cancelado</option>
-                    </select>
+                    <label className="text-sm font-semibold mb-3 block text-slate-700">🚢 Status do Container</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {(['todos', 'preparacao', 'transito', 'entregue', 'cancelado'] as const).map((status) => {
+                        const statusColors = {
+                          todos: 'bg-slate-600',
+                          preparacao: 'bg-yellow-500',
+                          transito: 'bg-purple-500',
+                          entregue: 'bg-green-500',
+                          cancelado: 'bg-red-500',
+                        };
+                        const statusLabels = {
+                          todos: 'Todos',
+                          preparacao: 'Em Preparação',
+                          transito: 'Em Trânsito',
+                          entregue: 'Entregue',
+                          cancelado: 'Cancelado',
+                        };
+                        const isSelected = filters.status === status;
+                        return (
+                          <Badge
+                            key={status}
+                            onClick={() => setFilters({ ...filters, status })}
+                            className={`cursor-pointer px-4 py-2 transition-all ${
+                              isSelected
+                                ? `${statusColors[status]} text-white hover:opacity-90`
+                                : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'
+                            }`}
+                          >
+                            {statusLabels[status]}
+                          </Badge>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Origem</label>
-                    <Input
-                      placeholder="Miami, FL..."
-                      value={filters.origem}
-                      onChange={(e) => setFilters({ ...filters, origem: e.target.value })}
-                    />
-                  </div>
+                  {/* Filtros de Localização */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-semibold mb-3 block text-slate-700">📍 Origem</label>
+                      <Input
+                        placeholder="Miami, FL..."
+                        value={filters.origem}
+                        onChange={(e) => setFilters({ ...filters, origem: e.target.value })}
+                        className="bg-white"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Destino</label>
-                    <Input
-                      placeholder="São Paulo, SP..."
-                      value={filters.destino}
-                      onChange={(e) => setFilters({ ...filters, destino: e.target.value })}
-                    />
+                    <div>
+                      <label className="text-sm font-semibold mb-3 block text-slate-700">🎯 Destino</label>
+                      <Input
+                        placeholder="São Paulo, SP..."
+                        value={filters.destino}
+                        onChange={(e) => setFilters({ ...filters, destino: e.target.value })}
+                        className="bg-white"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-4 flex justify-end">
+                <div className="mt-4 flex justify-between items-center pt-4 border-t border-slate-200">
+                  <div className="text-xs text-slate-600">
+                    {filteredContainers.length} container(s) encontrado(s)
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -664,7 +700,9 @@ export default function ContainersView() {
                       origem: '',
                       destino: '',
                     })}
+                    className="text-slate-600 hover:text-slate-900"
                   >
+                    <X className="w-4 h-4 mr-1" />
                     Limpar Filtros
                   </Button>
                 </div>
@@ -1017,31 +1055,39 @@ export default function ContainersView() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25 }}
-            className="fixed inset-y-0 right-0 w-[700px] bg-white shadow-2xl border-l border-border z-50 overflow-y-auto"
+            className="fixed inset-y-0 right-0 w-full lg:w-[700px] bg-white shadow-2xl border-l border-border z-50 overflow-y-auto"
           >
             {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-border p-6 z-10">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start gap-4 flex-1">
-                  <div className="bg-blue-500 p-4 rounded-full">
-                    <ContainerIcon className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-foreground mb-2">{selectedContainer.numero}</h2>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge className={getStatusColor(selectedContainer.status).badge}>
-                        {getStatusLabel(selectedContainer.status)}
-                      </Badge>
-                      <Badge variant="outline">
-                        {selectedContainer.caixas?.length || 0} caixas
-                      </Badge>
-                      <Badge variant="outline">
-                        {selectedContainer.pesoTotal || 0} kg
-                      </Badge>
+            <div className="sticky top-0 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-border p-4 lg:p-6 z-10">
+              <div className="flex flex-col gap-4">
+                {/* Primeira linha - Ícone, Título e Fechar */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 lg:gap-4 flex-1 min-w-0">
+                    <div className="bg-blue-500 p-3 lg:p-4 rounded-full flex-shrink-0">
+                      <ContainerIcon className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-lg lg:text-2xl font-bold text-foreground mb-2 truncate">{selectedContainer.numero}</h2>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge className={getStatusColor(selectedContainer.status).badge}>
+                          {getStatusLabel(selectedContainer.status)}
+                        </Badge>
+                        <Badge variant="outline">
+                          {selectedContainer.caixas?.length || 0} caixas
+                        </Badge>
+                        <Badge variant="outline">
+                          {selectedContainer.pesoTotal || 0} kg
+                        </Badge>
+                      </div>
                     </div>
                   </div>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedContainer(null)} className="flex-shrink-0">
+                    <X className="w-5 h-5" />
+                  </Button>
                 </div>
-                <div className="flex gap-2">
+                
+                {/* Segunda linha - Botões de ação */}
+                <div className="flex gap-2 w-full">
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -1060,6 +1106,7 @@ export default function ContainersView() {
                       });
                       setIsEditDialogOpen(true);
                     }}
+                    className="flex-1"
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Editar
@@ -1068,12 +1115,10 @@ export default function ContainersView() {
                     variant="outline" 
                     size="sm"
                     onClick={() => setIsDeleteDialogOpen(true)}
+                    className="flex-1"
                   >
                     <Trash2 className="w-4 h-4 mr-2 text-red-600" />
                     Excluir
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedContainer(null)}>
-                    <X className="w-5 h-5" />
                   </Button>
                 </div>
               </div>

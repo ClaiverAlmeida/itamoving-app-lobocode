@@ -280,26 +280,27 @@ export default function ClientesView() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Clientes</h2>
-            <p className="text-muted-foreground mt-1">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Clientes</h2>
+            <p className="text-muted-foreground mt-1 text-sm lg:text-base">
               Gerencie o cadastro de clientes e destinatários
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant={showFilters ? 'default' : 'outline'}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
+              className="flex-1 sm:flex-none"
             >
               <Filter className="w-4 h-4 mr-2" />
               Filtros
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
@@ -544,40 +545,40 @@ export default function ClientesView() {
         </div>
 
         {/* Métricas Principais */}
-        <div className="grid grid-cols-4 gap-4">
-          <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-blue-900">Total de Clientes</span>
-              <UsersIcon className="w-5 h-5 text-blue-600" />
+              <span className="text-xs lg:text-sm font-medium text-blue-900">Total de Clientes</span>
+              <UsersIcon className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
             </div>
-            <p className="text-3xl font-bold text-blue-900">{statistics.total}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-blue-900">{statistics.total}</p>
             <p className="text-xs text-blue-700 mt-1">Cadastros ativos</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-green-900">Novos (7 dias)</span>
-              <TrendingUp className="w-5 h-5 text-green-600" />
+              <span className="text-xs lg:text-sm font-medium text-green-900">Novos (7 dias)</span>
+              <TrendingUp className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
             </div>
-            <p className="text-3xl font-bold text-green-900">{statistics.novosUltimaSemana}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-green-900">{statistics.novosUltimaSemana}</p>
             <p className="text-xs text-green-700 mt-1">Última semana</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-purple-900">Estados (USA)</span>
-              <Building className="w-5 h-5 text-purple-600" />
+              <span className="text-xs lg:text-sm font-medium text-purple-900">Estados (USA)</span>
+              <Building className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
             </div>
-            <p className="text-3xl font-bold text-purple-900">{statistics.estadosUnicos}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-purple-900">{statistics.estadosUnicos}</p>
             <p className="text-xs text-purple-700 mt-1">Localizações únicas</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-orange-900">Cidades (BR)</span>
-              <Flag className="w-5 h-5 text-orange-600" />
+              <span className="text-xs lg:text-sm font-medium text-orange-900">Cidades (BR)</span>
+              <Flag className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" />
             </div>
-            <p className="text-3xl font-bold text-orange-900">{statistics.cidadesBrasilUnicas}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-orange-900">{statistics.cidadesBrasilUnicas}</p>
             <p className="text-xs text-orange-700 mt-1">Destinos no Brasil</p>
           </Card>
         </div>
@@ -620,7 +621,7 @@ export default function ClientesView() {
               exit={{ opacity: 0, height: 0 }}
             >
               <Card className="p-4">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="text-sm font-medium mb-2 block">Período de Cadastro</label>
                     <select
@@ -888,7 +889,7 @@ export default function ClientesView() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25 }}
-            className="fixed inset-y-0 right-0 w-[600px] bg-white shadow-2xl border-l border-border z-50 overflow-y-auto"
+            className="fixed inset-y-0 right-0 w-full lg:w-[600px] bg-white shadow-2xl border-l border-border z-50 overflow-y-auto"
           >
             {/* Header */}
             <div className="sticky top-0 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-border p-6 z-10">

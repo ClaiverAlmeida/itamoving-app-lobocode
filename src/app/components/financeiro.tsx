@@ -270,26 +270,27 @@ export default function FinanceiroView() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Gestão Financeira</h2>
-            <p className="text-muted-foreground mt-1">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Gestão Financeira</h2>
+            <p className="text-muted-foreground mt-1 text-sm lg:text-base">
               Fluxo de caixa, receitas e despesas
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant={showFilters ? 'default' : 'outline'}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
+              className="flex-1 sm:flex-none"
             >
               <Filter className="w-4 h-4 mr-2" />
               Filtros
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
@@ -445,37 +446,37 @@ export default function FinanceiroView() {
         </div>
 
         {/* Métricas Principais */}
-        <div className="grid grid-cols-5 gap-4">
-          <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-green-900">Receitas</span>
-              <TrendingUp className="w-5 h-5 text-green-600" />
+              <span className="text-xs lg:text-sm font-medium text-green-900">Receitas</span>
+              <TrendingUp className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
             </div>
-            <p className="text-3xl font-bold text-green-900">{formatCurrency(totalReceitas)}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-green-900">{formatCurrency(totalReceitas)}</p>
             <p className="text-xs text-green-700 mt-1">{receitas.length} transação(ões)</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-red-900">Despesas</span>
-              <TrendingDown className="w-5 h-5 text-red-600" />
+              <span className="text-xs lg:text-sm font-medium text-red-900">Despesas</span>
+              <TrendingDown className="w-4 h-4 lg:w-5 lg:h-5 text-red-600" />
             </div>
-            <p className="text-3xl font-bold text-red-900">{formatCurrency(totalDespesas)}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-red-900">{formatCurrency(totalDespesas)}</p>
             <p className="text-xs text-red-700 mt-1">{despesas.length} transação(ões)</p>
           </Card>
 
-          <Card className={`p-5 bg-gradient-to-br border-2 ${
+          <Card className={`p-4 lg:p-5 bg-gradient-to-br border-2 ${
             lucro >= 0 
               ? 'from-blue-50 to-blue-100 border-blue-200' 
               : 'from-orange-50 to-orange-100 border-orange-200'
           }`}>
             <div className="flex items-center justify-between mb-2">
-              <span className={`text-sm font-medium ${lucro >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
+              <span className={`text-xs lg:text-sm font-medium ${lucro >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
                 Lucro Líquido
               </span>
-              <DollarSign className={`w-5 h-5 ${lucro >= 0 ? 'text-blue-600' : 'text-orange-600'}`} />
+              <DollarSign className={`w-4 h-4 lg:w-5 lg:h-5 ${lucro >= 0 ? 'text-blue-600' : 'text-orange-600'}`} />
             </div>
-            <p className={`text-3xl font-bold ${lucro >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
+            <p className={`text-2xl lg:text-3xl font-bold ${lucro >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
               {formatCurrency(lucro)}
             </p>
             <p className={`text-xs mt-1 ${lucro >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
@@ -483,27 +484,27 @@ export default function FinanceiroView() {
             </p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-purple-900">Ticket Médio</span>
-              <Target className="w-5 h-5 text-purple-600" />
+              <span className="text-xs lg:text-sm font-medium text-purple-900">Ticket Médio</span>
+              <Target className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
             </div>
-            <p className="text-3xl font-bold text-purple-900">{formatCurrency(ticketMedio)}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-purple-900">{formatCurrency(ticketMedio)}</p>
             <p className="text-xs text-purple-700 mt-1">Por transação</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-cyan-900">Total</span>
-              <Activity className="w-5 h-5 text-cyan-600" />
+              <span className="text-xs lg:text-sm font-medium text-cyan-900">Total</span>
+              <Activity className="w-4 h-4 lg:w-5 lg:h-5 text-cyan-600" />
             </div>
-            <p className="text-3xl font-bold text-cyan-900">{filteredTransacoes.length}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-cyan-900">{filteredTransacoes.length}</p>
             <p className="text-xs text-cyan-700 mt-1">Transações</p>
           </Card>
         </div>
 
         {/* Filtros e Busca */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -513,25 +514,28 @@ export default function FinanceiroView() {
               className="pl-10"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1 border border-border rounded-lg p-1 bg-muted/30">
             <Button
-              variant={viewMode === 'todas' ? 'default' : 'outline'}
+              variant={viewMode === 'todas' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('todas')}
+              className="flex-1 sm:flex-none"
             >
               Todas
             </Button>
             <Button
-              variant={viewMode === 'receitas' ? 'default' : 'outline'}
+              variant={viewMode === 'receitas' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('receitas')}
+              className="flex-1 sm:flex-none"
             >
               Receitas
             </Button>
             <Button
-              variant={viewMode === 'despesas' ? 'default' : 'outline'}
+              variant={viewMode === 'despesas' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('despesas')}
+              className="flex-1 sm:flex-none"
             >
               Despesas
             </Button>
@@ -539,7 +543,7 @@ export default function FinanceiroView() {
           <select
             value={periodFilter}
             onChange={(e) => setPeriodFilter(e.target.value as PeriodFilter)}
-            className="px-3 py-2 border border-border rounded-lg text-sm"
+            className="px-3 py-2 border border-border rounded-lg text-sm bg-white"
           >
             <option value="todos">Todos os períodos</option>
             <option value="mes">Último mês</option>

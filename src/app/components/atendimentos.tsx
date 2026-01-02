@@ -540,83 +540,88 @@ export default function AtendimentosView() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="space-y-6">
+      <div className="space-y-4 lg:space-y-6">
         {/* Header com Métricas */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Pipeline de Atendimentos</h1>
-              <p className="text-muted-foreground mt-1">
+              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Pipeline de Atendimentos</h1>
+              <p className="text-muted-foreground mt-1 text-sm lg:text-base">
                 Gerenciamento de leads do WhatsApp Bot
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 variant={showFilters ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
+                className="flex-1 sm:flex-none"
               >
                 <Filter className="w-4 h-4 mr-2" />
                 Filtros
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
                 <Download className="w-4 h-4 mr-2" />
                 Exportar
               </Button>
-              <div className="flex gap-1 border border-border rounded-lg p-1">
+              <div className="flex gap-1 border border-border rounded-lg p-1 bg-muted/30">
                 <Button
                   variant={viewMode === 'kanban' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('kanban')}
+                  className="flex-1 sm:flex-none"
                 >
-                  <LayoutGrid className="w-4 h-4" />
+                  <LayoutGrid className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Kanban</span>
                 </Button>
                 <Button
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('list')}
+                  className="flex-1 sm:flex-none"
                 >
-                  <List className="w-4 h-4" />
+                  <List className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Lista</span>
                 </Button>
               </div>
             </div>
           </div>
 
           {/* Métricas Principais */}
-          <div className="grid grid-cols-4 gap-4">
-            <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4">
+            <Card className="p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-blue-900">Total de Leads</span>
-                <UsersIcon className="w-5 h-5 text-blue-600" />
+                <span className="text-xs lg:text-sm font-medium text-blue-900">Total de Leads</span>
+                <UsersIcon className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
               </div>
-              <p className="text-3xl font-bold text-blue-900">{statistics.total}</p>
+              <p className="text-2xl lg:text-3xl font-bold text-blue-900">{statistics.total}</p>
               <p className="text-xs text-blue-700 mt-1">Todos os status</p>
             </Card>
 
-            <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <Card className="p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-green-900">Valor Total</span>
-                <DollarSign className="w-5 h-5 text-green-600" />
+                <span className="text-xs lg:text-sm font-medium text-green-900">Valor Total</span>
+                <DollarSign className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
               </div>
-              <p className="text-3xl font-bold text-green-900">{formatCurrency(statistics.totalValor)}</p>
+              <p className="text-2xl lg:text-3xl font-bold text-green-900">{formatCurrency(statistics.totalValor)}</p>
               <p className="text-xs text-green-700 mt-1">Pipeline completo</p>
             </Card>
 
-            <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <Card className="p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-purple-900">Taxa de Conversão</span>
-                <TrendingUp className="w-5 h-5 text-purple-600" />
+                <span className="text-xs lg:text-sm font-medium text-purple-900">Taxa de Conversão</span>
+                <TrendingUp className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
               </div>
-              <p className="text-3xl font-bold text-purple-900">{statistics.taxaConversao.toFixed(1)}%</p>
+              <p className="text-2xl lg:text-3xl font-bold text-purple-900">{statistics.taxaConversao.toFixed(1)}%</p>
               <p className="text-xs text-purple-700 mt-1">Leads fechados</p>
             </Card>
 
-            <Card className="p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+            <Card className="p-4 lg:p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-orange-900">Ticket Médio</span>
-                <BarChart3 className="w-5 h-5 text-orange-600" />
+                <span className="text-xs lg:text-sm font-medium text-orange-900">Ticket Médio</span>
+                <BarChart3 className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" />
               </div>
-              <p className="text-3xl font-bold text-orange-900">{formatCurrency(statistics.ticketMedio)}</p>
+              <p className="text-2xl lg:text-3xl font-bold text-orange-900">{formatCurrency(statistics.ticketMedio)}</p>
               <p className="text-xs text-orange-700 mt-1">Valor médio/lead</p>
             </Card>
           </div>
@@ -642,76 +647,105 @@ export default function AtendimentosView() {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
               >
-                <Card className="p-4">
-                  <div className="grid grid-cols-5 gap-4">
+                <Card className="p-4 bg-gradient-to-br from-slate-50 to-slate-100">
+                  <div className="space-y-4">
+                    {/* Filtro de Período */}
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Período</label>
-                      <select
-                        value={filters.periodo}
-                        onChange={(e) => setFilters({ ...filters, periodo: e.target.value as any })}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                      >
-                        <option value="todos">Todos</option>
-                        <option value="hoje">Hoje</option>
-                        <option value="semana">Esta Semana</option>
-                        <option value="mes">Este Mês</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Prioridade</label>
-                      <div className="flex gap-2">
-                        {(['alta', 'media', 'baixa'] as const).map((p) => (
-                          <Button
-                            key={p}
-                            variant={filters.prioridade.includes(p) ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => {
-                              setFilters({
-                                ...filters,
-                                prioridade: filters.prioridade.includes(p)
-                                  ? filters.prioridade.filter(x => x !== p)
-                                  : [...filters.prioridade, p]
-                              });
-                            }}
+                      <label className="text-sm font-semibold mb-3 block text-slate-700">📅 Período</label>
+                      <div className="flex gap-2 flex-wrap">
+                        {(['todos', 'hoje', 'semana', 'mes'] as const).map((periodo) => (
+                          <Badge
+                            key={periodo}
+                            onClick={() => setFilters({ ...filters, periodo })}
+                            className={`cursor-pointer px-4 py-2 transition-all ${
+                              filters.periodo === periodo
+                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'
+                            }`}
                           >
-                            {prioridadeConfig[p].label}
-                          </Button>
+                            {periodo === 'todos' && 'Todos'}
+                            {periodo === 'hoje' && 'Hoje'}
+                            {periodo === 'semana' && 'Esta Semana'}
+                            {periodo === 'mes' && 'Este Mês'}
+                          </Badge>
                         ))}
                       </div>
                     </div>
 
+                    {/* Filtro de Prioridade */}
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Origem</label>
-                      <Input
-                        placeholder="Miami, Orlando..."
-                        value={filters.origem}
-                        onChange={(e) => setFilters({ ...filters, origem: e.target.value })}
-                      />
+                      <label className="text-sm font-semibold mb-3 block text-slate-700">
+                        🔥 Prioridade {filters.prioridade.length > 0 && `(${filters.prioridade.length})`}
+                      </label>
+                      <div className="flex gap-2 flex-wrap">
+                        {(['alta', 'media', 'baixa'] as const).map((p) => {
+                          const isSelected = filters.prioridade.includes(p);
+                          const config = prioridadeConfig[p];
+                          return (
+                            <Badge
+                              key={p}
+                              onClick={() => {
+                                setFilters({
+                                  ...filters,
+                                  prioridade: isSelected
+                                    ? filters.prioridade.filter(x => x !== p)
+                                    : [...filters.prioridade, p]
+                                });
+                              }}
+                              className={`cursor-pointer px-4 py-2 transition-all flex items-center gap-2 ${
+                                isSelected
+                                  ? 'bg-slate-700 text-white'
+                                  : `bg-white ${config.color} border border-slate-300 hover:bg-slate-100`
+                              }`}
+                            >
+                              {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                              {config.label}
+                            </Badge>
+                          );
+                        })}
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Valor Mínimo</label>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        value={filters.valorMin}
-                        onChange={(e) => setFilters({ ...filters, valorMin: e.target.value })}
-                      />
-                    </div>
+                    {/* Filtros de Valor e Origem */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-sm font-semibold mb-3 block text-slate-700">📍 Origem</label>
+                        <Input
+                          placeholder="Miami, Orlando..."
+                          value={filters.origem}
+                          onChange={(e) => setFilters({ ...filters, origem: e.target.value })}
+                          className="bg-white"
+                        />
+                      </div>
 
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Valor Máximo</label>
-                      <Input
-                        type="number"
-                        placeholder="∞"
-                        value={filters.valorMax}
-                        onChange={(e) => setFilters({ ...filters, valorMax: e.target.value })}
-                      />
+                      <div>
+                        <label className="text-sm font-semibold mb-3 block text-slate-700">💰 Valor Mínimo</label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={filters.valorMin}
+                          onChange={(e) => setFilters({ ...filters, valorMin: e.target.value })}
+                          className="bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-semibold mb-3 block text-slate-700">💵 Valor Máximo</label>
+                        <Input
+                          type="number"
+                          placeholder="∞"
+                          value={filters.valorMax}
+                          onChange={(e) => setFilters({ ...filters, valorMax: e.target.value })}
+                          className="bg-white"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="mt-4 flex justify-end">
+                  <div className="mt-4 flex justify-between items-center pt-4 border-t border-slate-200">
+                    <div className="text-xs text-slate-600">
+                      {filteredLeads.length} lead(s) encontrado(s)
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -722,7 +756,9 @@ export default function AtendimentosView() {
                         valorMax: '',
                         periodo: 'todos',
                       })}
+                      className="text-slate-600 hover:text-slate-900"
                     >
+                      <X className="w-4 h-4 mr-1" />
                       Limpar Filtros
                     </Button>
                   </div>
@@ -769,7 +805,7 @@ export default function AtendimentosView() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25 }}
-              className="fixed inset-y-0 right-0 w-[600px] bg-white shadow-2xl border-l border-border z-50 overflow-y-auto"
+              className="fixed inset-y-0 right-0 w-full lg:w-[600px] bg-white shadow-2xl border-l border-border z-50 overflow-y-auto"
             >
               {/* Header */}
               <div className="sticky top-0 bg-white border-b border-border p-6 z-10">

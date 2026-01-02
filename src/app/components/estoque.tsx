@@ -251,18 +251,18 @@ export default function EstoqueView() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Controle de Estoque</h2>
-            <p className="text-muted-foreground mt-1">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Controle de Estoque</h2>
+            <p className="text-muted-foreground mt-1 text-sm lg:text-base">
               Gerencie caixas, materiais e movimentações
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline" size="sm">
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
@@ -362,49 +362,49 @@ export default function EstoqueView() {
         </div>
 
         {/* Métricas Principais */}
-        <div className="grid grid-cols-5 gap-4">
-          <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-blue-900">Total de Itens</span>
-              <Boxes className="w-5 h-5 text-blue-600" />
+              <span className="text-xs lg:text-sm font-medium text-blue-900">Total de Itens</span>
+              <Boxes className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
             </div>
-            <p className="text-3xl font-bold text-blue-900">{statistics.totalItens}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-blue-900">{statistics.totalItens}</p>
             <p className="text-xs text-blue-700 mt-1">Unidades em estoque</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-red-900">Críticos</span>
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <span className="text-xs lg:text-sm font-medium text-red-900">Críticos</span>
+              <AlertTriangle className="w-4 h-4 lg:w-5 lg:h-5 text-red-600" />
             </div>
-            <p className="text-3xl font-bold text-red-900">{statistics.itensCriticos}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-red-900">{statistics.itensCriticos}</p>
             <p className="text-xs text-red-700 mt-1">Abaixo do mínimo</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-green-900">Ideais</span>
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              <span className="text-xs lg:text-sm font-medium text-green-900">Ideais</span>
+              <CheckCircle2 className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
             </div>
-            <p className="text-3xl font-bold text-green-900">{statistics.itensOk}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-green-900">{statistics.itensOk}</p>
             <p className="text-xs text-green-700 mt-1">Estoque adequado</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-purple-900">Entradas (7d)</span>
-              <TrendingUp className="w-5 h-5 text-purple-600" />
+              <span className="text-xs lg:text-sm font-medium text-purple-900">Entradas (7d)</span>
+              <TrendingUp className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
             </div>
-            <p className="text-3xl font-bold text-purple-900">{statistics.entradas7dias}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-purple-900">{statistics.entradas7dias}</p>
             <p className="text-xs text-purple-700 mt-1">Última semana</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-orange-900">Saídas (7d)</span>
-              <TrendingDown className="w-5 h-5 text-orange-600" />
+              <span className="text-xs lg:text-sm font-medium text-orange-900">Saídas (7d)</span>
+              <TrendingDown className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" />
             </div>
-            <p className="text-3xl font-bold text-orange-900">{statistics.saidas7dias}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-orange-900">{statistics.saidas7dias}</p>
             <p className="text-xs text-orange-700 mt-1">Última semana</p>
           </Card>
         </div>

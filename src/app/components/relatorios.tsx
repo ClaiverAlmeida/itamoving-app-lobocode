@@ -220,13 +220,13 @@ export default function RelatoriosView() {
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Relatórios e Análises</h2>
-            <p className="text-muted-foreground mt-1">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Relatórios e Análises</h2>
+            <p className="text-muted-foreground mt-1 text-sm lg:text-base">
               Dashboards executivos e insights de negócio
             </p>
           </div>
@@ -247,7 +247,7 @@ export default function RelatoriosView() {
         </div>
 
         {/* Navegação de Relatórios */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {reportTypes.map(type => {
             const Icon = type.icon;
             return (
@@ -255,7 +255,8 @@ export default function RelatoriosView() {
                 key={type.id}
                 variant={selectedReport === type.id ? 'default' : 'outline'}
                 onClick={() => setSelectedReport(type.id as ReportType)}
-                className="flex items-center gap-2 whitespace-nowrap"
+                className="flex items-center gap-2 whitespace-nowrap flex-shrink-0"
+                size="sm"
               >
                 <Icon className="w-4 h-4" />
                 {type.label}
@@ -273,7 +274,7 @@ export default function RelatoriosView() {
           className="space-y-6"
         >
           {/* KPIs Principais */}
-          <div className="grid grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
             <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-blue-900">Receitas</span>

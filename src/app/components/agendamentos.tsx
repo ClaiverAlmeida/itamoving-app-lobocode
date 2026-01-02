@@ -299,26 +299,27 @@ export default function AgendamentosView() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Agendamentos</h2>
-            <p className="text-muted-foreground mt-1">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Agendamentos</h2>
+            <p className="text-muted-foreground mt-1 text-sm lg:text-base">
               Gerencie coletas de caixas e entregas
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant={showFilters ? 'default' : 'outline'}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
+              className="flex-1 sm:flex-none"
             >
               <Filter className="w-4 h-4 mr-2" />
               Filtros
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
@@ -424,102 +425,107 @@ export default function AgendamentosView() {
         </div>
 
         {/* Métricas Principais */}
-        <div className="grid grid-cols-6 gap-4">
-          <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-blue-900">Hoje</span>
-              <CalendarIcon className="w-5 h-5 text-blue-600" />
+              <span className="text-xs lg:text-sm font-medium text-blue-900">Hoje</span>
+              <CalendarIcon className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
             </div>
-            <p className="text-3xl font-bold text-blue-900">{statistics.hoje}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-blue-900">{statistics.hoje}</p>
             <p className="text-xs text-blue-700 mt-1">Agendamentos</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-purple-900">Amanhã</span>
-              <Clock className="w-5 h-5 text-purple-600" />
+              <span className="text-xs lg:text-sm font-medium text-purple-900">Amanhã</span>
+              <Clock className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
             </div>
-            <p className="text-3xl font-bold text-purple-900">{statistics.amanha}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-purple-900">{statistics.amanha}</p>
             <p className="text-xs text-purple-700 mt-1">Programados</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-yellow-900">Pendentes</span>
-              <AlertCircle className="w-5 h-5 text-yellow-600" />
+              <span className="text-xs lg:text-sm font-medium text-yellow-900">Pendentes</span>
+              <AlertCircle className="w-4 h-4 lg:w-5 lg:h-5 text-yellow-600" />
             </div>
-            <p className="text-3xl font-bold text-yellow-900">{statistics.pendentes}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-yellow-900">{statistics.pendentes}</p>
             <p className="text-xs text-yellow-700 mt-1">Aguardando</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-green-900">Confirmados</span>
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              <span className="text-xs lg:text-sm font-medium text-green-900">Confirmados</span>
+              <CheckCircle2 className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
             </div>
-            <p className="text-3xl font-bold text-green-900">{statistics.confirmados}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-green-900">{statistics.confirmados}</p>
             <p className="text-xs text-green-700 mt-1">Prontos</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-red-900">Atrasados</span>
-              <AlertCircle className="w-5 h-5 text-red-600" />
+              <span className="text-xs lg:text-sm font-medium text-red-900">Atrasados</span>
+              <AlertCircle className="w-4 h-4 lg:w-5 lg:h-5 text-red-600" />
             </div>
-            <p className="text-3xl font-bold text-red-900">{statistics.atrasados}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-red-900">{statistics.atrasados}</p>
             <p className="text-xs text-red-700 mt-1">Urgente</p>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
+          <Card className="p-4 lg:p-5 bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-900">Total</span>
-              <BarChart3 className="w-5 h-5 text-slate-600" />
+              <span className="text-xs lg:text-sm font-medium text-slate-900">Total</span>
+              <BarChart3 className="w-4 h-4 lg:w-5 lg:h-5 text-slate-600" />
             </div>
-            <p className="text-3xl font-bold text-slate-900">{statistics.total}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-slate-900">{statistics.total}</p>
             <p className="text-xs text-slate-700 mt-1">Agendamentos</p>
           </Card>
         </div>
 
         {/* Barra de Busca e View Mode */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por cliente, endereço ou atendente..."
+              placeholder="Buscar por cliente, endereço..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
-          <div className="flex gap-1 border border-border rounded-lg p-1">
+          
+          {/* View Mode - Compacto em Mobile */}
+          <div className="flex gap-1 border border-border rounded-lg p-1 bg-muted/30">
             <Button
               variant={viewMode === 'calendar' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('calendar')}
+              className="flex-1 sm:flex-none"
             >
-              <CalendarIcon className="w-4 h-4 mr-2" />
-              Calendário
+              <CalendarIcon className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Calendário</span>
             </Button>
             <Button
               variant={viewMode === 'timeline' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('timeline')}
+              className="flex-1 sm:flex-none"
             >
-              <LayoutGrid className="w-4 h-4 mr-2" />
-              Timeline
+              <LayoutGrid className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Timeline</span>
             </Button>
             <Button
               variant={viewMode === 'list' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('list')}
+              className="flex-1 sm:flex-none"
             >
-              <List className="w-4 h-4 mr-2" />
-              Lista
+              <List className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Lista</span>
             </Button>
           </div>
         </div>
 
-        {/* Painel de Filtros */}
+        {/* Painel de Filtros - UX Melhorada */}
         <AnimatePresence>
           {showFilters && (
             <motion.div
@@ -527,56 +533,82 @@ export default function AgendamentosView() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
             >
-              <Card className="p-4">
-                <div className="grid grid-cols-3 gap-4">
+              <Card className="p-4 bg-gradient-to-br from-slate-50 to-slate-100">
+                <div className="space-y-4">
+                  {/* Filtro de Período */}
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Período</label>
-                    <select
-                      value={filters.periodo}
-                      onChange={(e) => setFilters({ ...filters, periodo: e.target.value as any })}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                    >
-                      <option value="todos">Todos</option>
-                      <option value="hoje">Hoje</option>
-                      <option value="semana">Esta Semana</option>
-                      <option value="mes">Este Mês</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Status</label>
+                    <label className="text-sm font-semibold mb-3 block text-slate-700">📅 Período</label>
                     <div className="flex gap-2 flex-wrap">
-                      {(['pendente', 'confirmado', 'coletado'] as const).map((s) => (
-                        <Button
-                          key={s}
-                          variant={filters.status.includes(s) ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => {
-                            setFilters({
-                              ...filters,
-                              status: filters.status.includes(s)
-                                ? filters.status.filter(x => x !== s)
-                                : [...filters.status, s]
-                            });
-                          }}
+                      {(['todos', 'hoje', 'semana', 'mes'] as const).map((periodo) => (
+                        <Badge
+                          key={periodo}
+                          onClick={() => setFilters({ ...filters, periodo })}
+                          className={`cursor-pointer px-4 py-2 transition-all ${
+                            filters.periodo === periodo
+                              ? 'bg-blue-600 text-white hover:bg-blue-700'
+                              : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'
+                          }`}
                         >
-                          {statusConfig[s].label}
-                        </Button>
+                          {periodo === 'todos' && 'Todos'}
+                          {periodo === 'hoje' && 'Hoje'}
+                          {periodo === 'semana' && 'Esta Semana'}
+                          {periodo === 'mes' && 'Este Mês'}
+                        </Badge>
                       ))}
                     </div>
                   </div>
 
+                  {/* Filtro de Status */}
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Atendente</label>
+                    <label className="text-sm font-semibold mb-3 block text-slate-700">
+                      🏷️ Status {filters.status.length > 0 && `(${filters.status.length})`}
+                    </label>
+                    <div className="flex gap-2 flex-wrap">
+                      {(['pendente', 'confirmado', 'coletado', 'cancelado'] as const).map((s) => {
+                        const config = statusConfig[s];
+                        const isSelected = filters.status.includes(s);
+                        return (
+                          <Badge
+                            key={s}
+                            onClick={() => {
+                              setFilters({
+                                ...filters,
+                                status: isSelected
+                                  ? filters.status.filter(x => x !== s)
+                                  : [...filters.status, s]
+                              });
+                            }}
+                            className={`cursor-pointer px-4 py-2 transition-all flex items-center gap-2 ${
+                              isSelected
+                                ? `${config.color} text-white`
+                                : `bg-white ${config.textColor} border border-slate-300 hover:bg-slate-100`
+                            }`}
+                          >
+                            {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                            {config.label}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Filtro de Atendente */}
+                  <div>
+                    <label className="text-sm font-semibold mb-3 block text-slate-700">👤 Atendente</label>
                     <Input
-                      placeholder="Filtrar por atendente..."
+                      placeholder="Digite o nome do atendente..."
                       value={filters.atendente}
                       onChange={(e) => setFilters({ ...filters, atendente: e.target.value })}
+                      className="bg-white"
                     />
                   </div>
                 </div>
 
-                <div className="mt-4 flex justify-end">
+                {/* Botões de Ação */}
+                <div className="mt-4 flex justify-between items-center pt-4 border-t border-slate-200">
+                  <div className="text-xs text-slate-600">
+                    {filteredAgendamentos.length} agendamento(s) encontrado(s)
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -585,7 +617,9 @@ export default function AgendamentosView() {
                       atendente: '',
                       periodo: 'todos',
                     })}
+                    className="text-slate-600 hover:text-slate-900"
                   >
+                    <X className="w-4 h-4 mr-1" />
                     Limpar Filtros
                   </Button>
                 </div>
@@ -757,18 +791,18 @@ export default function AgendamentosView() {
                         onClick={() => setSelectedAgendamento(agendamento)}
                       >
                         <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start gap-3 flex-1">
-                              <div className={`p-2 rounded-full ${config.color} bg-opacity-20`}>
+                          <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 flex-1 min-w-0 w-full">
+                              <div className={`p-2 rounded-full ${config.color} bg-opacity-20 flex-shrink-0`}>
                                 <StatusIcon className={`w-5 h-5 ${config.textColor}`} />
                               </div>
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                  <span className="font-semibold">
+                                  <span className="font-semibold text-sm sm:text-base">
                                     {format(agDate, "dd/MM/yyyy")}
                                   </span>
                                   <span className="text-muted-foreground">•</span>
-                                  <span className="font-semibold">{agendamento.horaColeta}</span>
+                                  <span className="font-semibold text-sm sm:text-base">{agendamento.horaColeta}</span>
                                   <Badge className={config.bgLight}>
                                     <span className={config.textColor}>{config.label}</span>
                                   </Badge>
@@ -778,25 +812,25 @@ export default function AgendamentosView() {
                                     </Badge>
                                   )}
                                 </div>
-                                <h4 className="font-semibold mb-1">{agendamento.clienteNome}</h4>
+                                <h4 className="font-semibold mb-1 truncate">{agendamento.clienteNome}</h4>
                                 <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
                                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                  <span>{agendamento.endereco}</span>
+                                  <span className="line-clamp-2 break-words">{agendamento.endereco}</span>
                                 </div>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                                   <div className="flex items-center gap-1">
-                                    <User className="w-3 h-3" />
-                                    <span>{agendamento.atendente}</span>
+                                    <User className="w-3 h-3 flex-shrink-0" />
+                                    <span className="truncate">{agendamento.atendente}</span>
                                   </div>
                                   {agendamento.observacoes && (
-                                    <span className="text-xs italic truncate max-w-md">
+                                    <span className="text-xs italic line-clamp-1 break-words">
                                       Obs: {agendamento.observacoes}
                                     </span>
                                   )}
                                 </div>
                               </div>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 w-full sm:w-auto justify-end">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -804,6 +838,7 @@ export default function AgendamentosView() {
                                   e.stopPropagation();
                                   window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.endereco)}`, '_blank');
                                 }}
+                                className="flex-1 sm:flex-none"
                               >
                                 <Navigation className="w-4 h-4" />
                               </Button>
@@ -834,7 +869,7 @@ export default function AgendamentosView() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25 }}
-            className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-2xl border-l border-border z-50 overflow-y-auto"
+            className="fixed inset-y-0 right-0 w-full lg:w-[500px] bg-white shadow-2xl border-l border-border z-50 overflow-y-auto"
           >
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-border p-6 z-10">
