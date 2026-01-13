@@ -6,6 +6,7 @@ import { Label } from './ui/label';
 import { Badge } from './ui/badge';
 import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'motion/react';
+import OrdemServicoForm from './ordem-servico-form';
 import {
   Truck,
   Package,
@@ -56,6 +57,8 @@ export default function MotoristaApp() {
   const [assinatura, setAssinatura] = useState('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<any>(null);
 
   // Converter agendamentos em ordens de serviço
   const ordensServico: OrdemServico[] = agendamentos
@@ -632,16 +635,32 @@ export default function MotoristaApp() {
                       </div>
                     </div>
 
-                    <Button
-                      onClick={() => {
-                        setOrdemSelecionada(ordem);
-                        setViewMode('ordem');
-                      }}
-                      className="w-full bg-gradient-to-r from-[#1E3A5F] to-[#2A4A6F]"
-                    >
-                      <Truck className="w-4 h-4 mr-2" />
-                      Iniciar Entrega
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        onClick={() => {
+                          setOrdemSelecionada(ordem);
+                          setViewMode('ordem');
+                        }}
+                        variant="outline"
+                        className="border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white"
+                      >
+                        <Truck className="w-4 h-4 mr-2" />
+                        Iniciar
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          const agendamento = agendamentos.find(a => a.id === ordem.id);
+                          if (agendamento) {
+                            setAgendamentoSelecionado(agendamento);
+                            setMostrarFormulario(true);
+                          }
+                        }}
+                        className="bg-gradient-to-r from-[#F5A623] to-[#E59400] hover:from-[#E59400] hover:to-[#D48500]"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Formulário
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -658,6 +677,20 @@ export default function MotoristaApp() {
           </CardContent>
         </Card>
       )}
+
+      {/* Formulário de Ordem de Serviço */}
+      <AnimatePresence>
+        {mostrarFormulario && agendamentoSelecionado && (
+          <OrdemServicoForm
+            agendamentoId={agendamentoSelecionado.id}
+            agendamento={agendamentoSelecionado}
+            onClose={() => {
+              setMostrarFormulario(false);
+              setAgendamentoSelecionado(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

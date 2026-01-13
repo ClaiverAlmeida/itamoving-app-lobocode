@@ -224,3 +224,52 @@ export interface Avaliacao {
   metasProximoPeriodo: string[];
   observacoes?: string;
 }
+
+export interface OrdemServicoMotorista {
+  id: string;
+  agendamentoId: string;
+  
+  // Dados do Remetente (USA)
+  remetente: {
+    nome: string;
+    endereco: string;
+    cidade: string;
+    estado: string;
+    zipCode: string;
+    telefone: string;
+    cpfRg?: string;
+  };
+  
+  // Dados do Destinatário (Brasil)
+  destinatario: {
+    nome: string;
+    cpfRg: string;
+    endereco: string;
+    bairro: string;
+    cidade: string;
+    estado: string;
+    cep: string;
+    telefone: string;
+  };
+  
+  // Caixas e Valores
+  caixas: {
+    id: string;
+    tipo: string; // tipo da caixa
+    numero: string;
+    valor: number;
+  }[];
+  
+  // Assinaturas e Data
+  assinaturaCliente?: string;
+  assinaturaAgente?: string;
+  dataAssinatura: string;
+  
+  // Motorista e Status
+  motoristaNome: string;
+  motoristaId: string;
+  status: 'pendente' | 'em_andamento' | 'concluida';
+  
+  // Observações
+  observacoes?: string;
+}

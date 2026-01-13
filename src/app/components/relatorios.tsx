@@ -1,21 +1,15 @@
-import React, { useState, useMemo } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "./ui/card";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Badge } from "./ui/badge";
-import { useData } from "../context/DataContext";
-import {
-  Search,
-  Download,
-  FileText,
-  Users,
-  Package,
+import { useState, useMemo } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Badge } from './ui/badge';
+import { useData } from '../context/DataContext';
+import { 
+  Search, 
+  Download, 
+  FileText, 
+  Users, 
+  Package, 
   DollarSign,
   Calendar,
   TrendingUp,
@@ -42,9 +36,9 @@ import {
   AlertCircle,
   CheckCircle2,
   XCircle,
-  TrendingUpIcon,
-} from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+  TrendingUpIcon
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   BarChart,
   Bar,
@@ -65,37 +59,30 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  Radar,
-} from "recharts";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
+  Radar
+} from 'recharts';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale/pt-BR';
 
-type ReportType =
-  | "visao-geral"
-  | "clientes"
-  | "financeiro"
-  | "operacional"
-  | "atendimento";
+type ReportType = 'visao-geral' | 'clientes' | 'financeiro' | 'operacional' | 'atendimento';
 
 export default function RelatoriosView() {
   const { clientes, transacoes, agendamentos, containers, estoque } = useData();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedReport, setSelectedReport] =
-    useState<ReportType>("visao-geral");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedReport, setSelectedReport] = useState<ReportType>('visao-geral');
   const [showFilters, setShowFilters] = useState(false);
   const [dateRange, setDateRange] = useState({
-    inicio: "",
-    fim: "",
+    inicio: '',
+    fim: ''
   });
 
   // Garantir que estoque seja sempre um array
   const estoqueArray = Array.isArray(estoque) ? estoque : [];
 
-  const filteredClientes = clientes.filter(
-    (cliente) =>
-      cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.cpf.includes(searchTerm) ||
-      cliente.telefoneUSA.includes(searchTerm)
+  const filteredClientes = clientes.filter(cliente =>
+    cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cliente.cpf.includes(searchTerm) ||
+    cliente.telefoneUSA.includes(searchTerm)
   );
 
   const gerarRelatorioPDF = (tipo: string) => {
@@ -108,44 +95,27 @@ export default function RelatoriosView() {
     const totalAgendamentos = agendamentos.length;
     const totalContainers = containers.length;
     const totalTransacoes = transacoes.length;
-    const receitas = transacoes
-      .filter((t) => t.tipo === "receita")
-      .reduce((sum, t) => sum + t.valor, 0);
-    const despesas = transacoes
-      .filter((t) => t.tipo === "despesa")
-      .reduce((sum, t) => sum + t.valor, 0);
+    const receitas = transacoes.filter(t => t.tipo === 'receita').reduce((sum, t) => sum + t.valor, 0);
+    const despesas = transacoes.filter(t => t.tipo === 'despesa').reduce((sum, t) => sum + t.valor, 0);
     const lucro = receitas - despesas;
-    const margemLucro =
-      receitas > 0 ? ((lucro / receitas) * 100).toFixed(1) : 0;
-
+    const margemLucro = receitas > 0 ? ((lucro / receitas) * 100).toFixed(1) : 0;
+    
     // Containers por status
-    const containersPreparacao = containers.filter(
-      (c) => c.status === "preparacao"
-    ).length;
-    const containersTransito = containers.filter(
-      (c) => c.status === "transito"
-    ).length;
-    const containersEntregue = containers.filter(
-      (c) => c.status === "entregue"
-    ).length;
-
+    const containersPreparacao = containers.filter(c => c.status === 'preparacao').length;
+    const containersTransito = containers.filter(c => c.status === 'transito').length;
+    const containersEntregue = containers.filter(c => c.status === 'entregue').length;
+    
     // Agendamentos por status
-    const agendamentosConfirmados = agendamentos.filter(
-      (a) => a.status === "confirmado"
-    ).length;
-    const agendamentosPendentes = agendamentos.filter(
-      (a) => a.status === "pendente"
-    ).length;
-    const agendamentosConcluidos = agendamentos.filter(
-      (a) => a.status === "coletado"
-    ).length;
-
+    const agendamentosConfirmados = agendamentos.filter(a => a.status === 'confirmado').length;
+    const agendamentosPendentes = agendamentos.filter(a => a.status === 'pendente').length;
+    const agendamentosConcluidos = agendamentos.filter(a => a.status === 'concluido').length;
+    
     // Ticket médio
     const ticketMedio = totalClientes > 0 ? receitas / totalClientes : 0;
-
+    
     // Crescimento mensal (simulado)
     const crescimentoMensal = 12.5;
-
+    
     return {
       totalClientes,
       totalAgendamentos,
@@ -162,14 +132,14 @@ export default function RelatoriosView() {
       agendamentosPendentes,
       agendamentosConcluidos,
       ticketMedio,
-      crescimentoMensal,
+      crescimentoMensal
     };
   }, [clientes, transacoes, agendamentos, containers]);
 
   // Clientes por origem (USA)
   const clientesPorEstado = useMemo(() => {
     const estados: Record<string, number> = {};
-    clientes.forEach((c) => {
+    clientes.forEach(c => {
       const estado = c.enderecoUSA.estado;
       estados[estado] = (estados[estado] || 0) + 1;
     });
@@ -183,10 +153,10 @@ export default function RelatoriosView() {
   const receitasMensais = useMemo(() => {
     const meses: Record<string, number> = {};
     transacoes
-      .filter((t) => t.tipo === "receita")
-      .forEach((t) => {
+      .filter(t => t.tipo === 'receita')
+      .forEach(t => {
         const data = new Date(t.data);
-        const mesAno = format(data, "MMM/yy", { locale: ptBR });
+        const mesAno = format(data, 'MMM/yy', { locale: ptBR });
         meses[mesAno] = (meses[mesAno] || 0) + t.valor;
       });
     return Object.entries(meses)
@@ -196,38 +166,35 @@ export default function RelatoriosView() {
 
   // Performance de atendentes
   const performanceAtendentes = useMemo(() => {
-    const atendentes: Record<string, { clientes: number; receitas: number }> =
-      {};
-
-    clientes.forEach((c) => {
+    const atendentes: Record<string, { clientes: number; receitas: number }> = {};
+    
+    clientes.forEach(c => {
       if (!atendentes[c.atendente]) {
         atendentes[c.atendente] = { clientes: 0, receitas: 0 };
       }
       atendentes[c.atendente].clientes += 1;
-
+      
       // Somar receitas do cliente
       const receitasCliente = transacoes
-        .filter((t) => t.clienteId === c.id && t.tipo === "receita")
+        .filter(t => t.clienteId === c.id && t.tipo === 'receita')
         .reduce((sum, t) => sum + t.valor, 0);
       atendentes[c.atendente].receitas += receitasCliente;
     });
-
-    return Object.entries(atendentes)
-      .map(([nome, dados]) => ({
-        nome,
-        clientes: dados.clientes,
-        receitas: dados.receitas,
-        ticketMedio: dados.clientes > 0 ? dados.receitas / dados.clientes : 0,
-      }))
-      .sort((a, b) => b.receitas - a.receitas);
+    
+    return Object.entries(atendentes).map(([nome, dados]) => ({
+      nome,
+      clientes: dados.clientes,
+      receitas: dados.receitas,
+      ticketMedio: dados.clientes > 0 ? dados.receitas / dados.clientes : 0
+    })).sort((a, b) => b.receitas - a.receitas);
   }, [clientes, transacoes]);
 
   // Categorias de despesas
   const categoriasDespesas = useMemo(() => {
     const categorias: Record<string, number> = {};
     transacoes
-      .filter((t) => t.tipo === "despesa")
-      .forEach((t) => {
+      .filter(t => t.tipo === 'despesa')
+      .forEach(t => {
         categorias[t.categoria] = (categorias[t.categoria] || 0) + t.valor;
       });
     return Object.entries(categorias)
@@ -236,50 +203,21 @@ export default function RelatoriosView() {
   }, [transacoes]);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
+    return new Intl.NumberFormat('en-US', { 
+      style: 'currency', 
+      currency: 'USD'
     }).format(value);
   };
 
-  // Formata valores de forma compacta para caber nos cards
-  const formatCompactCurrency = (value: number) => {
-    if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1)}M`;
-    }
-    if (value >= 1000) {
-      return `$${(value / 1000).toFixed(1)}K`;
-    }
-    return formatCurrency(value);
-  };
-
-  // Formata números de forma compacta
-  const formatCompactNumber = (value: number) => {
-    if (value >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M`;
-    }
-    if (value >= 1000) {
-      return `${(value / 1000).toFixed(1)}K`;
-    }
-    return value.toString();
-  };
-
   const reportTypes = [
-    { id: "visao-geral", label: "Visão Geral", icon: BarChart3 },
-    { id: "clientes", label: "Clientes", icon: Users },
-    { id: "financeiro", label: "Financeiro", icon: DollarSign },
-    { id: "operacional", label: "Operacional", icon: Boxes },
-    { id: "atendimento", label: "Atendimento", icon: UserCheck },
+    { id: 'visao-geral', label: 'Visão Geral', icon: BarChart3 },
+    { id: 'clientes', label: 'Clientes', icon: Users },
+    { id: 'financeiro', label: 'Financeiro', icon: DollarSign },
+    { id: 'operacional', label: 'Operacional', icon: Boxes },
+    { id: 'atendimento', label: 'Atendimento', icon: UserCheck },
   ];
 
-  const COLORS = [
-    "#3B82F6",
-    "#10B981",
-    "#F59E0B",
-    "#EF4444",
-    "#8B5CF6",
-    "#EC4899",
-  ];
+  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -287,27 +225,21 @@ export default function RelatoriosView() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">
-              Relatórios e Análises
-            </h2>
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Relatórios e Análises</h2>
             <p className="text-muted-foreground mt-1 text-sm lg:text-base">
               Dashboards executivos e insights de negócio
             </p>
           </div>
           <div className="flex gap-3">
             <Button
-              variant={showFilters ? "default" : "outline"}
+              variant={showFilters ? 'default' : 'outline'}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
             >
               <Filter className="w-4 h-4 mr-2" />
               Filtros
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => gerarRelatorioPDF("completo")}
-            >
+            <Button variant="outline" size="sm" onClick={() => gerarRelatorioPDF('completo')}>
               <Download className="w-4 h-4 mr-2" />
               Exportar Tudo
             </Button>
@@ -316,12 +248,12 @@ export default function RelatoriosView() {
 
         {/* Navegação de Relatórios */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {reportTypes.map((type) => {
+          {reportTypes.map(type => {
             const Icon = type.icon;
             return (
               <Button
                 key={type.id}
-                variant={selectedReport === type.id ? "default" : "outline"}
+                variant={selectedReport === type.id ? 'default' : 'outline'}
                 onClick={() => setSelectedReport(type.id as ReportType)}
                 className="flex items-center gap-2 whitespace-nowrap flex-shrink-0"
                 size="sm"
@@ -335,7 +267,7 @@ export default function RelatoriosView() {
       </div>
 
       {/* Visão Geral */}
-      {selectedReport === "visao-geral" && (
+      {selectedReport === 'visao-geral' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -343,107 +275,61 @@ export default function RelatoriosView() {
         >
           {/* KPIs Principais */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 min-w-0">
+            <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs lg:text-sm font-medium text-blue-900 truncate">
-                  Receitas
-                </span>
-                <TrendingUp className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600 flex-shrink-0" />
+                <span className="text-sm font-medium text-blue-900">Receitas</span>
+                <TrendingUp className="w-5 h-5 text-blue-600" />
               </div>
-              <p
-                className="text-xl lg:text-2xl xl:text-3xl font-bold text-blue-900 truncate"
-                title={formatCurrency(estatisticas.receitas)}
-              >
-                {formatCompactCurrency(estatisticas.receitas)}
-              </p>
-              <p className="text-xs text-blue-700 mt-1 flex items-center gap-1 truncate">
-                <ArrowUpRight className="w-3 h-3 flex-shrink-0" />
-                <span className="truncate">
-                  +{estatisticas.crescimentoMensal}% este mês
-                </span>
+              <p className="text-3xl font-bold text-blue-900">{formatCurrency(estatisticas.receitas)}</p>
+              <p className="text-xs text-blue-700 mt-1 flex items-center gap-1">
+                <ArrowUpRight className="w-3 h-3" />
+                +{estatisticas.crescimentoMensal}% este mês
               </p>
             </Card>
 
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-red-50 to-red-100 border-red-200 min-w-0">
+            <Card className="p-5 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs lg:text-sm font-medium text-red-900 truncate">
-                  Despesas
-                </span>
-                <TrendingDown className="w-4 h-4 lg:w-5 lg:h-5 text-red-600 flex-shrink-0" />
+                <span className="text-sm font-medium text-red-900">Despesas</span>
+                <TrendingDown className="w-5 h-5 text-red-600" />
               </div>
-              <p
-                className="text-xl lg:text-2xl xl:text-3xl font-bold text-red-900 truncate"
-                title={formatCurrency(estatisticas.despesas)}
-              >
-                {formatCompactCurrency(estatisticas.despesas)}
-              </p>
-              <p className="text-xs text-red-700 mt-1 truncate">
-                {estatisticas.totalTransacoes} transações
-              </p>
+              <p className="text-3xl font-bold text-red-900">{formatCurrency(estatisticas.despesas)}</p>
+              <p className="text-xs text-red-700 mt-1">{estatisticas.totalTransacoes} transações</p>
             </Card>
 
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200 min-w-0">
+            <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs lg:text-sm font-medium text-green-900 truncate">
-                  Lucro
-                </span>
-                <DollarSign className="w-4 h-4 lg:w-5 lg:h-5 text-green-600 flex-shrink-0" />
+                <span className="text-sm font-medium text-green-900">Lucro</span>
+                <DollarSign className="w-5 h-5 text-green-600" />
               </div>
-              <p
-                className="text-xl lg:text-2xl xl:text-3xl font-bold text-green-900 truncate"
-                title={formatCurrency(estatisticas.lucro)}
-              >
-                {formatCompactCurrency(estatisticas.lucro)}
-              </p>
-              <p className="text-xs text-green-700 mt-1 truncate">
-                Margem: {estatisticas.margemLucro}%
-              </p>
+              <p className="text-3xl font-bold text-green-900">{formatCurrency(estatisticas.lucro)}</p>
+              <p className="text-xs text-green-700 mt-1">Margem: {estatisticas.margemLucro}%</p>
             </Card>
 
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 min-w-0">
+            <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs lg:text-sm font-medium text-purple-900 truncate">
-                  Clientes
-                </span>
-                <Users className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600 flex-shrink-0" />
+                <span className="text-sm font-medium text-purple-900">Clientes</span>
+                <Users className="w-5 h-5 text-purple-600" />
               </div>
-              <p className="text-xl lg:text-2xl xl:text-3xl font-bold text-purple-900 truncate">
-                {estatisticas.totalClientes}
-              </p>
-              <p className="text-xs text-purple-700 mt-1 truncate">
-                Total cadastrados
-              </p>
+              <p className="text-3xl font-bold text-purple-900">{estatisticas.totalClientes}</p>
+              <p className="text-xs text-purple-700 mt-1">Total cadastrados</p>
             </Card>
 
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 min-w-0">
+            <Card className="p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs lg:text-sm font-medium text-orange-900 truncate">
-                  Containers
-                </span>
-                <Ship className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600 flex-shrink-0" />
+                <span className="text-sm font-medium text-orange-900">Containers</span>
+                <Ship className="w-5 h-5 text-orange-600" />
               </div>
-              <p className="text-xl lg:text-2xl xl:text-3xl font-bold text-orange-900 truncate">
-                {estatisticas.totalContainers}
-              </p>
-              <p className="text-xs text-orange-700 mt-1 truncate">
-                {estatisticas.containersTransito} em trânsito
-              </p>
+              <p className="text-3xl font-bold text-orange-900">{estatisticas.totalContainers}</p>
+              <p className="text-xs text-orange-700 mt-1">{estatisticas.containersTransito} em trânsito</p>
             </Card>
 
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200 min-w-0">
+            <Card className="p-5 bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs lg:text-sm font-medium text-cyan-900 truncate">
-                  Ticket Médio
-                </span>
-                <Target className="w-4 h-4 lg:w-5 lg:h-5 text-cyan-600 flex-shrink-0" />
+                <span className="text-sm font-medium text-cyan-900">Ticket Médio</span>
+                <Target className="w-5 h-5 text-cyan-600" />
               </div>
-              <p
-                className="text-xl lg:text-2xl xl:text-3xl font-bold text-cyan-900 truncate"
-                title={formatCurrency(estatisticas.ticketMedio)}
-              >
-                {formatCompactCurrency(estatisticas.ticketMedio)}
-              </p>
-              <p className="text-xs text-cyan-700 mt-1 truncate">Por cliente</p>
+              <p className="text-3xl font-bold text-cyan-900">{formatCurrency(estatisticas.ticketMedio)}</p>
+              <p className="text-xs text-cyan-700 mt-1">Por cliente</p>
             </Card>
           </div>
 
@@ -459,23 +345,9 @@ export default function RelatoriosView() {
                 <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={receitasMensais}>
                     <defs>
-                      <linearGradient
-                        id="colorReceitas"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="#3B82F6"
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#3B82F6"
-                          stopOpacity={0}
-                        />
+                      <linearGradient id="colorReceitas" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
@@ -483,10 +355,10 @@ export default function RelatoriosView() {
                     <YAxis stroke="#64748B" />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #E2E8F0",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                        backgroundColor: 'white',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                       }}
                       formatter={(value: number) => formatCurrency(value)}
                     />
@@ -513,27 +385,14 @@ export default function RelatoriosView() {
                   <PieChart>
                     <Pie
                       data={[
-                        {
-                          name: "Em Preparação",
-                          value: estatisticas.containersPreparacao,
-                        },
-                        {
-                          name: "Em Trânsito",
-                          value: estatisticas.containersTransito,
-                        },
-                        {
-                          name: "Entregue",
-                          value: estatisticas.containersEntregue,
-                        },
+                        { name: 'Em Preparação', value: estatisticas.containersPreparacao },
+                        { name: 'Em Trânsito', value: estatisticas.containersTransito },
+                        { name: 'Entregue', value: estatisticas.containersEntregue },
                       ]}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) =>
-                        percent > 0
-                          ? `${name}: ${(percent * 100).toFixed(0)}%`
-                          : ""
-                      }
+                      label={({ name, percent }) => percent > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
@@ -561,21 +420,15 @@ export default function RelatoriosView() {
               <CardContent className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Confirmados</span>
-                  <Badge className="bg-green-100 text-green-800">
-                    {estatisticas.agendamentosConfirmados}
-                  </Badge>
+                  <Badge className="bg-green-100 text-green-800">{estatisticas.agendamentosConfirmados}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Pendentes</span>
-                  <Badge className="bg-yellow-100 text-yellow-800">
-                    {estatisticas.agendamentosPendentes}
-                  </Badge>
+                  <Badge className="bg-yellow-100 text-yellow-800">{estatisticas.agendamentosPendentes}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Concluídos</span>
-                  <Badge className="bg-blue-100 text-blue-800">
-                    {estatisticas.agendamentosConcluidos}
-                  </Badge>
+                  <Badge className="bg-blue-100 text-blue-800">{estatisticas.agendamentosConcluidos}</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -590,20 +443,18 @@ export default function RelatoriosView() {
               <CardContent className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Total de Itens</span>
-                  <Badge className="bg-green-100 text-green-800">
-                    {estoqueArray.length}
-                  </Badge>
+                  <Badge className="bg-green-100 text-green-800">{estoqueArray.length}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Em Estoque</span>
                   <Badge className="bg-blue-100 text-blue-800">
-                    {estoqueArray.filter((i) => i.quantidade > 0).length}
+                    {estoqueArray.filter(i => i.quantidade > 0).length}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Baixo Estoque</span>
                   <Badge className="bg-orange-100 text-orange-800">
-                    {estoqueArray.filter((i) => i.quantidade < i.minimo).length}
+                    {estoqueArray.filter(i => i.quantidade < i.minimo).length}
                   </Badge>
                 </div>
               </CardContent>
@@ -619,15 +470,11 @@ export default function RelatoriosView() {
               <CardContent className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Crescimento</span>
-                  <Badge className="bg-green-100 text-green-800">
-                    +{estatisticas.crescimentoMensal}%
-                  </Badge>
+                  <Badge className="bg-green-100 text-green-800">+{estatisticas.crescimentoMensal}%</Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Margem de Lucro</span>
-                  <Badge className="bg-blue-100 text-blue-800">
-                    {estatisticas.margemLucro}%
-                  </Badge>
+                  <Badge className="bg-blue-100 text-blue-800">{estatisticas.margemLucro}%</Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Taxa de Conversão</span>
@@ -640,7 +487,7 @@ export default function RelatoriosView() {
       )}
 
       {/* Relatório de Clientes */}
-      {selectedReport === "clientes" && (
+      {selectedReport === 'clientes' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -658,24 +505,15 @@ export default function RelatoriosView() {
                   <BarChart data={clientesPorEstado} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                     <XAxis type="number" stroke="#64748B" />
-                    <YAxis
-                      dataKey="estado"
-                      type="category"
-                      stroke="#64748B"
-                      width={50}
-                    />
+                    <YAxis dataKey="estado" type="category" stroke="#64748B" width={50} />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #E2E8F0",
-                        borderRadius: "8px",
+                        backgroundColor: 'white',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '8px'
                       }}
                     />
-                    <Bar
-                      dataKey="quantidade"
-                      fill="#3B82F6"
-                      radius={[0, 8, 8, 0]}
-                    />
+                    <Bar dataKey="quantidade" fill="#3B82F6" radius={[0, 8, 8, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -685,9 +523,7 @@ export default function RelatoriosView() {
             <Card>
               <CardHeader>
                 <CardTitle>Busca de Clientes</CardTitle>
-                <CardDescription>
-                  Busque por nome, CPF ou telefone
-                </CardDescription>
+                <CardDescription>Busque por nome, CPF ou telefone</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="relative">
@@ -701,7 +537,7 @@ export default function RelatoriosView() {
                 </div>
 
                 <div className="space-y-2 max-h-[320px] overflow-y-auto">
-                  {filteredClientes.map((cliente) => (
+                  {filteredClientes.map(cliente => (
                     <Card key={cliente.id} className="bg-slate-50">
                       <CardContent className="p-3">
                         <h3 className="font-semibold mb-2">{cliente.nome}</h3>
@@ -711,14 +547,8 @@ export default function RelatoriosView() {
                             <p>Tel: {cliente.telefoneUSA}</p>
                           </div>
                           <div>
-                            <p>
-                              {cliente.enderecoUSA.cidade},{" "}
-                              {cliente.enderecoUSA.estado}
-                            </p>
-                            <p>
-                              → {cliente.destinoBrasil.cidade},{" "}
-                              {cliente.destinoBrasil.estado}
-                            </p>
+                            <p>{cliente.enderecoUSA.cidade}, {cliente.enderecoUSA.estado}</p>
+                            <p>→ {cliente.destinoBrasil.cidade}, {cliente.destinoBrasil.estado}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -744,7 +574,7 @@ export default function RelatoriosView() {
       )}
 
       {/* Relatório Financeiro */}
-      {selectedReport === "financeiro" && (
+      {selectedReport === 'financeiro' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -760,14 +590,13 @@ export default function RelatoriosView() {
                   {formatCurrency(estatisticas.receitas)}
                 </p>
                 <p className="text-sm text-green-700 mt-2">
-                  {transacoes.filter((t) => t.tipo === "receita").length}{" "}
-                  transação(ões)
+                  {transacoes.filter(t => t.tipo === 'receita').length} transação(ões)
                 </p>
                 <Button
                   variant="outline"
                   size="sm"
                   className="mt-4 w-full"
-                  onClick={() => gerarRelatorioPDF("receitas")}
+                  onClick={() => gerarRelatorioPDF('receitas')}
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Exportar
@@ -784,14 +613,13 @@ export default function RelatoriosView() {
                   {formatCurrency(estatisticas.despesas)}
                 </p>
                 <p className="text-sm text-red-700 mt-2">
-                  {transacoes.filter((t) => t.tipo === "despesa").length}{" "}
-                  transação(ões)
+                  {transacoes.filter(t => t.tipo === 'despesa').length} transação(ões)
                 </p>
                 <Button
                   variant="outline"
                   size="sm"
                   className="mt-4 w-full"
-                  onClick={() => gerarRelatorioPDF("despesas")}
+                  onClick={() => gerarRelatorioPDF('despesas')}
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Exportar
@@ -814,7 +642,7 @@ export default function RelatoriosView() {
                   variant="outline"
                   size="sm"
                   className="mt-4 w-full"
-                  onClick={() => gerarRelatorioPDF("lucro")}
+                  onClick={() => gerarRelatorioPDF('lucro')}
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Exportar
@@ -837,9 +665,9 @@ export default function RelatoriosView() {
                   <YAxis stroke="#64748B" />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "white",
-                      border: "1px solid #E2E8F0",
-                      borderRadius: "8px",
+                      backgroundColor: 'white',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '8px'
                     }}
                     formatter={(value: number) => formatCurrency(value)}
                   />
@@ -852,7 +680,7 @@ export default function RelatoriosView() {
       )}
 
       {/* Relatório Operacional */}
-      {selectedReport === "operacional" && (
+      {selectedReport === 'operacional' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -864,14 +692,12 @@ export default function RelatoriosView() {
                 <CardTitle className="text-lg">Total Containers</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold text-blue-900">
-                  {estatisticas.totalContainers}
-                </p>
+                <p className="text-4xl font-bold text-blue-900">{estatisticas.totalContainers}</p>
                 <Button
                   variant="outline"
                   size="sm"
                   className="mt-4 w-full"
-                  onClick={() => gerarRelatorioPDF("containers")}
+                  onClick={() => gerarRelatorioPDF('containers')}
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Exportar
@@ -884,9 +710,7 @@ export default function RelatoriosView() {
                 <CardTitle className="text-lg">Em Preparação</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold text-yellow-900">
-                  {estatisticas.containersPreparacao}
-                </p>
+                <p className="text-4xl font-bold text-yellow-900">{estatisticas.containersPreparacao}</p>
                 <p className="text-sm text-yellow-700 mt-2">Sendo carregados</p>
               </CardContent>
             </Card>
@@ -896,9 +720,7 @@ export default function RelatoriosView() {
                 <CardTitle className="text-lg">Em Trânsito</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold text-purple-900">
-                  {estatisticas.containersTransito}
-                </p>
+                <p className="text-4xl font-bold text-purple-900">{estatisticas.containersTransito}</p>
                 <p className="text-sm text-purple-700 mt-2">No oceano</p>
               </CardContent>
             </Card>
@@ -908,9 +730,7 @@ export default function RelatoriosView() {
                 <CardTitle className="text-lg">Entregues</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold text-green-900">
-                  {estatisticas.containersEntregue}
-                </p>
+                <p className="text-4xl font-bold text-green-900">{estatisticas.containersEntregue}</p>
                 <p className="text-sm text-green-700 mt-2">Completos</p>
               </CardContent>
             </Card>
@@ -922,14 +742,12 @@ export default function RelatoriosView() {
                 <CardTitle className="text-lg">Agendamentos</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold text-cyan-900">
-                  {estatisticas.totalAgendamentos}
-                </p>
+                <p className="text-4xl font-bold text-cyan-900">{estatisticas.totalAgendamentos}</p>
                 <Button
                   variant="outline"
                   size="sm"
                   className="mt-4 w-full"
-                  onClick={() => gerarRelatorioPDF("agendamentos")}
+                  onClick={() => gerarRelatorioPDF('agendamentos')}
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Exportar
@@ -942,14 +760,12 @@ export default function RelatoriosView() {
                 <CardTitle className="text-lg">Itens de Estoque</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold text-orange-900">
-                  {estoqueArray.length}
-                </p>
+                <p className="text-4xl font-bold text-orange-900">{estoqueArray.length}</p>
                 <Button
                   variant="outline"
                   size="sm"
                   className="mt-4 w-full"
-                  onClick={() => gerarRelatorioPDF("estoque")}
+                  onClick={() => gerarRelatorioPDF('estoque')}
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Exportar
@@ -963,11 +779,9 @@ export default function RelatoriosView() {
               </CardHeader>
               <CardContent>
                 <p className="text-4xl font-bold text-pink-900">
-                  {estoqueArray.filter((i) => i.quantidade < i.minimo).length}
+                  {estoqueArray.filter(i => i.quantidade < i.minimo).length}
                 </p>
-                <p className="text-sm text-pink-700 mt-2">
-                  Necessitam reposição
-                </p>
+                <p className="text-sm text-pink-700 mt-2">Necessitam reposição</p>
               </CardContent>
             </Card>
           </div>
@@ -975,7 +789,7 @@ export default function RelatoriosView() {
       )}
 
       {/* Relatório de Atendimento */}
-      {selectedReport === "atendimento" && (
+      {selectedReport === 'atendimento' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -984,9 +798,7 @@ export default function RelatoriosView() {
           <Card>
             <CardHeader>
               <CardTitle>Performance por Atendente</CardTitle>
-              <CardDescription>
-                Ranking de atendentes por receitas geradas
-              </CardDescription>
+              <CardDescription>Ranking de atendentes por receitas geradas</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -995,17 +807,12 @@ export default function RelatoriosView() {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 flex-1">
-                          <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
-                              index === 0
-                                ? "bg-yellow-500"
-                                : index === 1
-                                ? "bg-gray-400"
-                                : index === 2
-                                ? "bg-orange-600"
-                                : "bg-blue-500"
-                            }`}
-                          >
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
+                            index === 0 ? 'bg-yellow-500' :
+                            index === 1 ? 'bg-gray-400' :
+                            index === 2 ? 'bg-orange-600' :
+                            'bg-blue-500'
+                          }`}>
                             {index + 1}
                           </div>
                           <div className="flex-1">
@@ -1024,9 +831,7 @@ export default function RelatoriosView() {
                           <p className="text-2xl font-bold text-green-600">
                             {formatCurrency(atendente.receitas)}
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            Total em receitas
-                          </p>
+                          <p className="text-xs text-muted-foreground">Total em receitas</p>
                         </div>
                       </div>
                     </CardContent>

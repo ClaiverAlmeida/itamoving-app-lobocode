@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Card } from './ui/card';
@@ -275,17 +275,6 @@ const DraggableCard = ({ lead, onSelect, onStatusChange }: DraggableCardProps) =
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'USD' }).format(value);
   };
 
-  // Formata valores de forma compacta para caber nos cards
-  const formatCompactCurrency = (value: number) => {
-    if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1)}M`;
-    }
-    if (value >= 1000) {
-      return `$${(value / 1000).toFixed(1)}K`;
-    }
-    return formatCurrency(value);
-  };
-
   return (
     <motion.div
       ref={drag}
@@ -340,17 +329,14 @@ const DraggableCard = ({ lead, onSelect, onStatusChange }: DraggableCardProps) =
 
         {/* Footer */}
         <div className="flex items-center justify-between text-xs pt-3 border-t border-slate-100">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="flex items-center gap-3">
             {lead.valorEstimado && (
-              <span 
-                className="font-semibold text-green-600 truncate"
-                title={formatCurrency(lead.valorEstimado)}
-              >
-                {formatCompactCurrency(lead.valorEstimado)}
+              <span className="font-semibold text-green-600">
+                {formatCurrency(lead.valorEstimado)}
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1 text-muted-foreground flex-shrink-0">
+          <div className="flex items-center gap-1 text-muted-foreground">
             <Clock className="w-3 h-3" />
             <span>{getTempoDecorrido(lead.dataUltimaMensagem)}</span>
           </div>
@@ -552,17 +538,6 @@ export default function AtendimentosView() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'USD' }).format(value);
   };
 
-  // Formata valores de forma compacta para caber nos cards
-  const formatCompactCurrency = (value: number) => {
-    if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1)}M`;
-    }
-    if (value >= 1000) {
-      return `$${(value / 1000).toFixed(1)}K`;
-    }
-    return formatCurrency(value);
-  };
-
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="space-y-4 lg:space-y-6">
@@ -614,54 +589,40 @@ export default function AtendimentosView() {
 
           {/* Métricas Principais */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4">
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 min-w-0">
+            <Card className="p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs lg:text-sm font-medium text-blue-900 truncate">Total de Leads</span>
-                <UsersIcon className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600 flex-shrink-0" />
+                <span className="text-xs lg:text-sm font-medium text-blue-900">Total de Leads</span>
+                <UsersIcon className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
               </div>
-              <p className="text-xl lg:text-2xl xl:text-3xl font-bold text-blue-900 truncate">
-                {statistics.total}
-              </p>
-              <p className="text-xs text-blue-700 mt-1 truncate">Todos os status</p>
+              <p className="text-2xl lg:text-3xl font-bold text-blue-900">{statistics.total}</p>
+              <p className="text-xs text-blue-700 mt-1">Todos os status</p>
             </Card>
 
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200 min-w-0">
+            <Card className="p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs lg:text-sm font-medium text-green-900 truncate">Valor Total</span>
-                <DollarSign className="w-4 h-4 lg:w-5 lg:h-5 text-green-600 flex-shrink-0" />
+                <span className="text-xs lg:text-sm font-medium text-green-900">Valor Total</span>
+                <DollarSign className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
               </div>
-              <p 
-                className="text-xl lg:text-2xl xl:text-3xl font-bold text-green-900 truncate"
-                title={formatCurrency(statistics.totalValor)}
-              >
-                {formatCompactCurrency(statistics.totalValor)}
-              </p>
-              <p className="text-xs text-green-700 mt-1 truncate">Pipeline completo</p>
+              <p className="text-2xl lg:text-3xl font-bold text-green-900">{formatCurrency(statistics.totalValor)}</p>
+              <p className="text-xs text-green-700 mt-1">Pipeline completo</p>
             </Card>
 
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 min-w-0">
+            <Card className="p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs lg:text-sm font-medium text-purple-900 truncate">Taxa de Conversão</span>
-                <TrendingUp className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600 flex-shrink-0" />
+                <span className="text-xs lg:text-sm font-medium text-purple-900">Taxa de Conversão</span>
+                <TrendingUp className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
               </div>
-              <p className="text-xl lg:text-2xl xl:text-3xl font-bold text-purple-900 truncate">
-                {statistics.taxaConversao.toFixed(1)}%
-              </p>
-              <p className="text-xs text-purple-700 mt-1 truncate">Leads fechados</p>
+              <p className="text-2xl lg:text-3xl font-bold text-purple-900">{statistics.taxaConversao.toFixed(1)}%</p>
+              <p className="text-xs text-purple-700 mt-1">Leads fechados</p>
             </Card>
 
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 min-w-0">
+            <Card className="p-4 lg:p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs lg:text-sm font-medium text-orange-900 truncate">Ticket Médio</span>
-                <BarChart3 className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600 flex-shrink-0" />
+                <span className="text-xs lg:text-sm font-medium text-orange-900">Ticket Médio</span>
+                <BarChart3 className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" />
               </div>
-              <p 
-                className="text-xl lg:text-2xl xl:text-3xl font-bold text-orange-900 truncate"
-                title={formatCurrency(statistics.ticketMedio)}
-              >
-                {formatCompactCurrency(statistics.ticketMedio)}
-              </p>
-              <p className="text-xs text-orange-700 mt-1 truncate">Valor médio/lead</p>
+              <p className="text-2xl lg:text-3xl font-bold text-orange-900">{formatCurrency(statistics.ticketMedio)}</p>
+              <p className="text-xs text-orange-700 mt-1">Valor médio/lead</p>
             </Card>
           </div>
 

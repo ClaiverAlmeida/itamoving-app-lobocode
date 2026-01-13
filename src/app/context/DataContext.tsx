@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
-import { Cliente, Estoque, Agendamento, Container, Transacao, Rota, PrecoEntrega, PrecoProduto, Funcionario, RegistroPonto, Folha, Ferias } from '../types';
+import { Cliente, Estoque, Agendamento, Container, Transacao, Rota, PrecoEntrega, PrecoProduto, Funcionario, RegistroPonto, Folha, Ferias, OrdemServicoMotorista } from '../types';
 
 interface DataContextType {
   clientes: Cliente[];
@@ -61,6 +61,12 @@ interface DataContextType {
   setFerias: (ferias: Ferias[]) => void;
   addFerias: (ferias: Ferias) => void;
   updateFerias: (id: string, ferias: Partial<Ferias>) => void;
+  
+  ordensServicoMotorista: OrdemServicoMotorista[];
+  setOrdensServicoMotorista: (ordens: OrdemServicoMotorista[]) => void;
+  addOrdemServicoMotorista: (ordem: OrdemServicoMotorista) => void;
+  updateOrdemServicoMotorista: (id: string, ordem: Partial<OrdemServicoMotorista>) => void;
+  deleteOrdemServicoMotorista: (id: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -826,6 +832,8 @@ const feriasIniciais: Ferias[] = [
   },
 ];
 
+const ordensServicoMotoristaIniciais: OrdemServicoMotorista[] = [];
+
 export function DataProvider({ children }: { children: ReactNode }) {
   const [clientes, setClientes] = useState<Cliente[]>(clientesIniciais);
   const [estoque, setEstoque] = useState<Estoque>({
@@ -844,6 +852,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [registrosPonto, setRegistrosPonto] = useState<RegistroPonto[]>(registrosPontoIniciais);
   const [folhasPagamento, setFolhasPagamento] = useState<Folha[]>(folhasPagamentoIniciais);
   const [ferias, setFerias] = useState<Ferias[]>(feriasIniciais);
+  const [ordensServicoMotorista, setOrdensServicoMotorista] = useState<OrdemServicoMotorista[]>(ordensServicoMotoristaIniciais);
 
   const addCliente = (cliente: Cliente) => {
     setClientes([...clientes, cliente]);
@@ -945,6 +954,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setFerias(ferias.map(f => f.id === id ? { ...f, ...feriasUpdate } : f));
   };
 
+  const addOrdemServicoMotorista = (ordem: OrdemServicoMotorista) => {
+    setOrdensServicoMotorista([...ordensServicoMotorista, ordem]);
+  };
+
+  const updateOrdemServicoMotorista = (id: string, ordemUpdate: Partial<OrdemServicoMotorista>) => {
+    setOrdensServicoMotorista(ordensServicoMotorista.map(o => o.id === id ? { ...o, ...ordemUpdate } : o));
+  };
+
+  const deleteOrdemServicoMotorista = (id: string) => {
+    setOrdensServicoMotorista(ordensServicoMotorista.filter(o => o.id !== id));
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -996,6 +1017,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setFerias,
         addFerias,
         updateFerias,
+        ordensServicoMotorista,
+        setOrdensServicoMotorista,
+        addOrdemServicoMotorista,
+        updateOrdemServicoMotorista,
+        deleteOrdemServicoMotorista,
       }}
     >
       {children}
