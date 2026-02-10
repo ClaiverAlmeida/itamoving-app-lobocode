@@ -130,6 +130,7 @@ export interface PrecoProduto {
   estoque: number;
   estoqueMinimo: number;
   ativo: boolean;
+  precoVariavel?: boolean;
 }
 
 export interface Funcionario {
@@ -269,6 +270,7 @@ export interface OrdemServicoMotorista {
   motoristaNome: string;
   motoristaId: string;
   status: 'pendente' | 'em_andamento' | 'concluida';
+  valorCobrado?: number;
   
   // Observações
   observacoes?: string;

@@ -69,6 +69,7 @@ export default function PrecosView() {
     estoque: '',
     estoqueMinimo: '',
     ativo: true,
+    precoVariavel: false,
   });
 
   // Estados dos EUA mais comuns
@@ -149,6 +150,7 @@ export default function PrecosView() {
       estoque: '',
       estoqueMinimo: '',
       ativo: true,
+      precoVariavel: false,
     });
   };
 
@@ -167,6 +169,7 @@ export default function PrecosView() {
       estoque: parseInt(formProduto.estoque),
       estoqueMinimo: parseInt(formProduto.estoqueMinimo),
       ativo: formProduto.ativo,
+      precoVariavel: formProduto.precoVariavel,
     };
     addPrecoProduto(novoProduto);
     toast.success('Produto cadastrado com sucesso!');
@@ -190,6 +193,7 @@ export default function PrecosView() {
       estoque: parseInt(formProduto.estoque),
       estoqueMinimo: parseInt(formProduto.estoqueMinimo),
       ativo: formProduto.ativo,
+      precoVariavel: formProduto.precoVariavel,
     });
     toast.success('Produto atualizado com sucesso!');
     resetFormProduto();
@@ -753,6 +757,15 @@ export default function PrecosView() {
                           />
                         </div>
 
+                        <div className="space-y-2 flex items-center gap-2 pt-8">
+                          <Switch
+                            id="precoVariavel"
+                            checked={formProduto.precoVariavel || false}
+                            onCheckedChange={(checked) => setFormProduto({ ...formProduto, precoVariavel: checked })}
+                          />
+                          <Label htmlFor="precoVariavel">Preço Variável</Label>
+                        </div>
+
                         <div className="space-y-2 col-span-2">
                           <Label className="text-base font-semibold">Estoque</Label>
                         </div>
@@ -941,6 +954,7 @@ export default function PrecosView() {
                                       estoque: produto.estoque.toString(),
                                       estoqueMinimo: produto.estoqueMinimo.toString(),
                                       ativo: produto.ativo,
+                                      precoVariavel: produto.precoVariavel || false,
                                     });
                                     setIsEditProdutoDialogOpen(true);
                                   }}
@@ -1220,6 +1234,15 @@ export default function PrecosView() {
                   onChange={(e) => setFormProduto({ ...formProduto, precoVenda: e.target.value })}
                   required
                 />
+              </div>
+
+              <div className="space-y-2 flex items-center gap-2 pt-8">
+                <Switch
+                  id="editPrecoVariavel"
+                  checked={formProduto.precoVariavel || false}
+                  onCheckedChange={(checked) => setFormProduto({ ...formProduto, precoVariavel: checked })}
+                />
+                <Label htmlFor="editPrecoVariavel">Preço Variável</Label>
               </div>
 
               <div className="space-y-2 col-span-2">
