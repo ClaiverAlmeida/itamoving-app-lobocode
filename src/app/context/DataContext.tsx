@@ -72,58 +72,58 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 // Dados de exemplo
-const clientesIniciais: Cliente[] = [
-  {
-    id: '1',
-    nome: 'João Silva',
-    cpf: '123.456.789-00',
-    telefoneUSA: '+1 (305) 555-0123',
-    enderecoUSA: {
-      rua: '123 Main Street',
-      numero: '456',
-      cidade: 'Miami',
-      estado: 'FL',
-      zipCode: '33101',
-    },
-    destinoBrasil: {
-      nomeRecebedor: 'Maria Silva',
-      cpfRecebedor: '987.654.321-00',
-      endereco: 'Rua das Flores, 789',
-      cidade: 'São Paulo',
-      estado: 'SP',
-      cep: '01234-567',
-      telefones: ['+55 11 98765-4321'],
-    },
-    atendente: 'Ana Paula',
-    dataCadastro: '2024-12-15',
-    status: 'ativo',
-  },
-  {
-    id: '2',
-    nome: 'Carlos Mendes',
-    cpf: '111.222.333-44',
-    telefoneUSA: '+1 (407) 555-9876',
-    enderecoUSA: {
-      rua: '456 Oak Avenue',
-      numero: '789',
-      cidade: 'Orlando',
-      estado: 'FL',
-      zipCode: '32801',
-    },
-    destinoBrasil: {
-      nomeRecebedor: 'Pedro Mendes',
-      cpfRecebedor: '444.555.666-77',
-      endereco: 'Av. Paulista, 1500',
-      cidade: 'Rio de Janeiro',
-      estado: 'RJ',
-      cep: '20000-000',
-      telefones: ['+55 21 91234-5678'],
-    },
-    atendente: 'Lucas Santos',
-    dataCadastro: '2024-12-18',
-    status: 'ativo',
-  },
-];
+// const clientesIniciais: Cliente[] = [
+//   {
+//     id: '1',
+//     nome: 'João Silva',
+//     cpf: '123.456.789-00',
+//     telefoneUSA: '+1 (305) 555-0123',
+//     enderecoUSA: {
+//       rua: '123 Main Street',
+//       numero: '456',
+//       cidade: 'Miami',
+//       estado: 'FL',
+//       zipCode: '33101',
+//     },
+//     destinoBrasil: {
+//       nomeRecebedor: 'Maria Silva',
+//       cpfRecebedor: '987.654.321-00',
+//       endereco: 'Rua das Flores, 789',
+//       cidade: 'São Paulo',
+//       estado: 'SP',
+//       cep: '01234-567',
+//       telefones: ['+55 11 98765-4321'],
+//     },
+//     atendente: 'Ana Paula',
+//     dataCadastro: '2024-12-15',
+//     status: 'ativo',
+//   },
+//   {
+//     id: '2',
+//     nome: 'Carlos Mendes',
+//     cpf: '111.222.333-44',
+//     telefoneUSA: '+1 (407) 555-9876',
+//     enderecoUSA: {
+//       rua: '456 Oak Avenue',
+//       numero: '789',
+//       cidade: 'Orlando',
+//       estado: 'FL',
+//       zipCode: '32801',
+//     },
+//     destinoBrasil: {
+//       nomeRecebedor: 'Pedro Mendes',
+//       cpfRecebedor: '444.555.666-77',
+//       endereco: 'Av. Paulista, 1500',
+//       cidade: 'Rio de Janeiro',
+//       estado: 'RJ',
+//       cep: '20000-000',
+//       telefones: ['+55 21 91234-5678'],
+//     },
+//     atendente: 'Lucas Santos',
+//     dataCadastro: '2024-12-18',
+//     status: 'ativo',
+//   },
+// ];
 
 const agendamentosIniciais: Agendamento[] = [
   {
@@ -835,7 +835,7 @@ const feriasIniciais: Ferias[] = [
 const ordensServicoMotoristaIniciais: OrdemServicoMotorista[] = [];
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [clientes, setClientes] = useState<Cliente[]>(clientesIniciais);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [estoque, setEstoque] = useState<Estoque>({
     caixasPequenas: 50,
     caixasMedias: 35,
