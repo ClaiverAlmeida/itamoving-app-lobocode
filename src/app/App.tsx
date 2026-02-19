@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import { Badge } from './components/ui/badge';
 import { Card, CardContent } from './components/ui/card';
-import logo from 'figma:asset/2ac2fb95a59823c3119ddd194998db2f41de4a80.png';
+import logo from '../assets/2ac2fb95a59823c3119ddd194998db2f41de4a80.png';
 
 type View = 'dashboard' | 'clientes' | 'estoque' | 'agendamentos' | 'containers' | 'financeiro' | 'relatorios' | 'atendimentos' | 'precos' | 'rh' | 'motorista';
 

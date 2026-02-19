@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { authService, type AuthUser, type UserRole } from '../services/auth.service';
 
-export type UserRole = 'admin' | 'comercial' | 'logistico' | 'motorista';
+export type { UserRole };
 
 export interface User {
   id: string;
@@ -33,43 +34,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Usuários mock para demonstração
-const MOCK_USERS: Array<User & { senha: string }> = [
-  {
-    id: '1',
-    nome: 'Admin Master',
-    email: 'admin@itamoving.com',
-    senha: 'admin123',
-    role: 'admin',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin'
-  },
-  {
-    id: '2',
-    nome: 'Carlos Vendas',
-    email: 'comercial@itamoving.com',
-    senha: 'comercial123',
-    role: 'comercial',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=carlos'
-  },
-  {
-    id: '3',
-    nome: 'Raquel Logística',
-    email: 'raquel@itamoving.com',
-    senha: 'raquel123',
-    role: 'logistico',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=raquel'
-  },
-  {
-    id: '4',
-    nome: 'João Motorista',
-    email: 'motorista@itamoving.com',
-    senha: 'motorista123',
-    role: 'motorista',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=joao'
-  }
-];
-
-// Definição de permissões por role
 const ROLE_PERMISSIONS: Record<UserRole, Permission> = {
   admin: {
     clientes: { read: true, write: true },
@@ -88,21 +52,21 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission> = {
     agendamentos: { read: true, write: true },
     estoque: { read: true, write: true },
     containers: { read: true, write: false },
-    financeiro: { read: false, write: false }, // SEM ACESSO
-    relatorios: { read: false, write: false }, // SEM ACESSO
+    financeiro: { read: false, write: false },
+    relatorios: { read: false, write: false },
     atendimentos: { read: true, write: true },
     rh: { read: false, write: false },
     rotas: { read: true, write: false },
     motorista: { read: false, write: false },
   },
   logistico: {
-    clientes: { read: false, write: false }, // SEM ACESSO
+    clientes: { read: false, write: false },
     agendamentos: { read: true, write: true },
-    estoque: { read: true, write: false }, // Apenas visualização
+    estoque: { read: true, write: false },
     containers: { read: true, write: true },
-    financeiro: { read: false, write: false }, // SEM ACESSO
-    relatorios: { read: false, write: false }, // SEM ACESSO
-    atendimentos: { read: false, write: false }, // SEM ACESSO
+    financeiro: { read: false, write: false },
+    relatorios: { read: false, write: false },
+    atendimentos: { read: false, write: false },
     rh: { read: false, write: false },
     rotas: { read: true, write: true },
     motorista: { read: false, write: false },
@@ -110,49 +74,40 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission> = {
   motorista: {
     clientes: { read: false, write: false },
     agendamentos: { read: true, write: false },
-    estoque: { read: true, write: false }, // Ver quantidade de caixas
+    estoque: { read: true, write: false },
     containers: { read: false, write: false },
     financeiro: { read: false, write: false },
     relatorios: { read: false, write: false },
     atendimentos: { read: false, write: false },
     rh: { read: false, write: false },
     rotas: { read: true, write: false },
-    motorista: { read: true, write: true }, // Ordem de serviço e recibos
+    motorista: { read: true, write: true },
   },
 };
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+function authUserToUser(a: AuthUser | null): User | null {
+  if (!a) return null;
+  return { id: a.id, nome: a.nome, email: a.email, role: a.role, avatar: a.avatar };
+}
 
-  // Carregar usuário do localStorage ao iniciar
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [authState, setAuthState] = useState(() => authService.getAuthState());
+  const user = authUserToUser(authState.user);
+
   useEffect(() => {
-    const savedUser = localStorage.getItem('itamoving_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    const unsubscribe = authService.addAuthListener((state) => {
+      setAuthState(state);
+    });
+    return unsubscribe;
   }, []);
 
   const login = async (email: string, senha: string): Promise<boolean> => {
-    // Simular delay de autenticação
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const foundUser = MOCK_USERS.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && u.senha === senha
-    );
-
-    if (foundUser) {
-      const { senha: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('itamoving_user', JSON.stringify(userWithoutPassword));
-      return true;
-    }
-
-    return false;
+    const result = await authService.login(email, senha);
+    return result.success;
   };
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem('itamoving_user');
+    void authService.logout();
   };
 
   const permissions = user ? ROLE_PERMISSIONS[user.role] : ROLE_PERMISSIONS.motorista;
