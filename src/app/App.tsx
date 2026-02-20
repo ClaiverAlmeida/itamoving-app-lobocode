@@ -153,7 +153,7 @@ function MainApp() {
             {/* Close button for mobile */}
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="lg:hidden p-2 hover:bg-blue-100 rounded-lg"
+              className="lg:hidden p-2 hover:bg-blue-100 rounded-lg cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -194,7 +194,7 @@ function MainApp() {
                       setActiveView(item.id);
                       setMobileMenuOpen(false); // Close mobile menu on navigation
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-pointer ${
                       isActive 
                         ? 'bg-accent text-white shadow-lg scale-105' 
                         : 'hover:bg-blue-100 text-slate-600 hover:text-slate-800'
@@ -215,14 +215,14 @@ function MainApp() {
         <div className="p-4 border-t border-blue-200 space-y-2">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hidden lg:flex w-full items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-100 hover:bg-accent hover:text-white transition-all duration-200"
+            className="hidden lg:flex w-full items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-100 hover:bg-accent hover:text-white transition-all duration-200 cursor-pointer"
           >
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             {sidebarOpen && <span className="text-sm">Recolher</span>}
           </button>
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all duration-200"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all duration-200 cursor-pointer"
           >
             <LogOut className="w-5 h-5" />
             {sidebarOpen && <span className="text-sm">Sair</span>}
@@ -238,7 +238,7 @@ function MainApp() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 hover:bg-accent/10 rounded-lg mr-3"
+              className="lg:hidden p-2 hover:bg-accent/10 rounded-lg mr-3 cursor-pointer"
             >
               <Menu className="w-6 h-6" />
             </button>

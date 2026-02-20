@@ -44,6 +44,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { Funcionario, RegistroPonto, Folha, Ferias } from '../types';
+import { formatCPF } from '../utils/cpf';
 
 export default function RHView() {
   const { 
@@ -1418,7 +1419,9 @@ export default function RHView() {
                 <Input
                   id="cpfEdit"
                   value={formFuncionario.cpf}
-                  onChange={(e) => setFormFuncionario({ ...formFuncionario, cpf: e.target.value })}
+                  onChange={(e) => setFormFuncionario({ ...formFuncionario, cpf: formatCPF(e.target.value) })}
+                  placeholder="123.456.789-00"
+                  maxLength={14}
                   required
                 />
               </div>

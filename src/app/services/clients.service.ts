@@ -16,6 +16,9 @@ export interface CreateClientsDTO {
   status?: 'active' | 'inactive';
 }
 
+/** DTO para edição (PATCH) - apenas campos enviados são atualizados */
+export type UpdateClientsDTO = Partial<CreateClientsDTO>;
+
 /**
  * Interface que representa os dados do Cliente retornados pelo backend
  */
@@ -28,7 +31,6 @@ export interface ClientBackend {
   usaAddress: Record<string, unknown>;
   brazilDestination: Record<string, unknown>;
   attendant: string;
-  registeredAt: string;
   status: "active" | "inactive";
   createdAt: string;
   updatedAt: string;
@@ -90,7 +92,7 @@ function mapBackendToFrontend(client: ClientBackend): Cliente {
     enderecoUSA,
     destinoBrasil,
     atendente: client.attendant,
-    dataCadastro: client.registeredAt,
+    dataCadastro: client.createdAt,
     status: client.status === "active" ? "ativo" : "inativo",
   };
 }
@@ -138,17 +140,60 @@ export class ClientsService {
     data: CreateClientsDTO,
   ): Promise<{ success: boolean; data?: Cliente; error?: string }> {
     try {
-      const result = await api.post<{ data: Cliente }>("/clients", data);
+      const result = await api.post<ClientBackend | { data: ClientBackend }>("/clients", data);
 
       if (result.success && result.data) {
-        const response = result.data as any;
-        const clientData = response.data || response;
-        return { success: true, data: clientData };
+        const raw = (result.data as any)?.data ?? result.data;
+        const clientBackend = raw as ClientBackend;
+        const cliente = mapBackendToFrontend(clientBackend);
+        return { success: true, data: cliente };
       }
 
       return { success: false, error: "Erro ao criar cliente" };
     } catch (error) {
       return { success: false, error: "Erro ao criar cliente" };
+    }
+  }
+
+  async update(id: string, data: UpdateClientsDTO): Promise<{ success: boolean; data?: Cliente; error?: string }> {
+    try {
+      const result = await api.patch<ClientBackend | { data: ClientBackend }>(`/clients/${id}`, data);
+
+      if(result.success && result.data) {
+        const raw = (result.data as any)?.data ?? result.data;
+        const clientBackend = raw as ClientBackend;
+        const cliente = mapBackendToFrontend(clientBackend);
+        return { success: true, data: cliente };
+
+      }
+
+      return { success: false, error: "Erro ao atualizar cliente" };
+    }
+    catch (error) {
+      return { success: false, error: "Erro ao atualizar cliente" };
+    }
+  }
+
+  async delete(id: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const result = await api.delete<{ data: Cliente }>(`/clients/${id}`);
+
+      if(result.success && result.data) {
+        return { success: true };
+      }
+
+      return { success: false, error: "Erro ao deletar cliente" };
+    } catch (error) {
+      return { success: false, error: "Erro ao deletar cliente" };
+    }
+  }
+
+  async export(): Promise<{ success: boolean; data?: string; error?: string }> {
+    try {
+      const result = await api.get<string>("/clients/export");
+      return { success: true, data: result.data };
+    } catch (error) {
+      return { success: false, error: "Erro ao exportar clientes" };
     }
   }
 }

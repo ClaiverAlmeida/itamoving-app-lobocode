@@ -9,7 +9,15 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { Badge } from "./ui/badge";
+import { Switch } from "./ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -48,7 +56,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
-import { clientsService } from "../services/clients.service";
+import { formatCPF } from "../utils/cpf";
+import { ESTADOS_BRASIL, ESTADOS_EUA } from "../utils/estados";
+import {
+  clientsService,
+  type CreateClientsDTO,
+  type UpdateClientsDTO,
+} from "../services/clients.service";
 
 type ViewMode = "grid" | "list";
 
@@ -60,13 +74,15 @@ interface ClienteAtividade {
 }
 
 export default function ClientesView() {
-  const { clientes, setClientes, addCliente, updateCliente, deleteCliente } = useData();
+  const { clientes, setClientes, addCliente, updateCliente, deleteCliente } =
+    useData();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showFilters, setShowFilters] = useState(false);
+  const [loadingCep, setLoadingCep] = useState(false);
   const [filters, setFilters] = useState({
     estado: "",
     atendente: "",
@@ -103,6 +119,7 @@ export default function ClientesView() {
     cep: "",
     telefoneBrasil: "",
     atendente: "",
+    ativo: true,
   });
 
   const resetForm = () => {
@@ -124,6 +141,7 @@ export default function ClientesView() {
       cep: "",
       telefoneBrasil: "",
       atendente: "",
+      ativo: true,
     });
     setEditingCliente(null);
   };
@@ -148,15 +166,186 @@ export default function ClientesView() {
       cep: cliente.destinoBrasil.cep,
       telefoneBrasil: cliente.destinoBrasil.telefones[0] || "",
       atendente: cliente.atendente,
+      ativo: cliente.status === "ativo",
     });
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  /** Monta o payload no formato do backend para criar cliente */
+  const getCreatePayload = (): CreateClientsDTO => ({
+    name: formData.nome,
+    cpf: formData.cpf,
+    usaPhone: formData.telefoneUSA,
+    usaAddress: {
+      rua: formData.ruaUSA,
+      numero: formData.numeroUSA,
+      cidade: formData.cidadeUSA,
+      estado: formData.estadoUSA,
+      zipCode: formData.zipCode,
+      complemento: formData.complementoUSA || undefined,
+    },
+    brazilDestination: {
+      nomeRecebedor: formData.nomeRecebedor,
+      cpfRecebedor: formData.cpfRecebedor,
+      endereco: formData.enderecoBrasil,
+      cidade: formData.cidadeBrasil,
+      estado: formData.estadoBrasil,
+      cep: formData.cep,
+      telefones: formData.telefoneBrasil ? [formData.telefoneBrasil] : [],
+    },
+    attendant: formData.atendente,
+    status: formData.ativo ? "active" : "inactive",
+  });
+
+  /** Formata CEP brasileiro como 00000-000 (apenas dígitos, até 8). */
+  const formatCepBrasil = (value: string): string => {
+    const digits = value.replace(/\D/g, "").slice(0, 8);
+    if (digits.length <= 5) return digits;
+    return digits.replace(/(\d{5})(\d{0,3})/, (_, a, b) =>
+      b ? `${a}-${b}` : a,
+    );
+  };
+
+  /** Busca endereço pelo CEP brasileiro (ViaCEP). Preenche Endereço, Cidade e Estado (UF validado pela chave). Usado em criar e editar. */
+  const handleCepBrasilChange = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, "");
+    if (cleanCep.length !== 8) return;
+
+    setLoadingCep(true);
+    try {
+      const response = await fetch(
+        `https://viacep.com.br/ws/${cleanCep}/json/`,
+      );
+      const data = await response.json();
+
+      if (!data.erro) {
+        const cepFormatado = cleanCep.replace(/(\d{5})(\d{3})/, "$1-$2");
+        const uf = (data.uf || "").trim().toUpperCase();
+        const estadoValido = ESTADOS_BRASIL.some((e) => e.uf === uf) ? uf : "";
+
+        setFormData((prev) => ({
+          ...prev,
+          cep: cepFormatado,
+          enderecoBrasil: data.logradouro || "",
+          cidadeBrasil: data.localidade || "",
+          estadoBrasil: estadoValido,
+        }));
+        toast.success("Endereço encontrado!");
+      } else {
+        toast.error("CEP não encontrado");
+        setFormData((prev) => ({
+          ...prev,
+          cep: "",
+          enderecoBrasil: "",
+          cidadeBrasil: "",
+          estadoBrasil: "",
+        }));
+      }
+    } catch {
+      toast.error("Erro ao buscar CEP");
+    } finally {
+      setLoadingCep(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    const payload = getCreatePayload();
+    const result = await clientsService.create(payload);
+    if (result.success && result.data) {
+      addCliente(result.data);
+      toast.success("Cliente cadastrado com sucesso!");
+      resetForm();
+      setIsDialogOpen(false);
+    } else {
+      toast.error(result.error || "Erro ao cadastrar cliente");
+    }
+  };
+
+  /** Monta payload de edição no formato do backend (apenas campos alterados para PATCH) */
+  const getUpdatePayload = (): UpdateClientsDTO => {
+    const current: CreateClientsDTO = {
+      name: formData.nome,
+      cpf: formData.cpf,
+      usaPhone: formData.telefoneUSA,
+      usaAddress: {
+        rua: formData.ruaUSA,
+        numero: formData.numeroUSA,
+        cidade: formData.cidadeUSA,
+        estado: formData.estadoUSA,
+        zipCode: formData.zipCode,
+        complemento: formData.complementoUSA || undefined,
+      },
+      brazilDestination: {
+        nomeRecebedor: formData.nomeRecebedor,
+        cpfRecebedor: formData.cpfRecebedor,
+        endereco: formData.enderecoBrasil,
+        cidade: formData.cidadeBrasil,
+        estado: formData.estadoBrasil,
+        cep: formData.cep,
+        telefones: formData.telefoneBrasil ? [formData.telefoneBrasil] : [],
+      },
+      attendant: formData.atendente,
+      status: formData.ativo ? "active" : "inactive",
+    };
+
+    const original = editingCliente!;
+    const patch: UpdateClientsDTO = {};
+
+    if (current.name !== original.nome) patch.name = current.name;
+    if (current.cpf !== original.cpf) patch.cpf = current.cpf;
+    if (current.usaPhone !== original.telefoneUSA)
+      patch.usaPhone = current.usaPhone;
+    if (current.attendant !== original.atendente)
+      patch.attendant = current.attendant;
+    if (
+      current.status !== (original.status === "ativo" ? "active" : "inactive")
+    )
+      patch.status = current.status;
+
+    const usaAddressChanged =
+      current.usaAddress.rua !== original.enderecoUSA.rua ||
+      current.usaAddress.numero !== original.enderecoUSA.numero ||
+      current.usaAddress.cidade !== original.enderecoUSA.cidade ||
+      current.usaAddress.estado !== original.enderecoUSA.estado ||
+      current.usaAddress.zipCode !== original.enderecoUSA.zipCode ||
+      (current.usaAddress.complemento ?? "") !==
+        (original.enderecoUSA.complemento ?? "");
+    if (usaAddressChanged) patch.usaAddress = current.usaAddress;
+
+    const brazilDestChanged =
+      current.brazilDestination.nomeRecebedor !==
+        original.destinoBrasil.nomeRecebedor ||
+      current.brazilDestination.cpfRecebedor !==
+        original.destinoBrasil.cpfRecebedor ||
+      current.brazilDestination.endereco !== original.destinoBrasil.endereco ||
+      current.brazilDestination.cidade !== original.destinoBrasil.cidade ||
+      current.brazilDestination.estado !== original.destinoBrasil.estado ||
+      current.brazilDestination.cep !== original.destinoBrasil.cep ||
+      JSON.stringify(current.brazilDestination.telefones) !==
+        JSON.stringify(original.destinoBrasil.telefones);
+    if (brazilDestChanged) patch.brazilDestination = current.brazilDestination;
+
+    return patch;
+  };
+
+  const handleUpdate = async () => {
+    const patchPayload = getUpdatePayload();
+    if (Object.keys(patchPayload).length === 0) {
+      toast.info("Nenhum campo alterado.");
+      return;
+    }
+
+    const result = await clientsService.update(
+      editingCliente!.id,
+      patchPayload,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Erro ao atualizar cliente");
+      return;
+    }
 
     const clienteData: Cliente = {
-      id: editingCliente?.id || Date.now().toString(),
+      id: editingCliente!.id,
       nome: formData.nome,
       cpf: formData.cpf,
       telefoneUSA: formData.telefoneUSA,
@@ -178,37 +367,78 @@ export default function ClientesView() {
         telefones: [formData.telefoneBrasil],
       },
       atendente: formData.atendente,
-      dataCadastro:
-        editingCliente?.dataCadastro || new Date().toISOString().split("T")[0],
+      dataCadastro: editingCliente!.dataCadastro,
       status: "ativo",
     };
 
-    if (editingCliente) {
-      updateCliente(editingCliente.id, clienteData);
-      toast.success("Cliente atualizado com sucesso!");
-      if (selectedCliente?.id === editingCliente.id) {
-        setSelectedCliente(clienteData);
-      }
-    } else {
-      console.log(clienteData);
-      addCliente(clienteData);
-      toast.success("Cliente cadastrado com sucesso!");
+    updateCliente(editingCliente!.id, result.data ?? clienteData);
+    toast.success("Cliente atualizado com sucesso!");
+    if (selectedCliente?.id === editingCliente!.id) {
+      setSelectedCliente(result.data ?? clienteData);
     }
-
     resetForm();
     setIsDialogOpen(false);
   };
 
-  const handleDelete = (id: string, nome: string) => {
-    if (window.confirm(`Tem certeza que deseja excluir o cliente ${nome}?`)) {
-      deleteCliente(id);
-      toast.success("Cliente excluído com sucesso!");
-      if (selectedCliente?.id === id) {
-        setSelectedCliente(null);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingCliente) {
+      handleUpdate();
+    } else {
+      handleCreate();
+    }
+  };
+
+  const handleDelete = async (id: string, nome: string) => {
+    const confirm = window.confirm(
+      `Tem certeza que deseja excluir o cliente ${nome}?`,
+    );
+
+    if (confirm) {
+      const result = await clientsService.delete(id);
+      if (result.success) {
+        deleteCliente(id);
+        toast.success("Cliente excluído com sucesso!");
+        if (selectedCliente?.id === id) {
+          setSelectedCliente(null);
+        }
+      } else {
+        toast.error(result.error || "Erro ao excluir cliente");
       }
     }
   };
 
+  const handleExport = async () => {
+    const result = await clientsService.export();
+    console.log(result);
+    //TODO: Implementar a exportação de clientes
+    alert("Função em desenvolvimento");
+  };
+
+  const handleCallTelphone = (telefones: string[]) => {
+    if (!telefones || telefones.length === 0) {
+      toast.error("Nenhum telefone encontrado");
+      return;
+    }
+
+    const telefone = telefones[0];
+    window.open(`tel:${telefone}`, "_blank");
+  };
+
+  const handleWhatsAppWindow = (telefones: string[]) => {
+    if (!telefones || telefones.length === 0) {
+      toast.error("Nenhum telefone encontrado");
+      return;
+    }
+
+    const telefone = telefones[0].trim().replace(/\D/g, "");
+    window.open(`https://api.whatsapp.com/send?phone=${telefone}`, "_blank");
+  };
+
+  // TODO
+  // Documentos do Cliente
+  // Exportar Clientes
+  
   const filteredClientes = useMemo(() => {
     return clientes.filter((cliente) => {
       // Search
@@ -267,7 +497,12 @@ export default function ClientesView() {
   }, [clientes, searchTerm, filters]);
 
   const statistics = useMemo(() => {
-    const total = filteredClientes.length;
+    const ativos = filteredClientes.filter((c) => c.status === "ativo").length;
+    const total = ativos;
+
+    // const total = filteredClientes.length;
+    // const inativos = filteredClientes.filter((c) => c.status === "inativo").length;
+    
     const novosUltimaSemana = filteredClientes.filter((c) => {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       return new Date(c.dataCadastro) >= weekAgo;
@@ -286,24 +521,25 @@ export default function ClientesView() {
   // Mock de atividades do cliente (em produção viria do backend)
   const getClienteAtividades = (clienteId: string): ClienteAtividade[] => {
     return [
-      {
-        id: "1",
-        tipo: "cadastro",
-        descricao: "Cliente cadastrado no sistema",
-        data: new Date(selectedCliente?.dataCadastro || Date.now()),
-      },
-      {
-        id: "2",
-        tipo: "agendamento",
-        descricao: "Agendamento de coleta confirmado",
-        data: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "3",
-        tipo: "container",
-        descricao: "Container #12345 em preparação",
-        data: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      },
+      // Popular dados que irão vir do backend referente à atividades do Cliente
+      // {
+      //   id: "1",
+      //   tipo: "cadastro",
+      //   descricao: "Cliente cadastrado no sistema",
+      //   data: new Date(selectedCliente?.dataCadastro || Date.now()),
+      // },
+      // {
+      //   id: "2",
+      //   tipo: "agendamento",
+      //   descricao: "Agendamento de coleta confirmado",
+      //   data: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      // },
+      // {
+      //   id: "3",
+      //   tipo: "container",
+      //   descricao: "Container #12345 em preparação",
+      //   data: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      // },
     ];
   };
 
@@ -356,7 +592,12 @@ export default function ClientesView() {
               <Filter className="w-4 h-4 mr-2" />
               Filtros
             </Button>
-            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none"
+              onClick={handleExport}
+            >
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
@@ -409,9 +650,13 @@ export default function ClientesView() {
                           id="cpf"
                           value={formData.cpf}
                           onChange={(e) =>
-                            setFormData({ ...formData, cpf: e.target.value })
+                            setFormData({
+                              ...formData,
+                              cpf: formatCPF(e.target.value),
+                            })
                           }
                           placeholder="123.456.789-00"
+                          maxLength={14}
                           required
                         />
                       </div>
@@ -495,18 +740,27 @@ export default function ClientesView() {
 
                       <div className="space-y-2">
                         <Label htmlFor="estadoUSA">Estado *</Label>
-                        <Input
-                          id="estadoUSA"
-                          value={formData.estadoUSA}
-                          onChange={(e) =>
+                        <Select
+                          value={formData.estadoUSA || undefined}
+                          onValueChange={(value) =>
                             setFormData({
                               ...formData,
-                              estadoUSA: e.target.value,
+                              estadoUSA: value,
                             })
                           }
-                          placeholder="FL"
                           required
-                        />
+                        >
+                          <SelectTrigger id="estadoUSA">
+                            <SelectValue placeholder="Selecione o estado dos EUA" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ESTADOS_EUA.map(({ uf, nome }) => (
+                              <SelectItem key={uf} value={uf}>
+                                {uf} – {nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div className="space-y-2">
@@ -571,10 +825,11 @@ export default function ClientesView() {
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              cpfRecebedor: e.target.value,
+                              cpfRecebedor: formatCPF(e.target.value),
                             })
                           }
                           placeholder="987.654.321-00"
+                          maxLength={14}
                           required
                         />
                       </div>
@@ -616,31 +871,54 @@ export default function ClientesView() {
 
                       <div className="space-y-2">
                         <Label htmlFor="estadoBrasil">Estado *</Label>
-                        <Input
-                          id="estadoBrasil"
-                          value={formData.estadoBrasil}
-                          onChange={(e) =>
+                        <Select
+                          value={formData.estadoBrasil || undefined}
+                          onValueChange={(value) =>
                             setFormData({
                               ...formData,
-                              estadoBrasil: e.target.value,
+                              estadoBrasil: value,
                             })
                           }
-                          placeholder="SP"
                           required
-                        />
+                        >
+                          <SelectTrigger id="estadoBrasil">
+                            <SelectValue placeholder="Selecione o estado do Brasil" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ESTADOS_BRASIL.map(({ uf, nome }) => (
+                              <SelectItem key={uf} value={uf}>
+                                {uf} – {nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="cep">CEP *</Label>
+                        <Label htmlFor="cep">CEP Brasil *</Label>
                         <Input
                           id="cep"
                           value={formData.cep}
-                          onChange={(e) =>
-                            setFormData({ ...formData, cep: e.target.value })
-                          }
+                          onChange={(e) => {
+                            const formatted = formatCepBrasil(e.target.value);
+                            setFormData((prev) => ({
+                              ...prev,
+                              cep: formatted,
+                            }));
+                            if (formatted.replace(/\D/g, "").length === 8) {
+                              handleCepBrasilChange(formatted);
+                            }
+                          }}
                           placeholder="01234-567"
+                          maxLength={9}
                           required
+                          disabled={loadingCep}
                         />
+                        {loadingCep && (
+                          <p className="text-xs text-muted-foreground">
+                            Buscando endereço...
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -659,6 +937,23 @@ export default function ClientesView() {
                         required
                       />
                     </div>
+
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="cliente-ativo">Cliente ativo</Label>
+                        <p className="text-xs text-muted-foreground">
+                          O cliente será ativo se o switch estiver ligado.
+                        </p>
+                      </div>
+                      <Switch
+                        id="cliente-ativo"
+                        checked={formData.ativo}
+                        onCheckedChange={(checked) =>
+                          setFormData((prev) => ({ ...prev, ativo: checked }))
+                        }
+                      />
+                    </div>
+
                   </div>
 
                   <div className="flex justify-end gap-2">
@@ -875,11 +1170,15 @@ export default function ClientesView() {
                             <Badge variant="outline" className="text-xs">
                               {cliente.atendente}
                             </Badge>
-                            <Badge 
-                              variant={cliente.status === 'ativo' ? 'secondary' : 'destructive'} 
+                            <Badge
+                              variant={
+                                cliente.status === "ativo"
+                                  ? "secondary"
+                                  : "destructive"
+                              }
                               className="text-xs"
                             >
-                              {cliente.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                              {cliente.status === "ativo" ? "Ativo" : "Inativo"}
                             </Badge>
                           </div>
                         </div>
@@ -988,10 +1287,16 @@ export default function ClientesView() {
                                 <Badge variant="outline">
                                   {cliente.atendente}
                                 </Badge>
-                                <Badge 
-                                  variant={cliente.status === 'ativo' ? 'secondary' : 'destructive'}
+                                <Badge
+                                  variant={
+                                    cliente.status === "ativo"
+                                      ? "secondary"
+                                      : "destructive"
+                                  }
                                 >
-                                  {cliente.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                                  {cliente.status === "ativo"
+                                    ? "Ativo"
+                                    : "Inativo"}
                                 </Badge>
                               </div>
 
@@ -1107,14 +1412,16 @@ export default function ClientesView() {
                       <Badge className="bg-blue-100 text-blue-700">
                         {selectedCliente.atendente}
                       </Badge>
-                      <Badge 
+                      <Badge
                         className={
-                          selectedCliente.status === 'ativo' 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-red-100 text-red-700'
+                          selectedCliente.status === "ativo"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
                         }
                       >
-                        {selectedCliente.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                        {selectedCliente.status === "ativo"
+                          ? "Ativo"
+                          : "Inativo"}
                       </Badge>
                       <Badge variant="outline">
                         Cliente desde{" "}
@@ -1139,11 +1446,27 @@ export default function ClientesView() {
             <div className="p-6 space-y-6">
               {/* Ações Rápidas */}
               <div className="grid grid-cols-2 gap-3">
-                <Button variant="outline" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() =>
+                    handleCallTelphone(
+                      selectedCliente.destinoBrasil.telefones,
+                    )
+                  }
+                >
                   <Phone className="w-4 h-4 mr-2" />
                   Ligar
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() =>
+                    handleWhatsAppWindow(
+                      selectedCliente.destinoBrasil.telefones,
+                    )
+                  }
+                >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   WhatsApp
                 </Button>
