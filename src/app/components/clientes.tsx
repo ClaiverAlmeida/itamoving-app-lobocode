@@ -53,22 +53,35 @@ import {
   MessageCircle,
   Star,
   Activity,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { formatCPF } from "../utils/cpf";
-import { ESTADOS_BRASIL, ESTADOS_EUA } from "../utils/estados";
+import { formatNumberTelephoneBrasil, formatNumberTelephoneEUA } from "../utils";
+import { BRASIL_STATES, EUA_STATES } from "../utils/states";
 import {
   clientsService,
   type CreateClientsDTO,
   type UpdateClientsDTO,
+  type ClientHistoryItem,
 } from "../services/clients.service";
+
+const HISTORY_PAGE_SIZE = 5;
+
+interface HistoricoPaginado {
+  items: ClienteAtividade[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
 
 type ViewMode = "grid" | "list";
 
 interface ClienteAtividade {
   id: string;
-  tipo: "cadastro" | "agendamento" | "container" | "atualizacao";
+  tipo: "cadastro" | "agendamento" | "container" | "atualizacao" | "exclusao";
   descricao: string;
   data: Date;
 }
@@ -80,6 +93,13 @@ export default function ClientesView() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+  /** Histórico de atividades por cliente (paginado, 7 por página) */
+  const [historicoPorCliente, setHistoricoPorCliente] = useState<
+    Record<string, HistoricoPaginado>
+  >({});
+  const [loadingHistoricoId, setLoadingHistoricoId] = useState<string | null>(
+    null,
+  );
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showFilters, setShowFilters] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
@@ -100,6 +120,57 @@ export default function ClientesView() {
     };
     carregarClientes();
   }, [setClientes]);
+
+  /** Mapeia item do backend para ClienteAtividade (tipo do painel) */
+  const mapHistoryToAtividade = (
+    item: ClientHistoryItem,
+  ): ClienteAtividade => {
+    const entityType = (item.entityType ?? "").toLowerCase();
+    const actionType = (item.actionType ?? "").toLowerCase();
+    let tipo: ClienteAtividade["tipo"] = "atualizacao";
+    if (entityType === "client" && actionType === "created") tipo = "cadastro";
+    else if (entityType === "client" && actionType === "updated") tipo = "atualizacao";
+    else if (entityType === "client" && actionType === "deleted") tipo = "exclusao";
+    else if (entityType === "appointment" || entityType === "agendamento") tipo = "agendamento";
+    else if (entityType === "container") tipo = "container";
+    return {
+      id: item.id,
+      tipo,
+      descricao: item.message,
+      data: new Date(item.createdAt),
+    };
+  };
+
+  /** Carrega uma página do histórico do cliente */
+  const loadHistoricoPage = (clientId: string, page: number) => {
+    setLoadingHistoricoId(clientId);
+    clientsService
+      .history(clientId, page, HISTORY_PAGE_SIZE)
+      .then((res) => {
+        if (res.success && res.data) {
+          const { data, total, page: p, totalPages } = res.data;
+          setHistoricoPorCliente((prev) => ({
+            ...prev,
+            [clientId]: {
+              items: data.map(mapHistoryToAtividade),
+              total,
+              page: p,
+              totalPages,
+            },
+          }));
+        }
+      })
+      .finally(() => setLoadingHistoricoId(null));
+  };
+
+  /** Ao abrir o painel, carrega a página 1 do histórico se ainda não tiver */
+  useEffect(() => {
+    if (!selectedCliente?.id) return;
+    const clientId = selectedCliente.id;
+    if (historicoPorCliente[clientId]) return; // já tem dados (qualquer página)
+
+    loadHistoricoPage(clientId, 1);
+  }, [selectedCliente?.id]);
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -221,7 +292,7 @@ export default function ClientesView() {
       if (!data.erro) {
         const cepFormatado = cleanCep.replace(/(\d{5})(\d{3})/, "$1-$2");
         const uf = (data.uf || "").trim().toUpperCase();
-        const estadoValido = ESTADOS_BRASIL.some((e) => e.uf === uf) ? uf : "";
+        const estadoValido = BRASIL_STATES.some((e) => e.uf === uf) ? uf : "";
 
         setFormData((prev) => ({
           ...prev,
@@ -378,6 +449,7 @@ export default function ClientesView() {
     }
     resetForm();
     setIsDialogOpen(false);
+    loadHistoricoPage(editingCliente!.id, 1);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -425,7 +497,7 @@ export default function ClientesView() {
     window.open(`tel:${telefone}`, "_blank");
   };
 
-  const handleWhatsAppWindow = (telefones: string[]) => {
+  const handleWhatsAppWindow = (telefones: string[]) => { 
     if (!telefones || telefones.length === 0) {
       toast.error("Nenhum telefone encontrado");
       return;
@@ -518,31 +590,6 @@ export default function ClientesView() {
     return { total, novosUltimaSemana, estadosUnicos, cidadesBrasilUnicas };
   }, [filteredClientes]);
 
-  // Mock de atividades do cliente (em produção viria do backend)
-  const getClienteAtividades = (clienteId: string): ClienteAtividade[] => {
-    return [
-      // Popular dados que irão vir do backend referente à atividades do Cliente
-      // {
-      //   id: "1",
-      //   tipo: "cadastro",
-      //   descricao: "Cliente cadastrado no sistema",
-      //   data: new Date(selectedCliente?.dataCadastro || Date.now()),
-      // },
-      // {
-      //   id: "2",
-      //   tipo: "agendamento",
-      //   descricao: "Agendamento de coleta confirmado",
-      //   data: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      // },
-      // {
-      //   id: "3",
-      //   tipo: "container",
-      //   descricao: "Container #12345 em preparação",
-      //   data: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      // },
-    ];
-  };
-
   const getAtividadeIcon = (tipo: ClienteAtividade["tipo"]) => {
     switch (tipo) {
       case "cadastro":
@@ -553,6 +600,8 @@ export default function ClientesView() {
         return Package;
       case "atualizacao":
         return Edit;
+      case "exclusao":
+        return Trash2;
     }
   };
 
@@ -566,6 +615,8 @@ export default function ClientesView() {
         return "purple";
       case "atualizacao":
         return "orange";
+      case "exclusao":
+        return "red";
     }
   };
 
@@ -669,7 +720,7 @@ export default function ClientesView() {
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              telefoneUSA: e.target.value,
+                              telefoneUSA: formatNumberTelephoneEUA(e.target.value),
                             })
                           }
                           placeholder="+1 (305) 555-0123"
@@ -754,7 +805,7 @@ export default function ClientesView() {
                             <SelectValue placeholder="Selecione o estado dos EUA" />
                           </SelectTrigger>
                           <SelectContent>
-                            {ESTADOS_EUA.map(({ uf, nome }) => (
+                            {EUA_STATES.map(({ uf, nome }) => (
                               <SelectItem key={uf} value={uf}>
                                 {uf} – {nome}
                               </SelectItem>
@@ -885,7 +936,7 @@ export default function ClientesView() {
                             <SelectValue placeholder="Selecione o estado do Brasil" />
                           </SelectTrigger>
                           <SelectContent>
-                            {ESTADOS_BRASIL.map(({ uf, nome }) => (
+                            {BRASIL_STATES.map(({ uf, nome }) => (
                               <SelectItem key={uf} value={uf}>
                                 {uf} – {nome}
                               </SelectItem>
@@ -930,7 +981,7 @@ export default function ClientesView() {
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            telefoneBrasil: e.target.value,
+                            telefoneBrasil: formatNumberTelephoneBrasil(e.target.value),
                           })
                         }
                         placeholder="+55 11 98765-4321"
@@ -1580,7 +1631,7 @@ export default function ClientesView() {
                 </CardContent>
               </Card>
 
-              {/* Histórico de Atividades */}
+              {/* Histórico de Atividades (paginado, 5 por página) */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -1590,54 +1641,118 @@ export default function ClientesView() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {getClienteAtividades(selectedCliente.id).map(
-                      (atividade) => {
-                        const Icon = getAtividadeIcon(atividade.tipo);
-                        const color = getAtividadeColor(atividade.tipo);
+                    {loadingHistoricoId === selectedCliente.id ? (
+                      <p className="text-sm text-muted-foreground">
+                        Carregando histórico...
+                      </p>
+                    ) : !historicoPorCliente[selectedCliente.id] ? (
+                      <p className="text-sm text-muted-foreground">
+                        Nenhuma atividade registrada.
+                      </p>
+                    ) : historicoPorCliente[selectedCliente.id].items.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Nenhuma atividade registrada.
+                      </p>
+                    ) : (
+                      <>
+                        {historicoPorCliente[selectedCliente.id].items.map(
+                          (atividade) => {
+                            const Icon = getAtividadeIcon(atividade.tipo);
+                            const color = getAtividadeColor(atividade.tipo);
 
-                        return (
-                          <div
-                            key={atividade.id}
-                            className="flex items-start gap-3"
-                          >
-                            <div
-                              className={`p-2 rounded-full ${
-                                color === "blue"
-                                  ? "bg-blue-100"
-                                  : color === "green"
-                                    ? "bg-green-100"
-                                    : color === "purple"
-                                      ? "bg-purple-100"
-                                      : "bg-orange-100"
-                              }`}
+                            return (
+                              <div
+                                key={atividade.id}
+                                className="flex items-start gap-3"
+                              >
+                                <div
+                                  className={`p-2 rounded-full ${
+                                    color === "blue"
+                                      ? "bg-blue-100"
+                                      : color === "green"
+                                        ? "bg-green-100"
+                                        : color === "purple"
+                                          ? "bg-purple-100"
+                                          : color === "red"
+                                            ? "bg-red-100"
+                                            : "bg-orange-100"
+                                  }`}
+                                >
+                                  <Icon
+                                    className={`w-4 h-4 ${
+                                      color === "blue"
+                                        ? "text-blue-600"
+                                        : color === "green"
+                                          ? "text-green-600"
+                                          : color === "purple"
+                                            ? "text-purple-600"
+                                            : color === "red"
+                                              ? "text-red-600"
+                                              : "text-orange-600"
+                                    }`}
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-semibold text-sm">
+                                    {atividade.descricao}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {atividade.data.toLocaleDateString("pt-BR")} às{" "}
+                                    {atividade.data.toLocaleTimeString("pt-BR", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          },
+                        )}
+                        {historicoPorCliente[selectedCliente.id].totalPages > 1 && (
+                          <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={
+                                loadingHistoricoId === selectedCliente.id ||
+                                historicoPorCliente[selectedCliente.id].page <= 1
+                              }
+                              onClick={() =>
+                                loadHistoricoPage(
+                                  selectedCliente.id,
+                                  historicoPorCliente[selectedCliente.id].page - 1,
+                                )
+                              }
                             >
-                              <Icon
-                                className={`w-4 h-4 ${
-                                  color === "blue"
-                                    ? "text-blue-600"
-                                    : color === "green"
-                                      ? "text-green-600"
-                                      : color === "purple"
-                                        ? "text-purple-600"
-                                        : "text-orange-600"
-                                }`}
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-semibold text-sm">
-                                {atividade.descricao}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {atividade.data.toLocaleDateString("pt-BR")} às{" "}
-                                {atividade.data.toLocaleTimeString("pt-BR", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
-                            </div>
+                              <ChevronLeft className="w-4 h-4 mr-1" />
+                              Anterior
+                            </Button>
+                            <span className="text-xs text-muted-foreground">
+                              Página {historicoPorCliente[selectedCliente.id].page} de{" "}
+                              {historicoPorCliente[selectedCliente.id].totalPages}
+                              {" "}({historicoPorCliente[selectedCliente.id].total} atividades)
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={
+                                loadingHistoricoId === selectedCliente.id ||
+                                historicoPorCliente[selectedCliente.id].page >=
+                                  historicoPorCliente[selectedCliente.id].totalPages
+                              }
+                              onClick={() =>
+                                loadHistoricoPage(
+                                  selectedCliente.id,
+                                  historicoPorCliente[selectedCliente.id].page + 1,
+                                )
+                              }
+                            >
+                              Próxima
+                              <ChevronRight className="w-4 h-4 ml-1" />
+                            </Button>
                           </div>
-                        );
-                      },
+                        )}
+                      </>
                     )}
                   </div>
                 </CardContent>

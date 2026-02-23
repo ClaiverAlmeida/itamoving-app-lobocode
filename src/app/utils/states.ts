@@ -1,5 +1,5 @@
 /** Lista dos 27 estados do Brasil (UF e nome) para uso em Selects. */
-export const ESTADOS_BRASIL = [
+export const BRASIL_STATES = [
   { uf: "AC", nome: "Acre" },
   { uf: "AL", nome: "Alagoas" },
   { uf: "AP", nome: "Amapá" },
@@ -30,7 +30,7 @@ export const ESTADOS_BRASIL = [
 ] as const;
 
 // Lista dos 50 estados dos EUA (UF e nome) para uso em Selects.
-export const ESTADOS_EUA = [
+export const EUA_STATES = [
   { uf: "AL", nome: "Alabama" },
   { uf: "AK", nome: "Alasca" },
   { uf: "AZ", nome: "Arizona" },

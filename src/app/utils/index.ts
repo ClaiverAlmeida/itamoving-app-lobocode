@@ -1,2 +1,3 @@
-export { formatCPF, unmaskCPF, validateCPF } from './cpf';
-export { ESTADOS_BRASIL, ESTADOS_EUA } from './estados';
+export { formatCPF, unmaskCPF, validateCPF } from "./cpf";
+export { BRASIL_STATES, EUA_STATES } from "./states";
+export { formatNumberTelephoneBrasil, formatNumberTelephoneEUA } from "./numbers";

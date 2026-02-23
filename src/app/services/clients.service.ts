@@ -20,6 +20,28 @@ export interface CreateClientsDTO {
 export type UpdateClientsDTO = Partial<CreateClientsDTO>;
 
 /**
+ * Item de histórico do cliente (ClientHistory do backend)
+ */
+export interface ClientHistoryItem {
+  id: string;
+  clientId: string;
+  entityId: string | null;
+  entityType: string | null;
+  actionType: string | null;
+  message: string;
+  createdAt: string;
+}
+
+/** Resposta paginada do histórico do cliente */
+export interface HistoryPagination {
+  data: ClientHistoryItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
  * Interface que representa os dados do Cliente retornados pelo backend
  */
 export interface ClientBackend {
@@ -194,6 +216,27 @@ export class ClientsService {
       return { success: true, data: result.data };
     } catch (error) {
       return { success: false, error: "Erro ao exportar clientes" };
+    }
+  }
+
+  /** Histórico do cliente com paginação (7 itens por página) */
+  async history(
+    clientId: string,
+    page = 1,
+    limit = 5,
+  ): Promise<{
+    success: boolean;
+    data?: HistoryPagination;
+    error?: string;
+  }> {
+    try {
+      const result = await api.get<HistoryPagination>(
+        `/clients/history/${clientId}`,
+        { params: { page, limit } },
+      );
+      return { success: true, data: result.data };
+    } catch (error) {
+      return { success: false, error: "Erro ao buscar histórico de clientes" };
     }
   }
 }
