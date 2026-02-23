@@ -33,7 +33,7 @@ import {
   X
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, isToday, isTomorrow, isPast, isSameDay, addDays, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import { format, isYesterday, isToday, isTomorrow, isPast, isSameDay, addDays, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -206,6 +206,7 @@ export default function AgendamentosView() {
   }, [filteredAgendamentos]);
 
   const getDateLabel = (date: Date) => {
+    if(isYesterday(date)) return 'Ontem';
     if (isToday(date)) return 'Hoje';
     if (isTomorrow(date)) return 'Amanhã';
     return format(date, "EEEE, dd 'de' MMMM", { locale: ptBR });
