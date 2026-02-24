@@ -13,7 +13,7 @@ export interface CreateClientsDTO {
   usaAddress: Record<string, unknown>;
   brazilDestination: Record<string, unknown>;
   attendant: string;
-  status?: 'active' | 'inactive';
+  status?: "active" | "inactive";
 }
 
 /** DTO para edição (PATCH) - apenas campos enviados são atualizados */
@@ -29,8 +29,10 @@ export interface ClientHistoryItem {
   entityType: string | null;
   actionType: string | null;
   message: string;
-  ownerId: string;
-  fieldsChanged?: Record<string, { before?: unknown; after?: unknown }>;
+  owner: {
+    id: string;
+    name: string;
+  };
   createdAt: string;
 }
 
@@ -164,7 +166,10 @@ export class ClientsService {
     data: CreateClientsDTO,
   ): Promise<{ success: boolean; data?: Cliente; error?: string }> {
     try {
-      const result = await api.post<ClientBackend | { data: ClientBackend }>("/clients", data);
+      const result = await api.post<ClientBackend | { data: ClientBackend }>(
+        "/clients",
+        data,
+      );
 
       if (result.success && result.data) {
         const raw = (result.data as any)?.data ?? result.data;
@@ -186,7 +191,10 @@ export class ClientsService {
   ): Promise<{ success: boolean; data?: Cliente; error?: string }> {
     try {
       const body = changes ? { data, changes } : { data };
-      const result = await api.patch<ClientBackend | { data: ClientBackend }>(`/clients/${id}`, body);
+      const result = await api.patch<ClientBackend | { data: ClientBackend }>(
+        `/clients/${id}`,
+        body,
+      );
 
       if (result.success && result.data) {
         const raw = (result.data as any)?.data ?? result.data;
@@ -205,7 +213,7 @@ export class ClientsService {
     try {
       const result = await api.delete<{ data: Cliente }>(`/clients/${id}`);
 
-      if(result.success && result.data) {
+      if (result.success && result.data) {
         return { success: true };
       }
 

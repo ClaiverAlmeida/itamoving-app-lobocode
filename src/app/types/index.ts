@@ -24,7 +24,7 @@ export interface Cliente {
   };
   atendente: string;
   dataCadastro: string;
-  status: 'ativo' | 'inativo';
+  status: "ativo" | "inativo";
 }
 
 export interface CaixaTamanho {
@@ -48,7 +48,7 @@ export interface Agendamento {
   dataColeta: string;
   horaColeta: string;
   endereco: string;
-  status: 'pendente' | 'confirmado' | 'coletado' | 'cancelado';
+  status: "pendente" | "confirmado" | "coletado" | "cancelado";
   observacoes?: string;
   atendente: string;
 }
@@ -64,13 +64,21 @@ export interface ItemEnvio {
 export interface Container {
   id: string;
   numero: string;
-  tipo?: '20ft' | '40ft' | '40ft HC' | '45ft HC';
+  tipo?: "20ft" | "40ft" | "40ft HC" | "45ft HC";
   origem?: string;
   destino?: string;
   dataEnvio: string;
   dataEmbarque?: string;
   previsaoChegada?: string;
-  status: 'preparando' | 'enviado' | 'em-transito' | 'entregue' | 'preparacao' | 'transito' | 'entregue' | 'cancelado';
+  status:
+    | "preparando"
+    | "enviado"
+    | "em-transito"
+    | "entregue"
+    | "preparacao"
+    | "transito"
+    | "entregue"
+    | "cancelado";
   volume?: number;
   linkRastreamento?: string;
   caixas: {
@@ -88,7 +96,7 @@ export interface Transacao {
   id: string;
   clienteId: string;
   clienteNome: string;
-  tipo: 'receita' | 'despesa';
+  tipo: "receita" | "despesa";
   categoria: string;
   valor: number;
   data: string;
@@ -107,19 +115,19 @@ export interface Rota {
 
 export interface PrecoEntrega {
   id: string;
-  cidadeOrigem: string;
-  estadoOrigem: string;
-  cidadeDestino: string;
-  estadoDestino: string;
-  precoPorKg: number;
-  precoMinimo: number;
-  prazoEntrega: number; // dias
-  ativo: boolean;
+  originCity: string;
+  originState: string;
+  destinationCity: string;
+  destinationState: string;
+  pricePerKg: number;
+  minimumPrice: number;
+  deliveryDeadline: number; // dias
+  active: boolean;
 }
 
 export interface PrecoProduto {
   id: string;
-  tipo: 'caixa' | 'fita';
+  tipo: "caixa" | "fita";
   nome: string;
   tamanho?: string; // Para caixas: Pequena, Média, Grande
   dimensoes?: string; // ex: "40x30x25cm"
@@ -145,8 +153,8 @@ export interface Funcionario {
   cargo: string;
   departamento: string;
   salario: number;
-  tipoContrato: 'CLT' | 'PJ' | 'Temporário' | 'Estágio';
-  status: 'ativo' | 'férias' | 'afastado' | 'demitido';
+  tipoContrato: "CLT" | "PJ" | "Temporário" | "Estágio";
+  status: "ativo" | "férias" | "afastado" | "demitido";
   endereco: {
     rua: string;
     numero: string;
@@ -176,7 +184,7 @@ export interface RegistroPonto {
   saida?: string;
   horasTrabalhadas: number;
   horasExtras: number;
-  tipo: 'normal' | 'falta' | 'atestado' | 'folga';
+  tipo: "normal" | "falta" | "atestado" | "folga";
   observacoes?: string;
 }
 
@@ -193,7 +201,7 @@ export interface Folha {
   fgts: number;
   salarioLiquido: number;
   dataPagamento: string;
-  status: 'pendente' | 'pago' | 'atrasado';
+  status: "pendente" | "pago" | "atrasado";
 }
 
 export interface Ferias {
@@ -204,7 +212,12 @@ export interface Ferias {
   dataInicio: string;
   dataFim: string;
   diasCorridos: number;
-  status: 'solicitado' | 'aprovado' | 'em-andamento' | 'concluído' | 'cancelado';
+  status:
+    | "solicitado"
+    | "aprovado"
+    | "em-andamento"
+    | "concluído"
+    | "cancelado";
   observacoes?: string;
 }
 
@@ -229,7 +242,7 @@ export interface Avaliacao {
 export interface OrdemServicoMotorista {
   id: string;
   agendamentoId: string;
-  
+
   // Dados do Remetente (USA)
   remetente: {
     nome: string;
@@ -240,7 +253,7 @@ export interface OrdemServicoMotorista {
     telefone: string;
     cpfRg?: string;
   };
-  
+
   // Dados do Destinatário (Brasil)
   destinatario: {
     nome: string;
@@ -252,7 +265,7 @@ export interface OrdemServicoMotorista {
     cep: string;
     telefone: string;
   };
-  
+
   // Caixas e Valores
   caixas: {
     id: string;
@@ -260,18 +273,18 @@ export interface OrdemServicoMotorista {
     numero: string;
     valor: number;
   }[];
-  
+
   // Assinaturas e Data
   assinaturaCliente?: string;
   assinaturaAgente?: string;
   dataAssinatura: string;
-  
+
   // Motorista e Status
   motoristaNome: string;
   motoristaId: string;
-  status: 'pendente' | 'em_andamento' | 'concluida';
+  status: "pendente" | "em_andamento" | "concluida";
   valorCobrado?: number;
-  
+
   // Observações
   observacoes?: string;
 }

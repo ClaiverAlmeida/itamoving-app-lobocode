@@ -59,7 +59,10 @@ import {
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { formatCPF } from "../utils/cpf";
-import { formatNumberTelephoneBrasil, formatNumberTelephoneEUA } from "../utils";
+import {
+  formatNumberTelephoneBrasil,
+  formatNumberTelephoneEUA,
+} from "../utils";
 import { BRASIL_STATES, EUA_STATES } from "../utils/states";
 import {
   clientsService,
@@ -83,9 +86,11 @@ interface ClienteAtividade {
   id: string;
   tipo: "cadastro" | "agendamento" | "container" | "atualizacao" | "exclusao";
   descricao: string;
-  ownerId: string;
+  owner: {
+    id: string;
+    name: string;
+  };
   data: Date;
-  fieldsChanged?: Record<string, { before?: unknown; after?: unknown }>;
 }
 
 export default function ClientesView() {
@@ -124,23 +129,23 @@ export default function ClientesView() {
   }, [setClientes]);
 
   /** Mapeia item do backend para ClienteAtividade (tipo do painel) */
-  const mapHistoryToAtividade = (
-    item: ClientHistoryItem,
-  ): ClienteAtividade => {
+  const mapHistoryToAtividade = (item: ClientHistoryItem): ClienteAtividade => {
     const entityType = (item.entityType ?? "").toLowerCase();
     const actionType = (item.actionType ?? "").toLowerCase();
     let tipo: ClienteAtividade["tipo"] = "atualizacao";
     if (entityType === "client" && actionType === "created") tipo = "cadastro";
-    else if (entityType === "client" && actionType === "updated") tipo = "atualizacao";
-    else if (entityType === "client" && actionType === "deleted") tipo = "exclusao";
-    else if (entityType === "appointment" || entityType === "agendamento") tipo = "agendamento";
+    else if (entityType === "client" && actionType === "updated")
+      tipo = "atualizacao";
+    else if (entityType === "client" && actionType === "deleted")
+      tipo = "exclusao";
+    else if (entityType === "appointment" || entityType === "agendamento")
+      tipo = "agendamento";
     else if (entityType === "container") tipo = "container";
     return {
       id: item.id,
       tipo,
+      owner: item.owner,
       descricao: item.message,
-      ownerId: item.ownerId,
-      fieldsChanged: item.fieldsChanged,
       data: new Date(item.createdAt),
     };
   };
@@ -420,7 +425,9 @@ export default function ClientesView() {
       "brazilDestination",
     ] as const;
 
-    const camposAlterados = Object.keys(patchPayload) as (typeof possiveisCampos)[number][];
+    const camposAlterados = Object.keys(
+      patchPayload,
+    ) as (typeof possiveisCampos)[number][];
 
     const old: Record<string, unknown> = {
       name: editingCliente!.nome,
@@ -435,9 +442,10 @@ export default function ClientesView() {
     const payloadBeforeAfter = Object.fromEntries(
       camposAlterados.map((c) => [
         c,
-        { 
-          before: old[c], 
-          after: patchPayload[c as keyof typeof patchPayload] },
+        {
+          before: old[c],
+          after: patchPayload[c as keyof typeof patchPayload],
+        },
       ]),
     );
 
@@ -446,7 +454,7 @@ export default function ClientesView() {
       patchPayload,
       payloadBeforeAfter,
     );
-    
+
     if (!result.success) {
       toast.error(result.error || "Erro ao atualizar cliente");
       return;
@@ -534,7 +542,7 @@ export default function ClientesView() {
     window.open(`tel:${telefone}`, "_blank");
   };
 
-  const handleWhatsAppWindow = (telefones: string[]) => { 
+  const handleWhatsAppWindow = (telefones: string[]) => {
     if (!telefones || telefones.length === 0) {
       toast.error("Nenhum telefone encontrado");
       return;
@@ -547,7 +555,7 @@ export default function ClientesView() {
   // TODO
   // Documentos do Cliente
   // Exportar Clientes
-  
+
   const filteredClientes = useMemo(() => {
     return clientes.filter((cliente) => {
       // Search
@@ -611,7 +619,7 @@ export default function ClientesView() {
 
     // const total = filteredClientes.length;
     // const inativos = filteredClientes.filter((c) => c.status === "inativo").length;
-    
+
     const novosUltimaSemana = filteredClientes.filter((c) => {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       return new Date(c.dataCadastro) >= weekAgo;
@@ -782,7 +790,9 @@ export default function ClientesView() {
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              telefoneUSA: formatNumberTelephoneEUA(e.target.value),
+                              telefoneUSA: formatNumberTelephoneEUA(
+                                e.target.value,
+                              ),
                             })
                           }
                           placeholder="+1 (305) 555-0123"
@@ -1043,7 +1053,9 @@ export default function ClientesView() {
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            telefoneBrasil: formatNumberTelephoneBrasil(e.target.value),
+                            telefoneBrasil: formatNumberTelephoneBrasil(
+                              e.target.value,
+                            ),
                           })
                         }
                         placeholder="+55 11 98765-4321"
@@ -1066,7 +1078,6 @@ export default function ClientesView() {
                         }
                       />
                     </div>
-
                   </div>
 
                   <div className="flex justify-end gap-2">
@@ -1563,9 +1574,7 @@ export default function ClientesView() {
                   variant="outline"
                   className="w-full"
                   onClick={() =>
-                    handleCallTelphone(
-                      selectedCliente.destinoBrasil.telefones,
-                    )
+                    handleCallTelphone(selectedCliente.destinoBrasil.telefones)
                   }
                 >
                   <Phone className="w-4 h-4 mr-2" />
@@ -1711,7 +1720,8 @@ export default function ClientesView() {
                       <p className="text-sm text-muted-foreground">
                         Nenhuma atividade registrada.
                       </p>
-                    ) : historicoPorCliente[selectedCliente.id].items.length === 0 ? (
+                    ) : historicoPorCliente[selectedCliente.id].items.length ===
+                      0 ? (
                       <p className="text-sm text-muted-foreground">
                         Nenhuma atividade registrada.
                       </p>
@@ -1721,8 +1731,6 @@ export default function ClientesView() {
                           (atividade) => {
                             const Icon = getAtividadeIcon(atividade.tipo);
                             const color = getAtividadeColor(atividade.tipo);
-                            const exibeDetails = showDetailsForAtividade(atividade);
-
                             const linhaAtividade = (
                               <>
                                 <div
@@ -1757,69 +1765,28 @@ export default function ClientesView() {
                                     {atividade.descricao}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {atividade.data.toLocaleDateString("pt-BR")} às{" "}
-                                    {atividade.data.toLocaleTimeString("pt-BR", {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
-                                    {" "} - {atividade.tipo === "atualizacao" ? "Editado" : atividade.tipo === "cadastro" ? "Cadastrado" : atividade.tipo === "exclusao" ? "Excluído" : "Atualizado"} pelo usuário: {atividade.ownerId}
+                                    {atividade.data.toLocaleDateString("pt-BR")}{" "}
+                                    às{" "}
+                                    {atividade.data.toLocaleTimeString(
+                                      "pt-BR",
+                                      {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      },
+                                    )}{" "}
+                                    -{" "}
+                                    {atividade.tipo === "atualizacao"
+                                      ? "Editado"
+                                      : atividade.tipo === "cadastro"
+                                        ? "Cadastrado"
+                                        : atividade.tipo === "exclusao"
+                                          ? "Excluído"
+                                          : "Atualizado"}{" "}
+                                    por: {atividade.owner.name}
                                   </p>
                                 </div>
-                                {exibeDetails && (
-                                  <span className="flex-shrink-0 p-1.5 rounded hover:bg-muted/50 transition-colors">
-                                    <ChevronRight className="w-4 h-4 text-muted-foreground group-open/details:rotate-90 transition-transform" />
-                                  </span>
-                                )}
                               </>
                             );
-
-                            if (exibeDetails) {
-                              return (
-                                <details
-                                  key={atividade.id}
-                                  className="flex flex-col gap-2 group/details"
-                                >
-                                  <summary className="flex items-start gap-3 list-none cursor-pointer [&::-webkit-details-marker]:hidden">
-                                    {linhaAtividade}
-                                  </summary>
-                                  <div className="pl-[52px] pr-2 pt-2 pb-2 rounded-lg bg-muted/40 text-sm border border-border/80 space-y-4">
-                                    {atividade.fieldsChanged &&
-                                      Object.entries(atividade.fieldsChanged).map(([key, value]) => (
-                                        <div
-                                          key={key}
-                                          className="rounded-md border border-border/60 bg-background/60 overflow-hidden"
-                                        >
-                                          <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground border-b border-border/60 bg-muted/30">
-                                            {getFieldLabel(key)}
-                                          </p>
-                                          <div className="grid grid-cols-2 divide-x divide-border/60">
-                                            <div className="flex flex-col min-w-0">
-                                              <span className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/20">
-                                                Antes
-                                              </span>
-                                              <div className="px-3 py-2 max-h-32 overflow-y-auto">
-                                                <pre className="whitespace-pre-wrap break-words text-[13px] font-sans text-foreground/90 m-0">
-                                                  {formatFieldValue(value.before)}
-                                                </pre>
-                                              </div>
-                                            </div>
-                                            <div className="flex flex-col min-w-0">
-                                              <span className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/20">
-                                                Depois
-                                              </span>
-                                              <div className="px-3 py-2 max-h-32 overflow-y-auto">
-                                                <pre className="whitespace-pre-wrap break-words text-[13px] font-sans text-foreground/90 m-0">
-                                                  {formatFieldValue(value.after)}
-                                                </pre>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      ))}
-                                  </div>
-                                </details>
-                              );
-                            }
 
                             return (
                               <div
@@ -1831,19 +1798,22 @@ export default function ClientesView() {
                             );
                           },
                         )}
-                        {historicoPorCliente[selectedCliente.id].totalPages > 1 && (
+                        {historicoPorCliente[selectedCliente.id].totalPages >
+                          1 && (
                           <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
                             <Button
                               variant="outline"
                               size="sm"
                               disabled={
                                 loadingHistoricoId === selectedCliente.id ||
-                                historicoPorCliente[selectedCliente.id].page <= 1
+                                historicoPorCliente[selectedCliente.id].page <=
+                                  1
                               }
                               onClick={() =>
                                 loadHistoricoPage(
                                   selectedCliente.id,
-                                  historicoPorCliente[selectedCliente.id].page - 1,
+                                  historicoPorCliente[selectedCliente.id].page -
+                                    1,
                                 )
                               }
                             >
@@ -1851,9 +1821,14 @@ export default function ClientesView() {
                               Anterior
                             </Button>
                             <span className="text-xs text-muted-foreground">
-                              Página {historicoPorCliente[selectedCliente.id].page} de{" "}
-                              {historicoPorCliente[selectedCliente.id].totalPages}
-                              {" "}({historicoPorCliente[selectedCliente.id].total} atividades)
+                              Página{" "}
+                              {historicoPorCliente[selectedCliente.id].page} de{" "}
+                              {
+                                historicoPorCliente[selectedCliente.id]
+                                  .totalPages
+                              }{" "}
+                              ({historicoPorCliente[selectedCliente.id].total}{" "}
+                              atividades)
                             </span>
                             <Button
                               variant="outline"
@@ -1861,12 +1836,14 @@ export default function ClientesView() {
                               disabled={
                                 loadingHistoricoId === selectedCliente.id ||
                                 historicoPorCliente[selectedCliente.id].page >=
-                                  historicoPorCliente[selectedCliente.id].totalPages
+                                  historicoPorCliente[selectedCliente.id]
+                                    .totalPages
                               }
                               onClick={() =>
                                 loadHistoricoPage(
                                   selectedCliente.id,
-                                  historicoPorCliente[selectedCliente.id].page + 1,
+                                  historicoPorCliente[selectedCliente.id].page +
+                                    1,
                                 )
                               }
                             >
