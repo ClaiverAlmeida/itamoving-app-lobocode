@@ -229,8 +229,15 @@ export default function PrecosView() {
     e.preventDefault();
     if (!selectedEntrega) return;
 
-    const payload = getUpdatePayload();
+    const patchPayload = getUpdatePayload();
 
+    if (Object.keys(patchPayload).length === 0) {
+      toast.info("Nenhum campo alterado.");
+      return;
+    }
+
+    //TODO: Atualizar o preço de entrega
+    
     toast.success("Preço de entrega atualizado com sucesso!");
     resetFormEntrega();
     setIsEditEntregaDialogOpen(false);
@@ -1261,11 +1268,11 @@ export default function PrecosView() {
                 <Input
                   id="editCidadeOrigem"
                   placeholder="Ex: Miami"
-                  value={formEntrega.cidadeOrigem}
+                  value={formEntrega.originCity}
                   onChange={(e) =>
                     setFormEntrega({
                       ...formEntrega,
-                      cidadeOrigem: e.target.value,
+                      originCity: e.target.value,
                     })
                   }
                   required
@@ -1274,9 +1281,9 @@ export default function PrecosView() {
               <div className="space-y-2">
                 <Label htmlFor="editEstadoOrigem">Estado *</Label>
                 <Select
-                  value={formEntrega.estadoOrigem}
+                  value={formEntrega.originState}
                   onValueChange={(value) =>
-                    setFormEntrega({ ...formEntrega, estadoOrigem: value })
+                    setFormEntrega({ ...formEntrega, originState: value })
                   }
                 >
                   <SelectTrigger>
@@ -1302,11 +1309,11 @@ export default function PrecosView() {
                 <Input
                   id="editCidadeDestino"
                   placeholder="Ex: São Paulo"
-                  value={formEntrega.cidadeDestino}
+                  value={formEntrega.destinationCity}
                   onChange={(e) =>
                     setFormEntrega({
                       ...formEntrega,
-                      cidadeDestino: e.target.value,
+                      destinationCity: e.target.value,
                     })
                   }
                   required
@@ -1315,9 +1322,9 @@ export default function PrecosView() {
               <div className="space-y-2">
                 <Label htmlFor="editEstadoDestino">Estado *</Label>
                 <Select
-                  value={formEntrega.estadoDestino}
+                  value={formEntrega.destinationState}
                   onValueChange={(value) =>
-                    setFormEntrega({ ...formEntrega, estadoDestino: value })
+                    setFormEntrega({ ...formEntrega, destinationState: value })
                   }
                 >
                   <SelectTrigger>
@@ -1345,11 +1352,11 @@ export default function PrecosView() {
                   type="number"
                   step="0.01"
                   placeholder="Ex: 8.50"
-                  value={formEntrega.precoPorKg}
+                  value={formEntrega.pricePerKg ?? ""}
                   onChange={(e) =>
                     setFormEntrega({
                       ...formEntrega,
-                      precoPorKg: e.target.value,
+                      pricePerKg: e.target.value === "" ? 0 : Number(e.target.value),
                     })
                   }
                   required
@@ -1362,11 +1369,11 @@ export default function PrecosView() {
                   type="number"
                   step="0.01"
                   placeholder="Ex: 150.00"
-                  value={formEntrega.precoMinimo}
+                  value={formEntrega.minimumPrice ?? ""}
                   onChange={(e) =>
                     setFormEntrega({
                       ...formEntrega,
-                      precoMinimo: e.target.value,
+                      minimumPrice: e.target.value === "" ? 0 : Number(e.target.value),
                     })
                   }
                   required
@@ -1382,11 +1389,11 @@ export default function PrecosView() {
                   placeholder="Ex: 30"
                   min={1}
                   // max={30}
-                  value={formEntrega.prazoEntrega}
+                  value={formEntrega.deliveryDeadline ?? ""}
                   onChange={(e) =>
                     setFormEntrega({
                       ...formEntrega,
-                      prazoEntrega: e.target.value,
+                      deliveryDeadline: e.target.value === "" ? 0 : Number(e.target.value),
                     })
                   }
                   required
@@ -1395,9 +1402,9 @@ export default function PrecosView() {
               <div className="space-y-2 flex items-center gap-2">
                 <Switch
                   id="editAtivoEntrega"
-                  checked={formEntrega.ativo}
+                  checked={formEntrega.active}
                   onCheckedChange={(checked) =>
-                    setFormEntrega({ ...formEntrega, ativo: checked })
+                    setFormEntrega({ ...formEntrega, active: !!checked })
                   }
                 />
                 <Label htmlFor="editAtivoEntrega">Rota Ativa</Label>
