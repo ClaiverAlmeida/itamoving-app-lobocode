@@ -29,6 +29,8 @@ export interface ClientHistoryItem {
   entityType: string | null;
   actionType: string | null;
   message: string;
+  ownerId: string;
+  fieldsChanged?: Record<string, { before?: unknown; after?: unknown }>;
   createdAt: string;
 }
 
@@ -177,21 +179,24 @@ export class ClientsService {
     }
   }
 
-  async update(id: string, data: UpdateClientsDTO): Promise<{ success: boolean; data?: Cliente; error?: string }> {
+  async update(
+    id: string,
+    data: UpdateClientsDTO,
+    changes?: Record<string, { before?: unknown; after?: unknown }>,
+  ): Promise<{ success: boolean; data?: Cliente; error?: string }> {
     try {
-      const result = await api.patch<ClientBackend | { data: ClientBackend }>(`/clients/${id}`, data);
+      const body = changes ? { data, changes } : { data };
+      const result = await api.patch<ClientBackend | { data: ClientBackend }>(`/clients/${id}`, body);
 
-      if(result.success && result.data) {
+      if (result.success && result.data) {
         const raw = (result.data as any)?.data ?? result.data;
         const clientBackend = raw as ClientBackend;
         const cliente = mapBackendToFrontend(clientBackend);
         return { success: true, data: cliente };
-
       }
 
       return { success: false, error: "Erro ao atualizar cliente" };
-    }
-    catch (error) {
+    } catch (error) {
       return { success: false, error: "Erro ao atualizar cliente" };
     }
   }

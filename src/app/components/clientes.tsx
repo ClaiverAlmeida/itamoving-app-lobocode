@@ -83,7 +83,9 @@ interface ClienteAtividade {
   id: string;
   tipo: "cadastro" | "agendamento" | "container" | "atualizacao" | "exclusao";
   descricao: string;
+  ownerId: string;
   data: Date;
+  fieldsChanged?: Record<string, { before?: unknown; after?: unknown }>;
 }
 
 export default function ClientesView() {
@@ -137,6 +139,8 @@ export default function ClientesView() {
       id: item.id,
       tipo,
       descricao: item.message,
+      ownerId: item.ownerId,
+      fieldsChanged: item.fieldsChanged,
       data: new Date(item.createdAt),
     };
   };
@@ -406,10 +410,43 @@ export default function ClientesView() {
       return;
     }
 
+    const possiveisCampos = [
+      "name",
+      "cpf",
+      "usaPhone",
+      "attendant",
+      "status",
+      "usaAddress",
+      "brazilDestination",
+    ] as const;
+
+    const camposAlterados = Object.keys(patchPayload) as (typeof possiveisCampos)[number][];
+
+    const old: Record<string, unknown> = {
+      name: editingCliente!.nome,
+      cpf: editingCliente!.cpf,
+      usaPhone: editingCliente!.telefoneUSA,
+      attendant: editingCliente!.atendente,
+      status: editingCliente!.status === "ativo" ? "active" : "inactive",
+      usaAddress: editingCliente!.enderecoUSA,
+      brazilDestination: editingCliente!.destinoBrasil,
+    };
+
+    const payloadBeforeAfter = Object.fromEntries(
+      camposAlterados.map((c) => [
+        c,
+        { 
+          before: old[c], 
+          after: patchPayload[c as keyof typeof patchPayload] },
+      ]),
+    );
+
     const result = await clientsService.update(
       editingCliente!.id,
       patchPayload,
+      payloadBeforeAfter,
     );
+    
     if (!result.success) {
       toast.error(result.error || "Erro ao atualizar cliente");
       return;
@@ -619,6 +656,31 @@ export default function ClientesView() {
         return "red";
     }
   };
+
+  /** Tipos de atividade que exibem o bloco expansível (details/summary). Ajuste o array para incluir outros. */
+  const showDetailsForAtividade = (atividade: ClienteAtividade): boolean => {
+    const tiposComDetails: ClienteAtividade["tipo"][] = ["atualizacao"];
+    return tiposComDetails.includes(atividade.tipo);
+  };
+
+  /** Formata valor do histórico para exibição (evita [object Object] em JSON/objetos). */
+  const formatFieldValue = (val: unknown): string => {
+    if (val === null || val === undefined) return "—";
+    if (typeof val === "object") return JSON.stringify(val, null, 2);
+    return String(val);
+  };
+
+  /** Rótulos amigáveis para os campos do histórico. */
+  const fieldLabel: Record<string, string> = {
+    name: "Nome",
+    cpf: "CPF",
+    usaPhone: "Telefone EUA",
+    usaAddress: "Endereço EUA",
+    brazilDestination: "Destino Brasil",
+    attendant: "Atendente",
+    status: "Status",
+  };
+  const getFieldLabel = (key: string) => fieldLabel[key] ?? key;
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -1659,14 +1721,12 @@ export default function ClientesView() {
                           (atividade) => {
                             const Icon = getAtividadeIcon(atividade.tipo);
                             const color = getAtividadeColor(atividade.tipo);
+                            const exibeDetails = showDetailsForAtividade(atividade);
 
-                            return (
-                              <div
-                                key={atividade.id}
-                                className="flex items-start gap-3"
-                              >
+                            const linhaAtividade = (
+                              <>
                                 <div
-                                  className={`p-2 rounded-full ${
+                                  className={`p-2 rounded-full flex-shrink-0 ${
                                     color === "blue"
                                       ? "bg-blue-100"
                                       : color === "green"
@@ -1692,7 +1752,7 @@ export default function ClientesView() {
                                     }`}
                                   />
                                 </div>
-                                <div className="flex-1">
+                                <div className="flex-1 min-w-0 space-y-2">
                                   <p className="font-semibold text-sm">
                                     {atividade.descricao}
                                   </p>
@@ -1702,8 +1762,71 @@ export default function ClientesView() {
                                       hour: "2-digit",
                                       minute: "2-digit",
                                     })}
+                                    {" "} - {atividade.tipo === "atualizacao" ? "Editado" : atividade.tipo === "cadastro" ? "Cadastrado" : atividade.tipo === "exclusao" ? "Excluído" : "Atualizado"} pelo usuário: {atividade.ownerId}
                                   </p>
                                 </div>
+                                {exibeDetails && (
+                                  <span className="flex-shrink-0 p-1.5 rounded hover:bg-muted/50 transition-colors">
+                                    <ChevronRight className="w-4 h-4 text-muted-foreground group-open/details:rotate-90 transition-transform" />
+                                  </span>
+                                )}
+                              </>
+                            );
+
+                            if (exibeDetails) {
+                              return (
+                                <details
+                                  key={atividade.id}
+                                  className="flex flex-col gap-2 group/details"
+                                >
+                                  <summary className="flex items-start gap-3 list-none cursor-pointer [&::-webkit-details-marker]:hidden">
+                                    {linhaAtividade}
+                                  </summary>
+                                  <div className="pl-[52px] pr-2 pt-2 pb-2 rounded-lg bg-muted/40 text-sm border border-border/80 space-y-4">
+                                    {atividade.fieldsChanged &&
+                                      Object.entries(atividade.fieldsChanged).map(([key, value]) => (
+                                        <div
+                                          key={key}
+                                          className="rounded-md border border-border/60 bg-background/60 overflow-hidden"
+                                        >
+                                          <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground border-b border-border/60 bg-muted/30">
+                                            {getFieldLabel(key)}
+                                          </p>
+                                          <div className="grid grid-cols-2 divide-x divide-border/60">
+                                            <div className="flex flex-col min-w-0">
+                                              <span className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/20">
+                                                Antes
+                                              </span>
+                                              <div className="px-3 py-2 max-h-32 overflow-y-auto">
+                                                <pre className="whitespace-pre-wrap break-words text-[13px] font-sans text-foreground/90 m-0">
+                                                  {formatFieldValue(value.before)}
+                                                </pre>
+                                              </div>
+                                            </div>
+                                            <div className="flex flex-col min-w-0">
+                                              <span className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/20">
+                                                Depois
+                                              </span>
+                                              <div className="px-3 py-2 max-h-32 overflow-y-auto">
+                                                <pre className="whitespace-pre-wrap break-words text-[13px] font-sans text-foreground/90 m-0">
+                                                  {formatFieldValue(value.after)}
+                                                </pre>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                  </div>
+                                </details>
+                              );
+                            }
+
+                            return (
+                              <div
+                                key={atividade.id}
+                                className="flex items-start gap-3"
+                              >
+                                {linhaAtividade}
                               </div>
                             );
                           },
