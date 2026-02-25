@@ -127,18 +127,16 @@ export interface PrecoEntrega {
 
 export interface PrecoProduto {
   id: string;
-  tipo: "caixa" | "fita";
-  nome: string;
-  tamanho?: string; // Para caixas: Pequena, Média, Grande
-  dimensoes?: string; // ex: "40x30x25cm"
-  pesoMaximo?: number; // kg - para caixas
-  unidade: string; // ex: "unidade", "rolo", "pacote"
-  precoCusto: number;
-  precoVenda: number;
-  estoque: number;
-  estoqueMinimo: number;
-  ativo: boolean;
-  precoVariavel?: boolean;
+  type: "box" | "tape";
+  name: string;
+  size?: string; // Para caixas: Pequena, Média, Grande
+  dimensions?: string; // ex: "40x30x25cm"
+  maxWeight?: number; // kg - para caixas
+  unit: string; // ex: "unidade", "rolo", "pacote"
+  costPrice: number;
+  salePrice: number;
+  active: boolean;
+  variablePrice?: boolean;
 }
 
 export interface Funcionario {

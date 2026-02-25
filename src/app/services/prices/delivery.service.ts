@@ -1,5 +1,5 @@
-import { api } from "./api.service";
-import { PrecoEntrega } from "../types";
+import { api } from "../api.service";
+import { PrecoEntrega } from "../../types";
 
 export interface CreateDeliveryPriceDTO {
   id?: string;
@@ -30,6 +30,15 @@ export interface DeliveryPriceBackend {
 
 export type UpdateDeliveryPriceEntregaDTO = Partial<CreateDeliveryPriceDTO>;
 
+export interface DeliveryPricesPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 function mapBackendToFrontend(price: DeliveryPriceBackend): PrecoEntrega {
   return {
     id: price.id,
@@ -45,30 +54,34 @@ function mapBackendToFrontend(price: DeliveryPriceBackend): PrecoEntrega {
 }
 
 export class DeliveryPricesService {
-  async getAll(): Promise<{
+  async getAll(
+    page = 1,
+    limit = 10,
+  ): Promise<{
     success: boolean;
     data?: PrecoEntrega[];
+    pagination?: DeliveryPricesPagination;
     error?: string;
   }> {
     try {
-      const response =
-        await api.get<DeliveryPriceBackend[]>("/delivery-prices");
+      const response = await api.get<{
+        data: DeliveryPriceBackend[];
+        pagination: DeliveryPricesPagination;
+      }>(`/delivery-prices/?page=${page}&limit=${limit}`);
       if (response.success && response.data) {
-        // O backend retorna um array diretamente, então response.data já é o array
-        let dataArray: DeliveryPriceBackend[] = [];
+        const raw = response.data as any;
+        const dataArray: DeliveryPriceBackend[] = Array.isArray(raw?.data)
+          ? raw.data
+          : [];
+        const pagination = raw?.pagination as
+          | DeliveryPricesPagination
+          | undefined;
 
-        if (Array.isArray(response.data)) {
-          dataArray = response.data;
-        } else if (response.data && typeof response.data === "object") {
-          // Caso o backend retorne um objeto com propriedade data
-          dataArray = (response.data as any).data || [];
-        }
-
-        // Mapeia cada preço de entrega do backend para o formato do frontend
         const deliveryPricesMapeados = dataArray.map(mapBackendToFrontend);
         return {
           success: true,
           data: deliveryPricesMapeados,
+          ...(pagination && { pagination }),
         };
       }
       return {
@@ -105,18 +118,14 @@ export class DeliveryPricesService {
     }
   }
 
-  
   async update(
     id: string,
     data: UpdateDeliveryPriceEntregaDTO,
-    changes?: Record<string, { before?: unknown; after?: unknown }>,
   ): Promise<{ success: boolean; data?: PrecoEntrega; error?: string }> {
     try {
-      const body = changes ? { data, changes } : { data };
-      const result = await api.patch<DeliveryPriceBackend | { data: DeliveryPriceBackend }>(
-        `/delivery-prices/${id}`,
-        body,
-      );
+      const result = await api.patch<
+        DeliveryPriceBackend | { data: DeliveryPriceBackend }
+      >(`/delivery-prices/${id}`, data);
 
       if (result.success && result.data) {
         const raw = (result.data as any)?.data ?? result.data;
@@ -144,6 +153,31 @@ export class DeliveryPricesService {
       return { success: false, error: "Erro ao deletar preço de entrega" };
     } catch (error) {
       return { success: false, error: "Erro ao deletar preço de entrega" };
+    }
+  }
+
+  async export(): Promise<{
+    success: boolean;
+    data?: PrecoEntrega[];
+    error?: string;
+  }> {
+    try {
+      const result = await api.get<{ data: DeliveryPriceBackend }>(
+        "/delivery-prices/",
+      );
+
+      if (result.success && result.data) {
+        const raw = result.data as any;
+        const dataArray: DeliveryPriceBackend[] = Array.isArray(raw?.data)
+          ? raw.data
+          : [];
+        const entregasMapeadas = dataArray.map(mapBackendToFrontend);
+        return { success: true, data: entregasMapeadas };
+      } else {
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      return { success: false, error: "Erro ao exportar entregas" };
     }
   }
 }

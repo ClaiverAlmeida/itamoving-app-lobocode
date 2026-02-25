@@ -8,7 +8,7 @@ import ContainersView from './components/containers';
 import FinanceiroView from './components/financeiro';
 import RelatoriosView from './components/relatorios';
 import AtendimentosView from './components/atendimentos';
-import PrecosView from './components/precos-entrega';
+import PrecosView from './components/precos';
 import RHView from './components/rh';
 import Login from './components/login';
 import MotoristaApp from './components/motorista-app';

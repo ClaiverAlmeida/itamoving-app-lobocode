@@ -527,9 +527,17 @@ export default function ClientesView() {
 
   const handleExport = async () => {
     const result = await clientsService.export();
+
+    if (result.success && result.data) {
+      if(!result.data.length) {
+        toast.error("Nenhum cliente cadastrado");
+        return;
+      }
+    }
+
+    toast.success("Clientes exportados com sucesso");
     console.log(result);
     //TODO: Implementar a exportação de clientes
-    alert("Função em desenvolvimento");
   };
 
   const handleCallTelphone = (telefones: string[]) => {
