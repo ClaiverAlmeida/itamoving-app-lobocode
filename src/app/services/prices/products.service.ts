@@ -3,11 +3,10 @@ import { PrecoProduto } from "../../types";
 
 export interface CreateProductPriceDTO {
   id?: string;
-  type: "box" | "tape";
+  type: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_BOX" | "TAPE_ADHESIVE";
   name: string;
-  size?: string;
-  dimensions?: string;
-  maxWeight?: number;
+  dimensions?: string | null;
+  maxWeight?: number | null;
   unit: string;
   costPrice: number;
   salePrice: number;
@@ -18,9 +17,8 @@ export interface CreateProductPriceDTO {
 export interface ProductPriceBackend {
   id: string;
   companyId: string;
-  type: "box" | "tape";
+  type: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_BOX" | "TAPE_ADHESIVE";
   name: string;
-  size?: string;
   dimensions?: string;
   maxWeight?: number;
   unit: string;
@@ -48,7 +46,6 @@ function mapBackendToFrontend(product: ProductPriceBackend): PrecoProduto {
     id: product.id,
     type: product.type,
     name: product.name,
-    size: product.size,
     dimensions: product.dimensions,
     maxWeight: product.maxWeight,
     unit: product.unit,
@@ -70,12 +67,12 @@ export class ProductsService {
     error?: string;
   }> {
     try {
-      const response = await api.get<{
+      const result = await api.get<{
         data: ProductPriceBackend[];
         pagination: ProductPricePagination;
       }>(`/product-prices/?page=${page}&limit=${limit}`);
-      if (response.success && response.data) {
-        const raw = response.data as any;
+      if (result.success && result.data) {
+        const raw = result.data as any;
         const dataArray: ProductPriceBackend[] = Array.isArray(raw?.data)
           ? raw.data
           : [];
@@ -92,7 +89,7 @@ export class ProductsService {
       }
       return {
         success: false,
-        error: response.error || "Erro ao buscar produtos",
+        error: result.error || "Erro ao buscar produtos",
       };
     } catch (error) {
       console.error("Erro ao buscar produtos:", error);

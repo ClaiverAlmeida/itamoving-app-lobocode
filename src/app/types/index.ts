@@ -24,7 +24,7 @@ export interface Cliente {
   };
   atendente: string;
   dataCadastro: string;
-  status: "ativo" | "inativo";
+  status: "ACTIVE" | "INACTIVE";
 }
 
 export interface CaixaTamanho {
@@ -38,6 +38,7 @@ export interface Estoque {
   caixasPequenas: number;
   caixasMedias: number;
   caixasGrandes: number;
+  caixasPersonalizadas: number;
   fitasAdesivas: number;
 }
 
@@ -127,11 +128,11 @@ export interface PrecoEntrega {
 
 export interface PrecoProduto {
   id: string;
-  type: "box" | "tape";
+  type: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_BOX" | "TAPE_ADHESIVE";
   name: string;
   size?: string; // Para caixas: Pequena, Média, Grande
-  dimensions?: string; // ex: "40x30x25cm"
-  maxWeight?: number; // kg - para caixas
+  dimensions?: string | null; // ex: "40x30x25cm"; null quando tipo Fita
+  maxWeight?: number | null; // kg - para caixas; null quando tipo Fita
   unit: string; // ex: "unidade", "rolo", "pacote"
   costPrice: number;
   salePrice: number;

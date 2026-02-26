@@ -10,7 +10,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useData } from "../context/DataContext";
 import { motion, AnimatePresence } from "motion/react";
-import OrdemServicoForm from "./ordem-servico-form";
+import OrdemServicoForm from "./service-order-form";
 import { OrdemServicoMotorista } from "../types";
 import {
   Truck,

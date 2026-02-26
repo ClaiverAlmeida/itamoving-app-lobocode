@@ -58,12 +58,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
-import { formatCPF } from "../utils/cpf";
 import {
   formatNumberTelephoneBrasil,
   formatNumberTelephoneEUA,
+  formatCPF,
+  BRASIL_STATES,
+  EUA_STATES,
+  exportDocument,
 } from "../utils";
-import { BRASIL_STATES, EUA_STATES } from "../utils/states";
 import {
   clientsService,
   type CreateClientsDTO,
@@ -118,11 +120,11 @@ export default function ClientesView() {
 
   useEffect(() => {
     const carregarClientes = async () => {
-      const response = await clientsService.getAll();
-      if (response.success && response.data?.data) {
-        setClientes(response.data.data);
-      } else if (response.error) {
-        toast.error(response.error);
+      const result = await clientsService.getAll();
+      if (result.success && result.data?.data) {
+        setClientes(result.data.data);
+      } else if (result.error) {
+        toast.error(result.error);
       }
     };
     carregarClientes();
@@ -199,7 +201,7 @@ export default function ClientesView() {
     cep: "",
     telefoneBrasil: "",
     atendente: "",
-    ativo: true,
+    status: "ACTIVE",
   });
 
   const resetForm = () => {
@@ -221,7 +223,7 @@ export default function ClientesView() {
       cep: "",
       telefoneBrasil: "",
       atendente: "",
-      ativo: true,
+      status: "ACTIVE",
     });
     setEditingCliente(null);
   };
@@ -246,7 +248,7 @@ export default function ClientesView() {
       cep: cliente.destinoBrasil.cep,
       telefoneBrasil: cliente.destinoBrasil.telefones[0] || "",
       atendente: cliente.atendente,
-      ativo: cliente.status === "ativo",
+      status: cliente.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
     });
     setIsDialogOpen(true);
   };
@@ -274,7 +276,7 @@ export default function ClientesView() {
       telefones: formData.telefoneBrasil ? [formData.telefoneBrasil] : [],
     },
     attendant: formData.atendente,
-    status: formData.ativo ? "active" : "inactive",
+    status: formData.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
   });
 
   /** Formata CEP brasileiro como 00000-000 (apenas dígitos, até 8). */
@@ -293,10 +295,10 @@ export default function ClientesView() {
 
     setLoadingCep(true);
     try {
-      const response = await fetch(
+      const result = await fetch(
         `https://viacep.com.br/ws/${cleanCep}/json/`,
       );
-      const data = await response.json();
+      const data = await result.json();
 
       if (!data.erro) {
         const cepFormatado = cleanCep.replace(/(\d{5})(\d{3})/, "$1-$2");
@@ -365,7 +367,7 @@ export default function ClientesView() {
         telefones: formData.telefoneBrasil ? [formData.telefoneBrasil] : [],
       },
       attendant: formData.atendente,
-      status: formData.ativo ? "active" : "inactive",
+      status: formData.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
     };
 
     const original = editingCliente!;
@@ -378,7 +380,7 @@ export default function ClientesView() {
     if (current.attendant !== original.atendente)
       patch.attendant = current.attendant;
     if (
-      current.status !== (original.status === "ativo" ? "active" : "inactive")
+      current.status !== (original.status === "ACTIVE" ? "ACTIVE" : "INACTIVE")
     )
       patch.status = current.status;
 
@@ -434,7 +436,7 @@ export default function ClientesView() {
       cpf: editingCliente!.cpf,
       usaPhone: editingCliente!.telefoneUSA,
       attendant: editingCliente!.atendente,
-      status: editingCliente!.status === "ativo" ? "active" : "inactive",
+      status: editingCliente!.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
       usaAddress: editingCliente!.enderecoUSA,
       brazilDestination: editingCliente!.destinoBrasil,
     };
@@ -484,7 +486,7 @@ export default function ClientesView() {
       },
       atendente: formData.atendente,
       dataCadastro: editingCliente!.dataCadastro,
-      status: "ativo",
+      status: "ACTIVE",
     };
 
     updateCliente(editingCliente!.id, result.data ?? clienteData);
@@ -529,14 +531,15 @@ export default function ClientesView() {
     const result = await clientsService.export();
 
     if (result.success && result.data) {
-      if(!result.data.length) {
+      if (!result.data.length) {
         toast.error("Nenhum cliente cadastrado");
         return;
       }
     }
 
+    // exportDocument.createPdf(result.data, "Clients", "Clients list");
     toast.success("Clientes exportados com sucesso");
-    console.log(result);
+    console.log(result.data);
     //TODO: Implementar a exportação de clientes
   };
 
@@ -562,7 +565,6 @@ export default function ClientesView() {
 
   // TODO
   // Documentos do Cliente
-  // Exportar Clientes
 
   const filteredClientes = useMemo(() => {
     return clientes.filter((cliente) => {
@@ -622,7 +624,7 @@ export default function ClientesView() {
   }, [clientes, searchTerm, filters]);
 
   const statistics = useMemo(() => {
-    const ativos = filteredClientes.filter((c) => c.status === "ativo").length;
+    const ativos = filteredClientes.filter((c) => c.status === "ACTIVE").length;
     const total = ativos;
 
     // const total = filteredClientes.length;
@@ -1080,9 +1082,12 @@ export default function ClientesView() {
                       </div>
                       <Switch
                         id="cliente-ativo"
-                        checked={formData.ativo}
+                        checked={formData.status === "ACTIVE"}
                         onCheckedChange={(checked) =>
-                          setFormData((prev) => ({ ...prev, ativo: checked }))
+                          setFormData((prev) => ({
+                            ...prev,
+                            status: checked ? "ACTIVE" : "INACTIVE",
+                          }))
                         }
                       />
                     </div>
@@ -1304,13 +1309,13 @@ export default function ClientesView() {
                             </Badge>
                             <Badge
                               variant={
-                                cliente.status === "ativo"
+                                cliente.status === "ACTIVE"
                                   ? "secondary"
                                   : "destructive"
                               }
                               className="text-xs"
                             >
-                              {cliente.status === "ativo" ? "Ativo" : "Inativo"}
+                              {cliente.status === "ACTIVE" ? "Ativo" : "Inativo"}
                             </Badge>
                           </div>
                         </div>
@@ -1421,12 +1426,12 @@ export default function ClientesView() {
                                 </Badge>
                                 <Badge
                                   variant={
-                                    cliente.status === "ativo"
+                                    cliente.status === "ACTIVE"
                                       ? "secondary"
                                       : "destructive"
                                   }
                                 >
-                                  {cliente.status === "ativo"
+                                  {cliente.status === "ACTIVE"
                                     ? "Ativo"
                                     : "Inativo"}
                                 </Badge>
@@ -1546,12 +1551,12 @@ export default function ClientesView() {
                       </Badge>
                       <Badge
                         className={
-                          selectedCliente.status === "ativo"
+                          selectedCliente.status === "ACTIVE"
                             ? "bg-green-100 text-green-700"
                             : "bg-red-100 text-red-700"
                         }
                       >
-                        {selectedCliente.status === "ativo"
+                        {selectedCliente.status === "ACTIVE"
                           ? "Ativo"
                           : "Inativo"}
                       </Badge>

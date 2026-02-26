@@ -64,12 +64,12 @@ export class DeliveryPricesService {
     error?: string;
   }> {
     try {
-      const response = await api.get<{
+      const result = await api.get<{
         data: DeliveryPriceBackend[];
         pagination: DeliveryPricesPagination;
       }>(`/delivery-prices/?page=${page}&limit=${limit}`);
-      if (response.success && response.data) {
-        const raw = response.data as any;
+      if (result.success && result.data) {
+        const raw = result.data as any;
         const dataArray: DeliveryPriceBackend[] = Array.isArray(raw?.data)
           ? raw.data
           : [];
@@ -86,7 +86,7 @@ export class DeliveryPricesService {
       }
       return {
         success: false,
-        error: response.error || "Erro ao buscar preços de entrega",
+        error: result.error || "Erro ao buscar preços de entrega",
       };
     } catch (error) {
       console.error("Erro ao buscar preços de entrega:", error);

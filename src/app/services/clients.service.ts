@@ -13,7 +13,7 @@ export interface CreateClientsDTO {
   usaAddress: Record<string, unknown>;
   brazilDestination: Record<string, unknown>;
   attendant: string;
-  status?: "active" | "inactive";
+  status?: "ACTIVE" | "INACTIVE";
 }
 
 /** DTO para edição (PATCH) - apenas campos enviados são atualizados */
@@ -57,7 +57,7 @@ export interface ClientBackend {
   usaAddress: Record<string, unknown>;
   brazilDestination: Record<string, unknown>;
   attendant: string;
-  status: "active" | "inactive";
+  status: "ACTIVE" | "INACTIVE";
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
@@ -119,7 +119,7 @@ function mapBackendToFrontend(client: ClientBackend): Cliente {
     destinoBrasil,
     atendente: client.attendant,
     dataCadastro: client.createdAt,
-    status: client.status === "active" ? "ativo" : "inativo",
+    status: client.status,
   };
 }
 
@@ -130,16 +130,16 @@ export class ClientsService {
     error?: string;
   }> {
     try {
-      const response = await api.get<ClientBackend[]>("/clients");
-      if (response.success && response.data) {
-        // O backend retorna um array diretamente, então response.data já é o array
+      const result = await api.get<ClientBackend[]>("/clients");
+      if (result.success && result.data) {
+        // O backend retorna um array diretamente, então result.data já é o array
         let dataArray: ClientBackend[] = [];
 
-        if (Array.isArray(response.data)) {
-          dataArray = response.data;
-        } else if (response.data && typeof response.data === "object") {
+        if (Array.isArray(result.data)) {
+          dataArray = result.data;
+        } else if (result.data && typeof result.data === "object") {
           // Caso o backend retorne um objeto com propriedade data
-          dataArray = (response.data as any).data || [];
+          dataArray = (result.data as any).data || [];
         }
 
         // Mapeia cada cliente do backend para o formato do frontend
@@ -151,7 +151,7 @@ export class ClientsService {
       }
       return {
         success: false,
-        error: response.error || "Erro ao buscar clientes",
+        error: result.error || "Erro ao buscar clientes",
       };
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);

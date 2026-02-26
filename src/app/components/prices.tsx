@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { motion } from "motion/react";
 import { Tag, MapPin, Package } from "lucide-react";
-import { PrecosEntregaTab } from "./precos/entrega-tab";
-import { ProdutosTab } from "./precos/produtos-tab";
+import { PrecosEntregaTab } from "./prices/delivery-tab";
+import { ProdutosTab } from "./prices/products-tab";
 
 export default function PrecosView() {
   const [activeTab, setActiveTab] = useState("entregas");

@@ -48,6 +48,7 @@ import {
   Weight,
   ChevronLeft,
   ChevronRight,
+  Minus,
 } from "lucide-react";
 import { PrecoProduto } from "../../types";
 import {
@@ -57,12 +58,16 @@ import {
   ProductPricePagination,
 } from "../../services/prices/products.service";
 
-import { formatDimensions } from "../../utils";
+import { exportDocument, formatDimensions } from "../../utils";
 
 const formProdutoInitial = {
-  type: "box" as "box" | "tape",
+  type: "SMALL_BOX" as
+    | "SMALL_BOX"
+    | "MEDIUM_BOX"
+    | "LARGE_BOX"
+    | "PERSONALIZED_BOX"
+    | "TAPE_ADHESIVE",
   name: "",
-  size: "",
   dimensions: "",
   maxWeight: "",
   unit: "unidade",
@@ -94,12 +99,12 @@ export function ProdutosTab() {
     useState<ProductPricePagination | null>(null);
 
   const carregarProdutos = async (page = pageProduto) => {
-    const response = await productsService.getAll(page, limitProduto);
-    if (response.success && response.data) {
-      setPrecosProdutos(response.data);
-      if (response.pagination) setPaginationProduto(response.pagination);
-    } else if (response.error) {
-      toast.error(response.error);
+    const result = await productsService.getAll(page, limitProduto);
+    if (result.success && result.data) {
+      setPrecosProdutos(result.data);
+      if (result.pagination) setPaginationProduto(result.pagination);
+    } else if (result.error) {
+      toast.error(result.error);
     }
   };
 
@@ -112,22 +117,34 @@ export function ProdutosTab() {
   };
 
   const getCreatePayload = (): CreateProductPriceDTO => {
-    const isBox = formProduto.type === "box";
-    return {
+    const isBox =
+      formProduto.type === "SMALL_BOX" ||
+      formProduto.type === "MEDIUM_BOX" ||
+      formProduto.type === "LARGE_BOX" ||
+      formProduto.type === "PERSONALIZED_BOX";
+    const isTape = formProduto.type === "TAPE_ADHESIVE";
+    const dimensions = isTape
+      ? null
+      : isBox && formProduto.dimensions
+        ? formProduto.dimensions
+        : undefined;
+    const maxWeight = isTape
+      ? null
+      : isBox && formProduto.maxWeight
+        ? parseFloat(formProduto.maxWeight)
+        : undefined;
+    const payload: CreateProductPriceDTO = {
       type: formProduto.type,
       name: formProduto.name,
-      size: isBox ? formProduto.size || undefined : undefined,
-      dimensions: isBox ? formProduto.dimensions || undefined : undefined,
-      maxWeight:
-        isBox && formProduto.maxWeight
-          ? parseFloat(formProduto.maxWeight)
-          : undefined,
       unit: formProduto.unit,
       costPrice: parseFloat(formProduto.costPrice),
       salePrice: parseFloat(formProduto.salePrice),
       active: formProduto.active,
       variablePrice: formProduto.variablePrice,
     };
+    if (dimensions !== undefined) payload.dimensions = dimensions;
+    if (maxWeight !== undefined) payload.maxWeight = maxWeight;
+    return payload;
   };
 
   const handleSubmitProduto = async (e: React.FormEvent) => {
@@ -149,14 +166,23 @@ export function ProdutosTab() {
   };
 
   const getUpdatePayload = (): UpdateProductPriceDTO => {
-    const isBox = formProduto.type === "box";
+    const isBox =
+      formProduto.type === "SMALL_BOX" ||
+      formProduto.type === "MEDIUM_BOX" ||
+      formProduto.type === "LARGE_BOX" ||
+      formProduto.type === "PERSONALIZED_BOX";
+    const isTape = formProduto.type === "TAPE_ADHESIVE";
     const current: CreateProductPriceDTO = {
       type: formProduto.type,
       name: formProduto.name,
-      size: isBox ? formProduto.size || undefined : undefined,
-      dimensions: isBox ? formProduto.dimensions || undefined : undefined,
-      maxWeight:
-        isBox && formProduto.maxWeight
+      dimensions: isTape
+        ? null
+        : isBox
+          ? formProduto.dimensions || undefined
+          : undefined,
+      maxWeight: isTape
+        ? null
+        : isBox && formProduto.maxWeight
           ? parseFloat(formProduto.maxWeight)
           : undefined,
       unit: formProduto.unit,
@@ -171,12 +197,31 @@ export function ProdutosTab() {
 
     if (current.type !== original.type) patch.type = current.type;
     if (current.name !== original.name) patch.name = current.name;
-    if (isBox) {
-      if (current.size !== original.size) patch.size = current.size;
-      if (current.dimensions !== original.dimensions)
-        patch.dimensions = current.dimensions;
-      if (current.maxWeight !== original.maxWeight)
-        patch.maxWeight = current.maxWeight;
+    if (isTape) {
+      const needsClear =
+        original.type !== "TAPE_ADHESIVE" ||
+        original.dimensions != null ||
+        original.maxWeight != null;
+      if (needsClear) {
+        patch.dimensions = null;
+        patch.maxWeight = null;
+      }
+    } else if (isBox) {
+      const dimChanged =
+        (current.dimensions ?? "") !== (original.dimensions ?? "");
+      const weightChanged =
+        (current.maxWeight ?? null) !== (original.maxWeight ?? null);
+      if (dimChanged) {
+        if (current.dimensions !== undefined && current.dimensions !== "")
+          patch.dimensions = current.dimensions;
+        else if (original.dimensions != null && original.dimensions !== "")
+          patch.dimensions = null;
+      }
+      if (weightChanged) {
+        if (current.maxWeight !== undefined && current.maxWeight !== null)
+          patch.maxWeight = current.maxWeight;
+        else if (original.maxWeight != null) patch.maxWeight = null;
+      }
     }
     if (current.unit !== original.unit) patch.unit = current.unit;
     if (current.costPrice !== original.costPrice)
@@ -239,27 +284,26 @@ export function ProdutosTab() {
   };
 
   const handleExportProdutos = async () => {
-    const response = await productsService.export();
-    if (response.success && response.data) {
-      if(!response.data.length) {
+    const result = await productsService.export();
+    if (result.success && result.data) {
+      if (!result.data.length) {
         toast.error("Nenhum produto cadastrado");
         return;
       }
-      
+
+      exportDocument.createPdf(result.data, "Products", "Products list");
       toast.success("Produtos exportados com sucesso");
-      console.log(response.data);
+      // console.log(result.data);
       // TODO: Exportar os dados para um arquivo PDF
     } else {
-      toast.error(response.error || "Erro ao exportar produtos");
+      toast.error(result.error || "Erro ao exportar produtos");
     }
   };
 
   const produtosFiltrados = precosProdutos.filter(
     (p) =>
       (p.name ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.type ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.size != null &&
-        String(p.size).toLowerCase().includes(searchTerm.toLowerCase())),
+      (p.type ?? "").toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -302,16 +346,45 @@ export function ProdutosTab() {
                         <Label htmlFor="tipo">Tipo *</Label>
                         <Select
                           value={formProduto.type}
-                          onValueChange={(value: "box" | "tape") =>
-                            setFormProduto({ ...formProduto, type: value })
+                          onValueChange={(
+                            value:
+                              | "SMALL_BOX"
+                              | "MEDIUM_BOX"
+                              | "LARGE_BOX"
+                              | "PERSONALIZED_BOX"
+                              | "TAPE_ADHESIVE",
+                          ) =>
+                            setFormProduto({
+                              ...formProduto,
+                              type: value,
+                              ...(value === "TAPE_ADHESIVE"
+                                ? {
+                                    dimensions: undefined,
+                                    maxWeight: undefined,
+                                  }
+                                : {}),
+                            })
                           }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="box">Caixa</SelectItem>
-                            <SelectItem value="tape">Fita Adesiva</SelectItem>
+                            <SelectItem value="SMALL_BOX">
+                              Caixa Pequena
+                            </SelectItem>
+                            <SelectItem value="MEDIUM_BOX">
+                              Caixa Média
+                            </SelectItem>
+                            <SelectItem value="LARGE_BOX">
+                              Caixa Grande
+                            </SelectItem>
+                            <SelectItem value="PERSONALIZED_BOX">
+                              Caixa Personalizada
+                            </SelectItem>
+                            <SelectItem value="TAPE_ADHESIVE">
+                              Fita Adesiva
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -331,29 +404,11 @@ export function ProdutosTab() {
                         />
                       </div>
 
-                      {formProduto.type === "box" && (
+                      {(formProduto.type === "SMALL_BOX" ||
+                        formProduto.type === "MEDIUM_BOX" ||
+                        formProduto.type === "LARGE_BOX" ||
+                        formProduto.type === "PERSONALIZED_BOX") && (
                         <>
-                          <div className="space-y-2">
-                            <Label htmlFor="tamanho">Tamanho</Label>
-                            <Select
-                              value={formProduto.size}
-                              onValueChange={(value) =>
-                                setFormProduto({
-                                  ...formProduto,
-                                  size: value,
-                                })
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Pequena">Pequena</SelectItem>
-                                <SelectItem value="Média">Média</SelectItem>
-                                <SelectItem value="Grande">Grande</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
                           <div className="space-y-2">
                             <Label htmlFor="dimensoes">Dimensões</Label>
                             <Input
@@ -373,8 +428,6 @@ export function ProdutosTab() {
                             <Input
                               id="pesoMaximo"
                               type="number"
-                              step="0.1"
-                              min={0.01}
                               placeholder="Ex: 30"
                               value={formProduto.maxWeight}
                               onChange={(e) =>
@@ -526,6 +579,7 @@ export function ProdutosTab() {
                 <TableRow className="bg-muted/50">
                   <TableHead className="text-center">Produto</TableHead>
                   <TableHead className="text-center">Tipo</TableHead>
+                  <TableHead className="text-center">Unidade</TableHead>
                   <TableHead className="text-center">Detalhes</TableHead>
                   <TableHead className="text-center">Custo</TableHead>
                   <TableHead className="text-center">Venda</TableHead>
@@ -549,25 +603,33 @@ export function ProdutosTab() {
                       <TableRow key={produto.id} className="hover:bg-muted/30">
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-2">
-                            {produto.type === "box" ? (
+                            {produto.type === "SMALL_BOX" ||
+                            produto.type === "MEDIUM_BOX" ||
+                            produto.type === "LARGE_BOX" ? (
                               <Box className="w-5 h-5 text-blue-600" />
                             ) : (
                               <Package className="w-5 h-5 text-orange-600" />
                             )}
                             <div>
                               <div className="font-medium">{produto.name}</div>
-                              {produto.size && (
-                                <div className="text-xs text-muted-foreground">
-                                  {produto.size}
-                                </div>
-                              )}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline">
-                            {produto.type === "box" ? "Caixa" : "Fita"}
+                            {produto.type === "SMALL_BOX"
+                              ? "Caixa Pequena"
+                              : produto.type === "MEDIUM_BOX"
+                                ? "Caixa Média"
+                                : produto.type === "LARGE_BOX"
+                                  ? "Caixa Grande"
+                                  : produto.type === "PERSONALIZED_BOX"
+                                    ? "Caixa Personalizada"
+                                    : "Fita Adesiva"}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-center capitalize">
+                          <Badge variant="secondary">{produto.unit}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="text-xs space-y-1 flex flex-col items-center">
@@ -581,6 +643,11 @@ export function ProdutosTab() {
                               <div className="flex items-center gap-1 text-muted-foreground">
                                 <Weight className="w-3 h-3" />
                                 {produto.maxWeight}kg
+                              </div>
+                            )}
+                            {!produto.dimensions && !produto.maxWeight && (
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Minus className="w-3 h-3" />
                               </div>
                             )}
                           </div>
@@ -612,7 +679,6 @@ export function ProdutosTab() {
                                 setFormProduto({
                                   type: produto.type,
                                   name: produto.name,
-                                  size: produto.size || "",
                                   dimensions: produto.dimensions || "",
                                   maxWeight:
                                     produto.maxWeight?.toString() || "",
@@ -700,16 +766,36 @@ export function ProdutosTab() {
                   <Label htmlFor="editTipo">Tipo *</Label>
                   <Select
                     value={formProduto.type}
-                    onValueChange={(value: "box" | "tape") =>
-                      setFormProduto({ ...formProduto, type: value })
+                    onValueChange={(
+                      value:
+                        | "SMALL_BOX"
+                        | "MEDIUM_BOX"
+                        | "LARGE_BOX"
+                        | "PERSONALIZED_BOX"
+                        | "TAPE_ADHESIVE",
+                    ) =>
+                      setFormProduto({
+                        ...formProduto,
+                        type: value,
+                        ...(value === "TAPE_ADHESIVE"
+                          ? { dimensions: undefined, maxWeight: undefined }
+                          : {}),
+                      })
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="box">Caixa</SelectItem>
-                      <SelectItem value="tape">Fita Adesiva</SelectItem>
+                      <SelectItem value="SMALL_BOX">Caixa Pequena</SelectItem>
+                      <SelectItem value="MEDIUM_BOX">Caixa Média</SelectItem>
+                      <SelectItem value="LARGE_BOX">Caixa Grande</SelectItem>
+                      <SelectItem value="PERSONALIZED_BOX">
+                        Caixa Personalizada
+                      </SelectItem>
+                      <SelectItem value="TAPE_ADHESIVE">
+                        Fita Adesiva
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -726,26 +812,11 @@ export function ProdutosTab() {
                   />
                 </div>
 
-                {formProduto.type === "box" && (
+                {(formProduto.type === "SMALL_BOX" ||
+                  formProduto.type === "MEDIUM_BOX" ||
+                  formProduto.type === "LARGE_BOX" ||
+                  formProduto.type === "PERSONALIZED_BOX") && (
                   <>
-                    <div className="space-y-2">
-                      <Label htmlFor="editSize">Tamanho</Label>
-                      <Select
-                        value={formProduto.size}
-                        onValueChange={(value) =>
-                          setFormProduto({ ...formProduto, size: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Pequena">Pequena</SelectItem>
-                          <SelectItem value="Média">Média</SelectItem>
-                          <SelectItem value="Grande">Grande</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="editDimensions">Dimensões</Label>
                       <Input

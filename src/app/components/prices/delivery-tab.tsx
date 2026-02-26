@@ -48,7 +48,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { PrecoEntrega } from "../../types";
-import { BRASIL_STATES, EUA_STATES } from "../../utils/states";
+import { BRASIL_STATES, EUA_STATES, exportDocument } from "../../utils/";
 import {
   CreateDeliveryPriceDTO,
   DeliveryPricesPagination,
@@ -104,12 +104,12 @@ export function PrecosEntregaTab() {
     useState<DeliveryPricesPagination | null>(null);
 
   const carregarPrecosEntrega = async (page = pageEntrega) => {
-    const response = await deliveryPricesService.getAll(page, limitEntrega);
-    if (response.success && response.data) {
-      setPrecosEntrega(response.data);
-      if (response.pagination) setPaginationEntrega(response.pagination);
-    } else if (response.error) {
-      toast.error(response.error);
+    const result = await deliveryPricesService.getAll(page, limitEntrega);
+    if (result.success && result.data) {
+      setPrecosEntrega(result.data);
+      if (result.pagination) setPaginationEntrega(result.pagination);
+    } else if (result.error) {
+      toast.error(result.error);
     }
   };
 
@@ -235,18 +235,19 @@ export function PrecosEntregaTab() {
   };
 
   const handleExportarEntregas = async () => {
-    const response = await deliveryPricesService.export();
-    if (response.success && response.data) {
-      if(!response.data.length) {
+    const result = await deliveryPricesService.export();
+    if (result.success && result.data) {
+      if(!result.data.length) {
         toast.error("Nenhum preço de entrega cadastrado");
         return;
       }
       
+      exportDocument.createPdf(result.data, "Delivery Prices", "Delivery prices list"); 
       toast.success("Preços de entrega exportados com sucesso");
-      console.log(response.data);
+      // console.log(result.data);
       // TODO: Exportar os dados para um arquivo PDF
     } else {
-      toast.error(response.error || "Erro ao exportar produtos");
+      toast.error(result.error || "Erro ao exportar produtos");
     }
   };
 

@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { Toaster } from './components/ui/sonner';
 import DashboardView from './components/dashboard';
-import ClientesView from './components/clientes';
-import EstoqueView from './components/estoque';
-import AgendamentosView from './components/agendamentos';
+import ClientesView from './components/clients';
+import EstoqueView from './components/stock';
+import AgendamentosView from './components/appointments';
 import ContainersView from './components/containers';
-import FinanceiroView from './components/financeiro';
-import RelatoriosView from './components/relatorios';
-import AtendimentosView from './components/atendimentos';
-import PrecosView from './components/precos';
-import RHView from './components/rh';
+import FinanceiroView from './components/financial';
+import RelatoriosView from './components/reports';
+import AtendimentosView from './components/services';
+import PrecosView from './components/prices';
+import RHView from './components/hr';
 import Login from './components/login';
-import MotoristaApp from './components/motorista-app';
+import MotoristaApp from './components/driver-app';
 import { DataProvider } from './context/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { 

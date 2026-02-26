@@ -5,3 +5,4 @@ export {
   formatNumberTelephoneEUA,
 } from "./numbers";
 export { formatDimensions } from "./dimensions";
+export { exportDocument } from "./export-document";
