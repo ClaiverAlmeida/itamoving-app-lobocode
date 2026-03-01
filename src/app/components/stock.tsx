@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -56,136 +56,142 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { stockService } from "../services";
+import {
+  EstoqueAtualizado,
+  CriarMovimentacao,
+} from "../services/stock.service";
 
 /** Chaves dos itens em inglês camelCase (payload: smallBoxes: 10) */
 const ITEM_KEYS_EN = [
   "smallBoxes",
   "mediumBoxes",
   "largeBoxes",
-  "tapes",
-  "caixasPersonalizadas",
+  "personalizedBoxes",
+  "adhesiveTape",
 ] as const;
 type ItemKeyEn = (typeof ITEM_KEYS_EN)[number];
 
-interface Movimentacao {
-  id?: string;
-  tipo: "entrada" | "saida";
-  data: Date;
-  responsavel: string;
-  observacao?: string;
-  /** Tipo do item em inglês camelCase → quantidade (ex.: smallBoxes: 10) */
-  smallBoxes?: number;
-  mediumBoxes?: number;
-  largeBoxes?: number;
-  caixasPersonalizadas?: number;
-  tapes?: number;
+export interface EstoqueMovimentacao {
+  id: string;
+  type: "ENTRY" | "EXIT";
+  productType:
+    | "SMALL_BOX"
+    | "MEDIUM_BOX"
+    | "LARGE_BOX"
+    | "PERSONALIZED_BOX"
+    | "TAPE_ADHESIVE";
+  quantity: number;
+  responsible: string;
+  observations?: string;
+  createdAt: string;
 }
 
 const ITEM_LABELS: Record<ItemKeyEn, string> = {
   smallBoxes: "Caixas Pequenas",
   mediumBoxes: "Caixas Médias",
   largeBoxes: "Caixas Grandes",
-  caixasPersonalizadas: "Caixas Personalizadas",
-  tapes: "Fitas Adesivas",
+  personalizedBoxes: "Caixas Personalizadas",
+  adhesiveTape: "Fitas Adesivas",
 };
 
-/** Mapa do selectedItem (chave do Estoque no context) → chave em inglês para o payload */
-const ITEM_PT_TO_EN: Record<string, ItemKeyEn> = {
-  caixasPequenas: "smallBoxes",
-  caixasMedias: "mediumBoxes",
-  caixasGrandes: "largeBoxes",
-  caixasPersonalizadas: "caixasPersonalizadas",
-  fitasAdesivas: "tapes",
+type ProductType =
+  | "SMALL_BOX"
+  | "MEDIUM_BOX"
+  | "LARGE_BOX"
+  | "PERSONALIZED_BOX"
+  | "TAPE_ADHESIVE";
+
+/** Backend productType (enum) → chave do frontend (camelCase) */
+const PRODUCT_TYPE_TO_ITEM_KEY: Record<ProductType, ItemKeyEn> = {
+  SMALL_BOX: "smallBoxes",
+  MEDIUM_BOX: "mediumBoxes",
+  LARGE_BOX: "largeBoxes",
+  PERSONALIZED_BOX: "personalizedBoxes",
+  TAPE_ADHESIVE: "adhesiveTape",
 };
 
-function getMovItemKey(mov: Movimentacao): ItemKeyEn | undefined {
-  for (const k of ITEM_KEYS_EN) {
-    if (mov[k] != null && typeof mov[k] === "number") return k;
-  }
-  return undefined;
+/** Chave do frontend (camelCase) → backend productType (enum) */
+const ITEM_KEY_TO_PRODUCT_TYPE: Record<ItemKeyEn, ProductType> = {
+  smallBoxes: "SMALL_BOX",
+  mediumBoxes: "MEDIUM_BOX",
+  largeBoxes: "LARGE_BOX",
+  personalizedBoxes: "PERSONALIZED_BOX",
+  adhesiveTape: "TAPE_ADHESIVE",
+};
+
+function getMovItemKey(mov: EstoqueMovimentacao): ItemKeyEn | undefined {
+  return PRODUCT_TYPE_TO_ITEM_KEY[mov.productType as ProductType];
 }
 
-function getMovQuantity(mov: Movimentacao): number {
-  const key = getMovItemKey(mov);
-  return key != null ? (mov[key] ?? 0) : 0;
+function getMovQuantity(mov: EstoqueMovimentacao): number {
+  return mov.quantity ?? 0;
+}
+
+function normalizeField(value: string) {
+  if (!value) return "";
+  return (
+    value
+      .charAt(0)
+      .replace(/[^a-zA-ZÀ-ÿ\s]/g, "")
+      .toUpperCase() + value.slice(1).replace(/[^a-zA-ZÀ-ÿ\s]/g, "")
+  );
 }
 
 const ESTOQUE_MINIMO = {
-  caixasPequenas: 50,
-  caixasMedias: 30,
-  caixasGrandes: 20,
-  caixasPersonalizadas: 10,
-  fitasAdesivas: 40,
+  smallBoxes: 50,
+  mediumBoxes: 30,
+  largeBoxes: 20,
+  personalizedBoxes: 10,
+  adhesiveTape: 40,
 };
 
 const ESTOQUE_IDEAL = {
-  caixasPequenas: 200,
-  caixasMedias: 150,
-  caixasGrandes: 100,
-  caixasPersonalizadas: 50,
-  fitasAdesivas: 150,
+  smallBoxes: 200,
+  mediumBoxes: 150,
+  largeBoxes: 100,
+  personalizedBoxes: 50,
+  adhesiveTape: 150,
 };
 
 export default function EstoqueView() {
   const { estoque, updateEstoque } = useData();
-  const [quantidades, setQuantidades] = useState({
-    caixasPequenas: 0,
-    caixasMedias: 0,
-    caixasGrandes: 0,
-    caixasPersonalizadas: 0,
-    fitasAdesivas: 0,
-  });
-
-  const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([
-    {
-      id: "1",
-      tipo: "entrada",
-      smallBoxes: 100,
-      data: new Date("2024-12-20T10:30:00"),
-      responsavel: "João Silva",
-      observacao: "Compra mensal",
-    },
-    {
-      id: "2",
-      tipo: "saida",
-      mediumBoxes: 25,
-      data: new Date("2024-12-21T14:20:00"),
-      responsavel: "Maria Costa",
-      observacao: "Cliente Ana Oliveira",
-    },
-    {
-      id: "3",
-      tipo: "entrada",
-      tapes: 50,
-      data: new Date("2024-12-21T16:45:00"),
-      responsavel: "Pedro Santos",
-    },
-    {
-      id: "4",
-      tipo: "saida",
-      largeBoxes: 15,
-      data: new Date("2024-12-22T09:15:00"),
-      responsavel: "João Silva",
-      observacao: "Container #12345",
-    },
-    {
-      id: "5",
-      tipo: "entrada",
-      caixasPersonalizadas: 10,
-      data: new Date("2024-12-22T09:15:00"),
-      responsavel: "Administrador",
-    },
-  ]);
-
+  const [movimentacoes, setMovimentacoes] = useState<EstoqueMovimentacao[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<"entrada" | "saida">("entrada");
+  const [dialogType, setDialogType] = useState<"ENTRY" | "EXIT">("ENTRY");
   const [selectedItem, setSelectedItem] = useState("");
   const [quantidade, setQuantidade] = useState(0);
   const [responsavel, setResponsavel] = useState("");
   const [observacao, setObservacao] = useState("");
+  const [idStock, setIdStock] = useState<string | null>(null);
+  const stockIdRef = useRef<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  const handleMovimentacao = () => {
+  useEffect(() => {
+    const carregarEstoque = async () => {
+      const result = await stockService.getAll();
+      if (result.success && result.data?.data?.length) {
+        const stock = result.data.data[0];
+        updateEstoque({
+          smallBoxes: stock.smallBoxes ?? 0,
+          mediumBoxes: stock.mediumBoxes ?? 0,
+          largeBoxes: stock.largeBoxes ?? 0,
+          personalizedBoxes: stock.personalizedBoxes ?? 0,
+          adhesiveTape: stock.adhesiveTape ?? 0,
+        });
+        stockIdRef.current = stock.id ?? null;
+
+        if (stock.stockMovements?.length) {
+          setMovimentacoes(stock.stockMovements);
+        }
+      } else if (result.error) {
+        toast.error(result.error);
+      }
+    };
+    carregarEstoque();
+  }, []);
+
+  const handleMovimentacao = async () => {
     if (!selectedItem || quantidade <= 0 || !responsavel) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
@@ -193,14 +199,14 @@ export default function EstoqueView() {
 
     const itemKey = selectedItem as keyof typeof estoque;
 
-    if (dialogType === "saida" && estoque[itemKey] < quantidade) {
+    if (dialogType === "EXIT" && estoque[itemKey] < quantidade) {
       toast.error("Estoque insuficiente");
       return;
     }
 
     // Atualizar estoque
     const novoValor =
-      dialogType === "entrada"
+      dialogType === "ENTRY"
         ? estoque[itemKey] + quantidade
         : estoque[itemKey] - quantidade;
 
@@ -208,22 +214,45 @@ export default function EstoqueView() {
       [itemKey]: novoValor,
     });
 
-    // Payload: chave = tipo do item em inglês camelCase, valor = quantidade (ex.: smallBoxes: 10)
-    const itemKeyEn = ITEM_PT_TO_EN[selectedItem];
-    if (!itemKeyEn) return;
-    const novaMovimentacao: Movimentacao = {
-      tipo: dialogType,
-      [itemKeyEn]: quantidade,
-      data: new Date(),
-      responsavel,
-      observacao,
+    // Payload: productType no formato do backend (SMALL_BOX, etc.)
+    const itemProductType = ITEM_KEY_TO_PRODUCT_TYPE[selectedItem];
+    if (!itemProductType) return;
+
+    if (!idStock) {
+      toast.error("Estoque não carregado");
+      return;
+    }
+
+    const atualizarEstoque: EstoqueAtualizado = {
+      [selectedItem]: quantidade,
     };
 
-    console.log("novaMovimentacao", novaMovimentacao);
-    setMovimentacoes([novaMovimentacao, ...movimentacoes]);
+    const movimentacaoPayload: CriarMovimentacao = {
+      type: dialogType,
+      productType: itemProductType,
+      quantity: quantidade,
+      responsible: responsavel,
+      observations: observacao,
+    };
+
+    const result = await stockService.update(
+      idStock,
+      atualizarEstoque,
+      movimentacaoPayload,
+      dialogType,
+    );
+
+    if (!result.success) {
+      toast.error(result.error || "Erro ao atualizar estoque");
+      return;
+    }
+
+    if (result.data?.stockMovements) {
+      setMovimentacoes(result.data.stockMovements);
+    }
 
     toast.success(
-      dialogType === "entrada"
+      dialogType === "ENTRY"
         ? "Entrada registrada com sucesso!"
         : "Saída registrada com sucesso!",
     );
@@ -238,44 +267,44 @@ export default function EstoqueView() {
 
   const itensEstoque = [
     {
-      key: "caixasPequenas" as const,
+      key: "smallBoxes" as const,
       nome: "Caixas Pequenas",
       cor: "red",
       icon: Package,
-      minimo: ESTOQUE_MINIMO.caixasPequenas,
-      ideal: ESTOQUE_IDEAL.caixasPequenas,
+      minimo: ESTOQUE_MINIMO.smallBoxes,
+      ideal: ESTOQUE_IDEAL.smallBoxes,
     },
     {
-      key: "caixasMedias" as const,
+      key: "mediumBoxes" as const,
       nome: "Caixas Médias",
       cor: "green",
       icon: Package,
-      minimo: ESTOQUE_MINIMO.caixasMedias,
-      ideal: ESTOQUE_IDEAL.caixasMedias,
+      minimo: ESTOQUE_MINIMO.mediumBoxes,
+      ideal: ESTOQUE_IDEAL.mediumBoxes,
     },
     {
-      key: "caixasGrandes" as const,
+      key: "largeBoxes" as const,
       nome: "Caixas Grandes",
       cor: "orange",
       icon: Package,
-      minimo: ESTOQUE_MINIMO.caixasGrandes,
-      ideal: ESTOQUE_IDEAL.caixasGrandes,
+      minimo: ESTOQUE_MINIMO.largeBoxes,
+      ideal: ESTOQUE_IDEAL.largeBoxes,
     },
     {
-      key: "caixasPersonalizadas" as const,
+      key: "personalizedBoxes" as const,
       nome: "Caixas Personalizadas",
       cor: "purple",
       icon: Package,
-      minimo: ESTOQUE_MINIMO.caixasPersonalizadas,
-      ideal: ESTOQUE_IDEAL.caixasPersonalizadas,
+      minimo: ESTOQUE_MINIMO.personalizedBoxes,
+      ideal: ESTOQUE_IDEAL.personalizedBoxes,
     },
     {
-      key: "fitasAdesivas" as const,
+      key: "adhesiveTape" as const,
       nome: "Fitas Adesivas",
       cor: "blue",
       icon: Archive,
-      minimo: ESTOQUE_MINIMO.fitasAdesivas,
-      ideal: ESTOQUE_IDEAL.fitasAdesivas,
+      minimo: ESTOQUE_MINIMO.adhesiveTape,
+      ideal: ESTOQUE_IDEAL.adhesiveTape,
     },
   ];
 
@@ -308,16 +337,18 @@ export default function EstoqueView() {
     const entradas7dias = movimentacoes
       .filter(
         (m) =>
-          m.tipo === "entrada" &&
-          Date.now() - m.data.getTime() < 7 * 24 * 60 * 60 * 1000,
+          m.type === "ENTRY" &&
+          Date.now() - new Date(m.createdAt).getTime() <
+            7 * 24 * 60 * 60 * 1000,
       )
       .reduce((sum, m) => sum + getMovQuantity(m), 0);
 
     const saidas7dias = movimentacoes
       .filter(
         (m) =>
-          m.tipo === "saida" &&
-          Date.now() - m.data.getTime() < 7 * 24 * 60 * 60 * 1000,
+          m.type === "EXIT" &&
+          Date.now() - new Date(m.createdAt).getTime() <
+            7 * 24 * 60 * 60 * 1000,
       )
       .reduce((sum, m) => sum + getMovQuantity(m), 0);
 
@@ -376,9 +407,16 @@ export default function EstoqueView() {
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (open) {
+                setIdStock(stockIdRef.current);
+              } else {
+                setIdStock(null);
+              }
+            }}>
               <DialogTrigger asChild>
-                <Button onClick={() => setDialogType("entrada")}>
+                <Button onClick={() => setDialogType("ENTRY")}>
                   <Plus className="w-4 h-4 mr-2" />
                   Nova Movimentação
                 </Button>
@@ -394,17 +432,17 @@ export default function EstoqueView() {
                 <div className="space-y-4">
                   <div className="flex gap-2">
                     <Button
-                      variant={dialogType === "entrada" ? "default" : "outline"}
+                      variant={dialogType === "ENTRY" ? "default" : "outline"}
                       className="flex-1"
-                      onClick={() => setDialogType("entrada")}
+                      onClick={() => setDialogType("ENTRY")}
                     >
                       <ArrowUpRight className="w-4 h-4 mr-2" />
                       Entrada
                     </Button>
                     <Button
-                      variant={dialogType === "saida" ? "default" : "outline"}
+                      variant={dialogType === "EXIT" ? "default" : "outline"}
                       className="flex-1"
-                      onClick={() => setDialogType("saida")}
+                      onClick={() => setDialogType("EXIT")}
                     >
                       <ArrowDownRight className="w-4 h-4 mr-2" />
                       Saída
@@ -444,7 +482,9 @@ export default function EstoqueView() {
                     <Label>Responsável *</Label>
                     <Input
                       value={responsavel}
-                      onChange={(e) => setResponsavel(e.target.value)}
+                      onChange={(e) =>
+                        setResponsavel(normalizeField(e.target.value))
+                      }
                       placeholder="Nome do responsável"
                     />
                   </div>
@@ -467,7 +507,7 @@ export default function EstoqueView() {
                       Cancelar
                     </Button>
                     <Button onClick={handleMovimentacao}>
-                      Registrar {dialogType === "entrada" ? "Entrada" : "Saída"}
+                      Registrar {dialogType === "ENTRY" ? "Entrada" : "Saída"}
                     </Button>
                   </div>
                 </div>
@@ -773,7 +813,7 @@ export default function EstoqueView() {
                       <Button
                         size="sm"
                         onClick={() => {
-                          setDialogType("entrada");
+                          setDialogType("ENTRY");
                           setSelectedItem(item.key);
                           setIsDialogOpen(true);
                         }}
@@ -809,100 +849,112 @@ export default function EstoqueView() {
         <CardContent>
           <div className="space-y-3">
             <AnimatePresence>
-              {movimentacoes.map((mov) => {
-                const itemKey = getMovItemKey(mov);
-                const qty = getMovQuantity(mov);
-                return (
-                  <motion.div
-                    key={mov.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    className={`p-4 rounded-lg border-l-4 ${
-                      mov.tipo === "entrada"
-                        ? "bg-green-50 border-green-500"
-                        : "bg-orange-50 border-orange-500"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div
-                          className={`p-2 rounded-full ${
-                            mov.tipo === "entrada"
-                              ? "bg-green-100"
-                              : "bg-orange-100"
-                          }`}
-                        >
-                          {mov.tipo === "entrada" ? (
-                            <ArrowUpRight
-                              className={`w-4 h-4 ${
-                                mov.tipo === "entrada"
-                                  ? "text-green-600"
-                                  : "text-orange-600"
-                              }`}
-                            />
-                          ) : (
-                            <ArrowDownRight
-                              className={`w-4 h-4 ${
-                                mov.tipo === "entrada"
-                                  ? "text-green-600"
-                                  : "text-orange-600"
-                              }`}
-                            />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold">
-                              {itemKey ? ITEM_LABELS[itemKey] : "-"}
-                            </span>
-                            <Badge
-                              className={
-                                mov.tipo === "entrada"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-orange-100 text-orange-700"
-                              }
-                            >
-                              {mov.tipo === "entrada" ? "Entrada" : "Saída"}
-                            </Badge>
-                            <span
-                              className={`font-bold ${
-                                mov.tipo === "entrada"
-                                  ? "text-green-600"
-                                  : "text-orange-600"
-                              }`}
-                            >
-                              {mov.tipo === "entrada" ? "+" : "-"}
-                              {qty}
-                            </span>
+              {[...movimentacoes]
+                .sort(
+                  (a, b) =>
+                    new Date(b.createdAt).getTime() -
+                    new Date(a.createdAt).getTime(),
+                )
+                .map((mov) => {
+                  const itemKey = getMovItemKey(mov);
+                  const qty = getMovQuantity(mov);
+                  return (
+                    <motion.div
+                      key={mov.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className={`p-4 rounded-lg border-l-4 ${
+                        mov.type === "ENTRY"
+                          ? "bg-green-50 border-green-500"
+                          : "bg-orange-50 border-orange-500"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div
+                            className={`p-2 rounded-full ${
+                              mov.type === "ENTRY"
+                                ? "bg-green-100"
+                                : "bg-orange-100"
+                            }`}
+                          >
+                            {mov.type === "ENTRY" ? (
+                              <ArrowUpRight
+                                className={`w-4 h-4 ${
+                                  mov.type === "ENTRY"
+                                    ? "text-green-600"
+                                    : "text-orange-600"
+                                }`}
+                              />
+                            ) : (
+                              <ArrowDownRight
+                                className={`w-4 h-4 ${
+                                  mov.type === "ENTRY"
+                                    ? "text-green-600"
+                                    : "text-orange-600"
+                                }`}
+                              />
+                            )}
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              <span>
-                                {mov.data.toLocaleDateString("pt-BR")} às{" "}
-                                {mov.data.toLocaleTimeString("pt-BR", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold">
+                                {itemKey ? ITEM_LABELS[itemKey] : "-"}
+                              </span>
+                              <Badge
+                                className={
+                                  mov.type === "ENTRY"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-orange-100 text-orange-700"
+                                }
+                              >
+                                {mov.type === "ENTRY" ? "Entrada" : "Saída"}
+                              </Badge>
+                              <span
+                                className={`font-bold ${
+                                  mov.type === "ENTRY"
+                                    ? "text-green-600"
+                                    : "text-orange-600"
+                                }`}
+                              >
+                                {mov.type === "ENTRY" ? "+" : "-"}
+                                {qty}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Activity className="w-3 h-3" />
-                              <span>{mov.responsavel}</span>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>
+                                  {new Date(mov.createdAt).toLocaleDateString(
+                                    "pt-BR",
+                                  )}{" "}
+                                  às{" "}
+                                  {new Date(mov.createdAt).toLocaleTimeString(
+                                    "pt-BR",
+                                    {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    },
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Activity className="w-3 h-3" />
+                                <span>{mov.responsible}</span>
+                              </div>
                             </div>
+                            {mov.observations && (
+                              <p className="text-sm text-muted-foreground italic mt-1">
+                                Obs: {mov.observations}
+                              </p>
+                            )}
                           </div>
-                          {mov.observacao && (
-                            <p className="text-sm text-muted-foreground italic mt-1">
-                              Obs: {mov.observacao}
-                            </p>
-                          )}
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                    </motion.div>
+                  );
+                })}
             </AnimatePresence>
 
             {movimentacoes.length === 0 && (

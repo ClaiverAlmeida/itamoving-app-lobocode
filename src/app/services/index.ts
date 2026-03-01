@@ -6,3 +6,5 @@ export { clientsService } from "./clients.service";
 export { deliveryPricesService } from "./prices/delivery.service";
 // Serviço de Product Prices
 export { productsService } from "./prices/products.service";
+// Serviço de Stock
+export { stockService } from "./stock.service";

@@ -478,9 +478,8 @@ const precosEntregaIniciais: PrecoEntrega[] = [
 const precosProdutosIniciais: PrecoProduto[] = [
   {
     id: '1',
-    type: 'box',
+    type: 'SMALL_BOX',
     name: 'Caixa Pequena',
-    size: 'Pequena',
     dimensions: '30x25x20cm',
     maxWeight: 10,
     unit: 'unidade',
@@ -490,9 +489,8 @@ const precosProdutosIniciais: PrecoProduto[] = [
   },
   {
     id: '2',
-    type: 'box',
+    type: 'MEDIUM_BOX',
     name: 'Caixa Média',
-    size: 'Média',
     dimensions: '40x35x30cm',
     maxWeight: 20,
     unit: 'unidade',
@@ -502,9 +500,8 @@ const precosProdutosIniciais: PrecoProduto[] = [
   },
   {
     id: '3',
-    type: 'box',
+    type: 'LARGE_BOX',
     name: 'Caixa Grande',
-    size: 'Grande',
     dimensions: '50x45x40cm',
     maxWeight: 30,
     unit: 'unidade',
@@ -514,7 +511,7 @@ const precosProdutosIniciais: PrecoProduto[] = [
   },
   {
     id: '4',
-    type: 'tape',
+    type: 'TAPE_ADHESIVE',
     name: 'Fita Adesiva Transparente',
     unit: 'rolo',
     costPrice: 1.20,
@@ -523,7 +520,7 @@ const precosProdutosIniciais: PrecoProduto[] = [
   },
   {
     id: '5',
-    type: 'tape',
+    type: 'TAPE_ADHESIVE',
     name: 'Fita Adesiva Marrom',
     unit: 'rolo',
     costPrice: 1.50,
@@ -532,7 +529,7 @@ const precosProdutosIniciais: PrecoProduto[] = [
   },
   {
     id: '6',
-    type: 'tape',
+    type: 'TAPE_ADHESIVE',
     name: 'Fita Adesiva Reforçada',
     unit: 'rolo',
     costPrice: 2.00,
@@ -772,11 +769,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   
   const [estoque, setEstoque] = useState<Estoque>({
-    caixasPequenas: 49,
-    caixasMedias: 250,
-    caixasGrandes: 20,
-    caixasPersonalizadas: 10,
-    fitasAdesivas: 100,
+    smallBoxes: 0,
+    mediumBoxes: 0,
+    largeBoxes: 0,
+    personalizedBoxes: 0,
+    adhesiveTape: 0,
   });
   
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>(agendamentosIniciais);

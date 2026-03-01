@@ -51,13 +51,13 @@ function MainApp() {
     const allMenuItems = [
       { id: 'dashboard' as View, label: 'Dashboard', icon: LayoutDashboard, module: 'clientes' as const },
       { id: 'clientes' as View, label: 'Clientes', icon: Users, module: 'clientes' as const },
+      { id: 'precos' as View, label: 'Precificação', icon: Tag, module: 'financeiro' as const },
       { id: 'estoque' as View, label: 'Estoque', icon: Package, module: 'estoque' as const },
       { id: 'agendamentos' as View, label: 'Agendamentos', icon: Calendar, module: 'agendamentos' as const },
       { id: 'containers' as View, label: 'Containers', icon: Container, module: 'containers' as const },
       { id: 'financeiro' as View, label: 'Financeiro', icon: DollarSign, module: 'financeiro' as const },
       { id: 'relatorios' as View, label: 'Relatórios', icon: FileText, module: 'relatorios' as const },
       { id: 'atendimentos' as View, label: 'Atendimentos', icon: Headset, module: 'atendimentos' as const },
-      { id: 'precos' as View, label: 'Preços', icon: Tag, module: 'financeiro' as const },
       { id: 'rh' as View, label: 'RH', icon: UserCog, module: 'rh' as const },
       { id: 'motorista' as View, label: 'Motorista', icon: Truck, module: 'motorista' as const },
     ];
@@ -85,13 +85,13 @@ function MainApp() {
     switch (activeView) {
       case 'dashboard': return <DashboardView onNavigate={setActiveView} />;
       case 'clientes': return hasPermission('clientes', 'read') ? <ClientesView /> : <AcessoNegado />;
+      case 'precos': return hasPermission('financeiro', 'read') ? <PrecosView /> : <AcessoNegado />;
       case 'estoque': return hasPermission('estoque', 'read') ? <EstoqueView /> : <AcessoNegado />;
       case 'agendamentos': return hasPermission('agendamentos', 'read') ? <AgendamentosView /> : <AcessoNegado />;
       case 'containers': return hasPermission('containers', 'read') ? <ContainersView /> : <AcessoNegado />;
       case 'financeiro': return hasPermission('financeiro', 'read') ? <FinanceiroView /> : <AcessoNegado />;
       case 'relatorios': return hasPermission('relatorios', 'read') ? <RelatoriosView /> : <AcessoNegado />;
       case 'atendimentos': return hasPermission('atendimentos', 'read') ? <AtendimentosView /> : <AcessoNegado />;
-      case 'precos': return hasPermission('financeiro', 'read') ? <PrecosView /> : <AcessoNegado />;
       case 'rh': return hasPermission('rh', 'read') ? <RHView /> : <AcessoNegado />;
       case 'motorista': return hasPermission('motorista', 'read') ? <MotoristaApp /> : <AcessoNegado />;
       default: return <DashboardView onNavigate={setActiveView} />;

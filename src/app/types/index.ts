@@ -35,11 +35,11 @@ export interface CaixaTamanho {
 }
 
 export interface Estoque {
-  caixasPequenas: number;
-  caixasMedias: number;
-  caixasGrandes: number;
-  caixasPersonalizadas: number;
-  fitasAdesivas: number;
+  smallBoxes: number;
+  mediumBoxes: number;
+  largeBoxes: number;
+  personalizedBoxes: number;
+  adhesiveTape: number;
 }
 
 export interface Agendamento {
