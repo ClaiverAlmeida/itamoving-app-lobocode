@@ -1,30 +1,26 @@
 export interface Cliente {
   id: string;
   // Dados pessoais USA
-  nome: string;
-  cpf: string;
-  telefoneUSA: string;
-  enderecoUSA: {
-    rua: string;
-    numero: string;
-    cidade: string;
-    estado: string;
-    zipCode: string;
-    complemento?: string;
-  };
-  // Dados destino Brasil
-  destinoBrasil: {
-    nomeRecebedor: string;
-    cpfRecebedor: string;
-    endereco: string;
-    cidade: string;
-    estado: string;
-    cep: string;
-    telefones: string[];
-  };
+  usaNome: string;
+  usaCpf: string;
+  usaPhone: string;
+  usaAddress: Record<string, unknown>;
+  // Dados pessoais Brasil
+  brazilNome: string;
+  brazilCpf: string;
+  brazilPhone: string;
+  brazilAddress: Record<string, unknown>;
+  
   atendente: string;
   dataCadastro: string;
   status: "ACTIVE" | "INACTIVE";
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: "DRIVER";
 }
 
 export interface CaixaTamanho {
@@ -38,7 +34,7 @@ export interface Estoque {
   smallBoxes: number;
   mediumBoxes: number;
   largeBoxes: number;
-  personalizedBoxes: number;
+  personalizedItems: number;
   adhesiveTape: number;
 }
 
@@ -128,7 +124,7 @@ export interface PrecoEntrega {
 
 export interface PrecoProduto {
   id: string;
-  type: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_BOX" | "TAPE_ADHESIVE";
+  type: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_ITEM" | "TAPE_ADHESIVE";
   name: string;
   size?: string; // Para caixas: Pequena, Média, Grande
   dimensions?: string | null; // ex: "40x30x25cm"; null quando tipo Fita

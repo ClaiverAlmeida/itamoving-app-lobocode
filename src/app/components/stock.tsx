@@ -39,6 +39,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Boxes,
+  Search,
+  User,
+  MessageCircle,
+  ChevronsUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
@@ -56,18 +60,30 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { stockService } from "../services";
+import { stockService, productsService, userService } from "../services";
+import { User as UserTypeDriver } from "../services/user.service";
 import {
   EstoqueAtualizado,
   CriarMovimentacao,
 } from "../services/stock.service";
+import { PrecoProduto } from "../types";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "./ui/command";
+import { cn } from "./ui/utils";
 
 /** Chaves dos itens em inglês camelCase (payload: smallBoxes: 10) */
 const ITEM_KEYS_EN = [
   "smallBoxes",
   "mediumBoxes",
   "largeBoxes",
-  "personalizedBoxes",
+  "personalizedItems",
   "adhesiveTape",
 ] as const;
 type ItemKeyEn = (typeof ITEM_KEYS_EN)[number];
@@ -79,19 +95,28 @@ export interface EstoqueMovimentacao {
     | "SMALL_BOX"
     | "MEDIUM_BOX"
     | "LARGE_BOX"
-    | "PERSONALIZED_BOX"
+    | "PERSONALIZED_ITEM"
     | "TAPE_ADHESIVE";
   quantity: number;
-  responsible: string;
+  user: {
+    id: string;
+    name: string;
+    role: "DRIVER";
+  };
   observations?: string;
   createdAt: string;
+  product: {
+    id: string;
+    name: string;
+    type: string;
+  };
 }
 
 const ITEM_LABELS: Record<ItemKeyEn, string> = {
   smallBoxes: "Caixas Pequenas",
   mediumBoxes: "Caixas Médias",
   largeBoxes: "Caixas Grandes",
-  personalizedBoxes: "Caixas Personalizadas",
+  personalizedItems: "Itens Personalizados",
   adhesiveTape: "Fitas Adesivas",
 };
 
@@ -99,7 +124,7 @@ type ProductType =
   | "SMALL_BOX"
   | "MEDIUM_BOX"
   | "LARGE_BOX"
-  | "PERSONALIZED_BOX"
+  | "PERSONALIZED_ITEM"
   | "TAPE_ADHESIVE";
 
 /** Backend productType (enum) → chave do frontend (camelCase) */
@@ -107,7 +132,7 @@ const PRODUCT_TYPE_TO_ITEM_KEY: Record<ProductType, ItemKeyEn> = {
   SMALL_BOX: "smallBoxes",
   MEDIUM_BOX: "mediumBoxes",
   LARGE_BOX: "largeBoxes",
-  PERSONALIZED_BOX: "personalizedBoxes",
+  PERSONALIZED_ITEM: "personalizedItems",
   TAPE_ADHESIVE: "adhesiveTape",
 };
 
@@ -116,12 +141,12 @@ const ITEM_KEY_TO_PRODUCT_TYPE: Record<ItemKeyEn, ProductType> = {
   smallBoxes: "SMALL_BOX",
   mediumBoxes: "MEDIUM_BOX",
   largeBoxes: "LARGE_BOX",
-  personalizedBoxes: "PERSONALIZED_BOX",
+  personalizedItems: "PERSONALIZED_ITEM",
   adhesiveTape: "TAPE_ADHESIVE",
 };
 
 function getMovItemKey(mov: EstoqueMovimentacao): ItemKeyEn | undefined {
-  return PRODUCT_TYPE_TO_ITEM_KEY[mov.productType as ProductType];
+  return PRODUCT_TYPE_TO_ITEM_KEY[mov.product.type as ProductType];
 }
 
 function getMovQuantity(mov: EstoqueMovimentacao): number {
@@ -140,21 +165,22 @@ function normalizeField(value: string) {
 
 const ESTOQUE_MINIMO = {
   smallBoxes: 50,
-  mediumBoxes: 30,
-  largeBoxes: 20,
-  personalizedBoxes: 10,
-  adhesiveTape: 40,
+  mediumBoxes: 50,
+  largeBoxes: 50,
+  personalizedItems: 20,
+  adhesiveTape: 20,
 };
 
 const ESTOQUE_IDEAL = {
-  smallBoxes: 200,
-  mediumBoxes: 150,
+  smallBoxes: 100,
+  mediumBoxes: 100,
   largeBoxes: 100,
-  personalizedBoxes: 50,
-  adhesiveTape: 150,
+  personalizedItems: 100,
+  adhesiveTape: 100,
 };
 
 export default function EstoqueView() {
+  const [searchTerm, setSearchTerm] = useState("");
   const { estoque, updateEstoque } = useData();
   const [movimentacoes, setMovimentacoes] = useState<EstoqueMovimentacao[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -166,6 +192,77 @@ export default function EstoqueView() {
   const [idStock, setIdStock] = useState<string | null>(null);
   const stockIdRef = useRef<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [movimentacoesPage, setMovimentacoesPage] = useState(1);
+  const [produtos, setProdutos] = useState<PrecoProduto[]>([]);
+  const [motoristas, setMotoristas] = useState<UserTypeDriver[]>([]);
+  const [selectedProduto, setSelectedProduto] = useState<string>("");
+  const [responsavelComboboxOpen, setResponsavelComboboxOpen] = useState(false);
+
+  const MOVIMENTACOES_PAGE_SIZE = 10;
+
+  /** Filtra movimentações por termo de busca (tipo, data, responsável, observações, produto, quantidade) */
+  const movimentacoesFiltradas = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return [...movimentacoes].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    }
+    const term = searchTerm.trim().toLowerCase();
+    const typeStr = (t: string) => (t === "ENTRY" ? "entrada" : "saída");
+    const labelOf = (mov: EstoqueMovimentacao) =>
+      ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[mov.productType as ProductType]] ??
+      "";
+    const dateStr = (d: string) =>
+      new Date(d).toLocaleDateString("pt-BR") +
+      " " +
+      new Date(d).toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    return [...movimentacoes]
+      .filter((mov) => {
+        const type = typeStr(mov.type);
+        const label = labelOf(mov);
+        const date = dateStr(mov.createdAt);
+        const qty = String(mov.quantity);
+        const resp = (mov.user.name ?? "").toLowerCase();
+        const obs = (mov.observations ?? "").toLowerCase();
+        const product = (mov.product.name ?? "").toLowerCase();
+        return (
+          type.includes(term) ||
+          label.toLowerCase().includes(term) ||
+          date.toLowerCase().includes(term) ||
+          qty.includes(term) ||
+          resp.includes(term) ||
+          obs.includes(term) ||
+          product.includes(term)
+        );
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+  }, [movimentacoes, searchTerm]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(movimentacoesFiltradas.length / MOVIMENTACOES_PAGE_SIZE),
+  );
+  const movimentacoesPaginas = useMemo(() => {
+    const start = (movimentacoesPage - 1) * MOVIMENTACOES_PAGE_SIZE;
+    return movimentacoesFiltradas.slice(start, start + MOVIMENTACOES_PAGE_SIZE);
+  }, [movimentacoesFiltradas, movimentacoesPage]);
+
+  useEffect(() => {
+    setMovimentacoesPage(1);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (movimentacoesPage > totalPages) {
+      setMovimentacoesPage(totalPages);
+    }
+  }, [totalPages, movimentacoesPage]);
 
   useEffect(() => {
     const carregarEstoque = async () => {
@@ -176,7 +273,7 @@ export default function EstoqueView() {
           smallBoxes: stock.smallBoxes ?? 0,
           mediumBoxes: stock.mediumBoxes ?? 0,
           largeBoxes: stock.largeBoxes ?? 0,
-          personalizedBoxes: stock.personalizedBoxes ?? 0,
+          personalizedItems: stock.personalizedItems ?? 0,
           adhesiveTape: stock.adhesiveTape ?? 0,
         });
         stockIdRef.current = stock.id ?? null;
@@ -188,11 +285,30 @@ export default function EstoqueView() {
         toast.error(result.error);
       }
     };
+
     carregarEstoque();
   }, []);
 
+  const carregarProdutos = async () => {
+    const result = await productsService.getAll();
+    if (result.success && result.data) {
+      setProdutos(result.data);
+    } else if (result.error) {
+      toast.error(result.error);
+    }
+  };
+
+  const carregarMotoristas = async () => {
+    const result = await userService.buscarTodosMotoristas();
+    if (result.success && result.data) {
+      setMotoristas(result.data.data);
+    } else if (result.error) {
+      toast.error(result.error);
+    }
+  };
+
   const handleMovimentacao = async () => {
-    if (!selectedItem || quantidade <= 0 || !responsavel) {
+    if (!selectedItem || quantidade <= 0 || !responsavel || !selectedProduto) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -227,12 +343,15 @@ export default function EstoqueView() {
       [selectedItem]: quantidade,
     };
 
+    console.log(responsavel);
+
     const movimentacaoPayload: CriarMovimentacao = {
       type: dialogType,
       productType: itemProductType,
       quantity: quantidade,
-      responsible: responsavel,
+      userId: responsavel,
       observations: observacao,
+      productId: selectedProduto,
     };
 
     const result = await stockService.update(
@@ -259,6 +378,7 @@ export default function EstoqueView() {
 
     // Reset form
     setSelectedItem("");
+    setSelectedProduto("");
     setQuantidade(0);
     setResponsavel("");
     setObservacao("");
@@ -291,12 +411,12 @@ export default function EstoqueView() {
       ideal: ESTOQUE_IDEAL.largeBoxes,
     },
     {
-      key: "personalizedBoxes" as const,
-      nome: "Caixas Personalizadas",
+      key: "personalizedItems" as const,
+      nome: "Itens Personalizados",
       cor: "purple",
       icon: Package,
-      minimo: ESTOQUE_MINIMO.personalizedBoxes,
-      ideal: ESTOQUE_IDEAL.personalizedBoxes,
+      minimo: ESTOQUE_MINIMO.personalizedItems,
+      ideal: ESTOQUE_IDEAL.personalizedItems,
     },
     {
       key: "adhesiveTape" as const,
@@ -407,14 +527,26 @@ export default function EstoqueView() {
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Dialog open={isDialogOpen} onOpenChange={(open) => {
-              setIsDialogOpen(open);
-              if (open) {
-                setIdStock(stockIdRef.current);
-              } else {
-                setIdStock(null);
-              }
-            }}>
+            <Dialog
+              open={isDialogOpen}
+              onOpenChange={(open) => {
+                setIsDialogOpen(open);
+                if (open) {
+                  carregarProdutos();
+                  carregarMotoristas();
+                  setIdStock(stockIdRef.current);
+                } else {
+                  setSelectedProduto("");
+                  setIdStock(null);
+                  setSelectedItem("");
+                  setQuantidade(0);
+                  setResponsavel("");
+                  setObservacao("");
+                  setProdutos([]);
+                  setMotoristas([]);
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <Button onClick={() => setDialogType("ENTRY")}>
                   <Plus className="w-4 h-4 mr-2" />
@@ -450,10 +582,14 @@ export default function EstoqueView() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Item *</Label>
+                    <Label>Categoria *</Label>
                     <select
+                      required
                       value={selectedItem}
-                      onChange={(e) => setSelectedItem(e.target.value)}
+                      onChange={(e) => {
+                        setSelectedItem(e.target.value);
+                        setSelectedProduto("");
+                      }}
                       className="w-full px-3 py-2 border border-slate-200 rounded-lg"
                     >
                       <option value="">Selecione...</option>
@@ -464,6 +600,41 @@ export default function EstoqueView() {
                       ))}
                     </select>
                   </div>
+
+                  {/* Adicionar item do estoque */}
+                  {selectedItem && (
+                    <div className="space-y-2">
+                      <Label>Item do Estoque *</Label>
+                      <select
+                        required
+                        disabled={
+                          !selectedItem ||
+                          !produtos.filter(
+                            (produto) =>
+                              produto.type ===
+                              ITEM_KEY_TO_PRODUCT_TYPE[selectedItem],
+                          ).length
+                        } // Tirar disabled caso precise
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+                        value={selectedProduto || ""}
+                        onChange={(e) => setSelectedProduto(e.target.value)}
+                      >
+                        <option value="">Selecione...</option>
+                        {produtos
+                          .filter(
+                            (produto) =>
+                              produto.type ===
+                                ITEM_KEY_TO_PRODUCT_TYPE[selectedItem] &&
+                              produto.active === true,
+                          )
+                          .map((produto) => (
+                            <option key={produto.id} value={produto.id}>
+                              {produto.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label>Quantidade *</Label>
@@ -480,13 +651,56 @@ export default function EstoqueView() {
 
                   <div className="space-y-2">
                     <Label>Responsável *</Label>
-                    <Input
-                      value={responsavel}
-                      onChange={(e) =>
-                        setResponsavel(normalizeField(e.target.value))
-                      }
-                      placeholder="Nome do responsável"
-                    />
+                    <Popover
+                      open={responsavelComboboxOpen}
+                      onOpenChange={setResponsavelComboboxOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={responsavelComboboxOpen}
+                          className={cn(
+                            "w-full justify-between font-normal",
+                            !responsavel && "text-muted-foreground",
+                          )}
+                        >
+                          {responsavel || "Selecione o responsável..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-[var(--radix-popover-trigger-width)] p-0"
+                        align="start"
+                      >
+                        <Command>
+                          <CommandInput placeholder="Buscar responsável..." />
+                          <CommandList>
+                            <CommandEmpty>
+                              Nenhum responsável encontrado.
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {motoristas.map((motorista) => (
+                                <CommandItem
+                                  key={motorista.id}
+                                  onSelect={() => {
+                                    setResponsavel(motorista.id);
+                                    // TODO: Adicionar o nome do responsável visualmente e deixar o id como valor selecionado para payload
+                                    setResponsavelComboboxOpen(false);
+                                  }}
+                                >
+                                  <User className="mr-2 h-4 w-4" />
+                                  {motorista.name} -{" "}
+                                  {motorista.role === "DRIVER"
+                                    ? "Motorista"
+                                    : "Outro"}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="space-y-2">
@@ -837,125 +1051,196 @@ export default function EstoqueView() {
             <div>
               <CardTitle>Histórico de Movimentações</CardTitle>
               <CardDescription>
-                Últimas {movimentacoes.length} movimentações registradas
+                {searchTerm.trim()
+                  ? `${movimentacoesFiltradas.length} de ${movimentacoes.length} movimentações`
+                  : `Últimas ${movimentacoes.length} movimentações registradas`}
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setShowFilters(!showFilters);
+                setSearchTerm("");
+              }}
+            >
               <Filter className="w-4 h-4 mr-2" />
               Filtrar
             </Button>
           </div>
         </CardHeader>
         <CardContent>
+          {/* Painel de Filtros */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                <div className="space-y-4 pt-0 pb-6">
+                  <div className="space-y-2">
+                    <Label>Filtrar movimentações</Label>
+
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar por tipo, data, responsável, etc..."
+                        className="pl-10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="space-y-3">
             <AnimatePresence>
-              {[...movimentacoes]
-                .sort(
-                  (a, b) =>
-                    new Date(b.createdAt).getTime() -
-                    new Date(a.createdAt).getTime(),
-                )
-                .map((mov) => {
-                  const itemKey = getMovItemKey(mov);
-                  const qty = getMovQuantity(mov);
-                  return (
-                    <motion.div
-                      key={mov.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      className={`p-4 rounded-lg border-l-4 ${
-                        mov.type === "ENTRY"
-                          ? "bg-green-50 border-green-500"
-                          : "bg-orange-50 border-orange-500"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3 flex-1">
-                          <div
-                            className={`p-2 rounded-full ${
-                              mov.type === "ENTRY"
-                                ? "bg-green-100"
-                                : "bg-orange-100"
-                            }`}
-                          >
-                            {mov.type === "ENTRY" ? (
-                              <ArrowUpRight
-                                className={`w-4 h-4 ${
-                                  mov.type === "ENTRY"
-                                    ? "text-green-600"
-                                    : "text-orange-600"
-                                }`}
-                              />
-                            ) : (
-                              <ArrowDownRight
-                                className={`w-4 h-4 ${
-                                  mov.type === "ENTRY"
-                                    ? "text-green-600"
-                                    : "text-orange-600"
-                                }`}
-                              />
-                            )}
+              {movimentacoesPaginas.map((mov) => {
+                const itemKey = getMovItemKey(mov);
+                const qty = getMovQuantity(mov);
+                return (
+                  <motion.div
+                    key={mov.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className={`p-4 rounded-lg border-l-4 ${
+                      mov.type === "ENTRY"
+                        ? "bg-green-50 border-green-500"
+                        : "bg-orange-50 border-orange-500"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div
+                          className={`p-2 rounded-full ${
+                            mov.type === "ENTRY"
+                              ? "bg-green-100"
+                              : "bg-orange-100"
+                          }`}
+                        >
+                          {mov.type === "ENTRY" ? (
+                            <ArrowUpRight
+                              className={`w-4 h-4 ${
+                                mov.type === "ENTRY"
+                                  ? "text-green-600"
+                                  : "text-orange-600"
+                              }`}
+                            />
+                          ) : (
+                            <ArrowDownRight
+                              className={`w-4 h-4 ${
+                                mov.type === "EXIT"
+                                  ? "text-orange-600"
+                                  : "text-green-600"
+                              }`}
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold">
+                              {itemKey ? ITEM_LABELS[itemKey] : "-"}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              Produto: {mov.product.name}
+                            </span>
+                            <Badge
+                              className={
+                                mov.type === "ENTRY"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-orange-100 text-orange-700"
+                              }
+                            >
+                              {mov.type === "ENTRY" ? "Entrada" : "Saída"}
+                            </Badge>
+                            <span
+                              className={`font-bold ${
+                                mov.type === "ENTRY"
+                                  ? "text-green-600"
+                                  : "text-orange-600"
+                              }`}
+                            >
+                              {mov.type === "ENTRY" ? "+" : "-"}
+                              {qty}
+                            </span>
                           </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold">
-                                {itemKey ? ITEM_LABELS[itemKey] : "-"}
-                              </span>
-                              <Badge
-                                className={
-                                  mov.type === "ENTRY"
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-orange-100 text-orange-700"
-                                }
-                              >
-                                {mov.type === "ENTRY" ? "Entrada" : "Saída"}
-                              </Badge>
-                              <span
-                                className={`font-bold ${
-                                  mov.type === "ENTRY"
-                                    ? "text-green-600"
-                                    : "text-orange-600"
-                                }`}
-                              >
-                                {mov.type === "ENTRY" ? "+" : "-"}
-                                {qty}
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              <span>
+                                {new Date(mov.createdAt).toLocaleDateString(
+                                  "pt-BR",
+                                )}{" "}
+                                às{" "}
+                                {new Date(mov.createdAt).toLocaleTimeString(
+                                  "pt-BR",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  },
+                                )}
                               </span>
                             </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                <span>
-                                  {new Date(mov.createdAt).toLocaleDateString(
-                                    "pt-BR",
-                                  )}{" "}
-                                  às{" "}
-                                  {new Date(mov.createdAt).toLocaleTimeString(
-                                    "pt-BR",
-                                    {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    },
-                                  )}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Activity className="w-3 h-3" />
-                                <span>{mov.responsible}</span>
-                              </div>
+                            <div className="flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              <span>{mov.user.name}</span>
                             </div>
-                            {mov.observations && (
-                              <p className="text-sm text-muted-foreground italic mt-1">
-                                Obs: {mov.observations}
-                              </p>
-                            )}
                           </div>
+                          {mov.observations && (
+                            <p className="text-sm text-muted-foreground italic mt-1 flex items-center gap-1">
+                              <MessageCircle className="w-3 h-3" />
+                              {":"} {mov.observations}
+                            </p>
+                          )}
                         </div>
                       </div>
-                    </motion.div>
-                  );
-                })}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
+
+            {/* Paginação */}
+            {movimentacoesFiltradas.length > MOVIMENTACOES_PAGE_SIZE && (
+              <div className="flex items-center justify-between pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Página {movimentacoesPage} de {totalPages} (
+                  {(movimentacoesPage - 1) * MOVIMENTACOES_PAGE_SIZE + 1}–
+                  {Math.min(
+                    movimentacoesPage * MOVIMENTACOES_PAGE_SIZE,
+                    movimentacoesFiltradas.length,
+                  )}{" "}
+                  de {movimentacoesFiltradas.length})
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setMovimentacoesPage((p) => Math.max(1, p - 1))
+                    }
+                    disabled={movimentacoesPage <= 1}
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setMovimentacoesPage((p) => Math.min(totalPages, p + 1))
+                    }
+                    disabled={movimentacoesPage >= totalPages}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {movimentacoes.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
@@ -963,6 +1248,16 @@ export default function EstoqueView() {
                 <p>Nenhuma movimentação registrada</p>
               </div>
             )}
+            {movimentacoes.length > 0 &&
+              movimentacoesFiltradas.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>
+                    Nenhuma movimentação encontrada para &quot;{searchTerm}
+                    &quot;
+                  </p>
+                </div>
+              )}
           </div>
         </CardContent>
       </Card>

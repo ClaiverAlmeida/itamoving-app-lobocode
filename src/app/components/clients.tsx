@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -184,44 +184,56 @@ export default function ClientesView() {
   }, [selectedCliente?.id]);
 
   const [formData, setFormData] = useState({
-    nome: "",
-    cpf: "",
-    telefoneUSA: "",
-    ruaUSA: "",
-    numeroUSA: "",
-    cidadeUSA: "",
-    estadoUSA: "",
-    zipCode: "",
-    complementoUSA: "",
-    nomeRecebedor: "",
-    cpfRecebedor: "",
-    enderecoBrasil: "",
-    cidadeBrasil: "",
-    estadoBrasil: "",
-    cep: "",
-    telefoneBrasil: "",
+    usaName: "",
+    usaCpf: "",
+    usaPhone: "",
+    usaAddress: {
+      rua: "",
+      numero: "",
+      cidade: "",
+      estado: "",
+      zipCode: "",
+      complemento: "",
+    },
+    brazilName: "",
+    brazilCpf: "",
+    brazilPhone: "",
+    brazilAddress: {
+      rua: "",
+      numero: "",
+      cidade: "",
+      estado: "",
+      cep: "",
+      complemento: "",
+    },
     atendente: "",
     status: "ACTIVE",
   });
 
   const resetForm = () => {
     setFormData({
-      nome: "",
-      cpf: "",
-      telefoneUSA: "",
-      ruaUSA: "",
-      numeroUSA: "",
-      cidadeUSA: "",
-      estadoUSA: "",
-      zipCode: "",
-      complementoUSA: "",
-      nomeRecebedor: "",
-      cpfRecebedor: "",
-      enderecoBrasil: "",
-      cidadeBrasil: "",
-      estadoBrasil: "",
-      cep: "",
-      telefoneBrasil: "",
+      usaName: "",
+      usaCpf: "",
+      usaPhone: "",
+      usaAddress: {
+        rua: "",
+        numero: "",
+        cidade: "",
+        estado: "",
+        zipCode: "",
+        complemento: "",
+      },	
+      brazilName: "",
+      brazilCpf: "",
+      brazilPhone: "",
+      brazilAddress: {
+        rua: "",
+        numero: "",
+        cidade: "",
+        estado: "",
+        cep: "",
+        complemento: "",
+      },
       atendente: "",
       status: "ACTIVE",
     });
@@ -230,54 +242,68 @@ export default function ClientesView() {
 
   const handleEdit = (cliente: Cliente) => {
     setEditingCliente(cliente);
+    const usaAddr = cliente.usaAddress as { rua?: string; numero?: string; cidade?: string; estado?: string; zipCode?: string; complemento?: string };
+    const brAddr = cliente.brazilAddress as { rua?: string; numero?: string; cidade?: string; estado?: string; cep?: string; complemento?: string };
     setFormData({
-      nome: cliente.nome,
-      cpf: cliente.cpf,
-      telefoneUSA: cliente.telefoneUSA,
-      ruaUSA: cliente.enderecoUSA.rua,
-      numeroUSA: cliente.enderecoUSA.numero,
-      cidadeUSA: cliente.enderecoUSA.cidade,
-      estadoUSA: cliente.enderecoUSA.estado,
-      zipCode: cliente.enderecoUSA.zipCode,
-      complementoUSA: cliente.enderecoUSA.complemento || "",
-      nomeRecebedor: cliente.destinoBrasil.nomeRecebedor,
-      cpfRecebedor: cliente.destinoBrasil.cpfRecebedor,
-      enderecoBrasil: cliente.destinoBrasil.endereco,
-      cidadeBrasil: cliente.destinoBrasil.cidade,
-      estadoBrasil: cliente.destinoBrasil.estado,
-      cep: cliente.destinoBrasil.cep,
-      telefoneBrasil: cliente.destinoBrasil.telefones[0] || "",
-      atendente: cliente.atendente,
+      usaName: cliente.usaNome ?? "",
+      usaCpf: cliente.usaCpf ?? "",
+      usaPhone: cliente.usaPhone ?? "",
+      usaAddress: {
+        rua: usaAddr?.rua ?? "",
+        numero: usaAddr?.numero ?? "",
+        cidade: usaAddr?.cidade ?? "",
+        estado: usaAddr?.estado ?? "",
+        zipCode: usaAddr?.zipCode ?? "",
+        complemento: usaAddr?.complemento ?? "",
+      },
+      brazilName: cliente.brazilNome ?? "",
+      brazilCpf: cliente.brazilCpf ?? "",
+      brazilPhone: cliente.brazilPhone ?? "",
+      brazilAddress: {
+        rua: brAddr?.rua ?? "",
+        numero: brAddr?.numero ?? "",
+        cidade: brAddr?.cidade ?? "",
+        estado: brAddr?.estado ?? "",
+        cep: brAddr?.cep ?? "",
+        complemento: brAddr?.complemento ?? "",
+      },
+      atendente: cliente.atendente ?? "",
       status: cliente.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
     });
     setIsDialogOpen(true);
   };
 
-  /** Monta o payload no formato do backend para criar cliente */
-  const getCreatePayload = (): CreateClientsDTO => ({
-    name: formData.nome,
-    cpf: formData.cpf,
-    usaPhone: formData.telefoneUSA,
-    usaAddress: {
-      rua: formData.ruaUSA,
-      numero: formData.numeroUSA,
-      cidade: formData.cidadeUSA,
-      estado: formData.estadoUSA,
-      zipCode: formData.zipCode,
-      complemento: formData.complementoUSA || undefined,
-    },
-    brazilDestination: {
-      nomeRecebedor: formData.nomeRecebedor,
-      cpfRecebedor: formData.cpfRecebedor,
-      endereco: formData.enderecoBrasil,
-      cidade: formData.cidadeBrasil,
-      estado: formData.estadoBrasil,
-      cep: formData.cep,
-      telefones: formData.telefoneBrasil ? [formData.telefoneBrasil] : [],
-    },
-    attendant: formData.atendente,
-    status: formData.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
-  });
+  /** Monta o payload no formato do backend para criar cliente (strings trimadas; CPFs opcionais enviados só quando preenchidos) */
+  const getCreatePayload = (): CreateClientsDTO => {
+    const trim = (s: string) => (s ?? "").trim();
+    const payload: CreateClientsDTO = {
+      usaName: trim(formData.usaName),
+      usaCpf: trim(formData.usaCpf) || "",
+      usaPhone: trim(formData.usaPhone),
+      usaAddress: {
+        rua: trim(formData.usaAddress.rua),
+        numero: trim(formData.usaAddress.numero),
+        cidade: trim(formData.usaAddress.cidade),
+        estado: trim(formData.usaAddress.estado),
+        zipCode: trim(formData.usaAddress.zipCode),
+        complemento: trim(formData.usaAddress.complemento) || "",
+      },
+      brazilName: trim(formData.brazilName),
+      brazilCpf: trim(formData.brazilCpf) || "",
+      brazilPhone: trim(formData.brazilPhone),
+      brazilAddress: {
+        rua: trim(formData.brazilAddress.rua),
+        numero: trim(formData.brazilAddress.numero),
+        cidade: trim(formData.brazilAddress.cidade),
+        estado: trim(formData.brazilAddress.estado),
+        cep: trim(formData.brazilAddress.cep),
+        complemento: trim(formData.brazilAddress.complemento) || "",
+      },
+      attendant: trim(formData.atendente),
+      status: formData.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
+    };
+    return payload;
+  };
 
   /** Formata CEP brasileiro como 00000-000 (apenas dígitos, até 8). */
   const formatCepBrasil = (value: string): string => {
@@ -289,10 +315,12 @@ export default function ClientesView() {
   };
 
   /** Busca endereço pelo CEP brasileiro (ViaCEP). Preenche Endereço, Cidade e Estado (UF validado pela chave). Usado em criar e editar. */
+  /** Busca endereço pelo CEP (ViaCEP) e preenche rua, cidade, estado e mantém o CEP informado. */
   const handleCepBrasilChange = async (cep: string) => {
     const cleanCep = cep.replace(/\D/g, "");
     if (cleanCep.length !== 8) return;
 
+    const cepFormatado = cleanCep.replace(/(\d{5})(\d{3})/, "$1-$2");
     setLoadingCep(true);
     try {
       const result = await fetch(
@@ -301,30 +329,40 @@ export default function ClientesView() {
       const data = await result.json();
 
       if (!data.erro) {
-        const cepFormatado = cleanCep.replace(/(\d{5})(\d{3})/, "$1-$2");
         const uf = (data.uf || "").trim().toUpperCase();
         const estadoValido = BRASIL_STATES.some((e) => e.uf === uf) ? uf : "";
+        const cepExibir = (data.cep && String(data.cep).trim()) ? String(data.cep).replace(/\D/g, "").replace(/(\d{5})(\d{3})/, "$1-$2") : cepFormatado;
 
         setFormData((prev) => ({
           ...prev,
-          cep: cepFormatado,
-          enderecoBrasil: data.logradouro || "",
-          cidadeBrasil: data.localidade || "",
-          estadoBrasil: estadoValido,
+          brazilAddress: {
+            ...prev.brazilAddress,
+            rua: data.logradouro || "",
+            cidade: data.localidade || "",
+            estado: estadoValido,
+            cep: cepExibir,
+          },
         }));
         toast.success("Endereço encontrado!");
       } else {
         toast.error("CEP não encontrado");
         setFormData((prev) => ({
           ...prev,
-          cep: "",
-          enderecoBrasil: "",
-          cidadeBrasil: "",
-          estadoBrasil: "",
+          brazilAddress: {
+            ...prev.brazilAddress,
+            cep: cepFormatado,
+          },
         }));
       }
     } catch {
       toast.error("Erro ao buscar CEP");
+      setFormData((prev) => ({
+        ...prev,
+        brazilAddress: {
+          ...prev.brazilAddress,
+          cep: cepFormatado,
+        },
+      }));
     } finally {
       setLoadingCep(false);
     }
@@ -332,6 +370,18 @@ export default function ClientesView() {
 
   const handleCreate = async () => {
     const payload = getCreatePayload();
+    if (payload.usaName.length < 2) {
+      toast.error("Nome (USA) deve ter pelo menos 2 caracteres.");
+      return;
+    }
+    if (payload.brazilName.length < 2) {
+      toast.error("Nome recebedor (Brasil) deve ter pelo menos 2 caracteres.");
+      return;
+    }
+    if (payload.attendant.length < 2) {
+      toast.error("Atendente deve ter pelo menos 2 caracteres.");
+      return;
+    }
     const result = await clientsService.create(payload);
     if (result.success && result.data) {
       addCliente(result.data);
@@ -346,37 +396,30 @@ export default function ClientesView() {
   /** Monta payload de edição no formato do backend (apenas campos alterados para PATCH) */
   const getUpdatePayload = (): UpdateClientsDTO => {
     const current: CreateClientsDTO = {
-      name: formData.nome,
-      cpf: formData.cpf,
-      usaPhone: formData.telefoneUSA,
-      usaAddress: {
-        rua: formData.ruaUSA,
-        numero: formData.numeroUSA,
-        cidade: formData.cidadeUSA,
-        estado: formData.estadoUSA,
-        zipCode: formData.zipCode,
-        complemento: formData.complementoUSA || undefined,
-      },
-      brazilDestination: {
-        nomeRecebedor: formData.nomeRecebedor,
-        cpfRecebedor: formData.cpfRecebedor,
-        endereco: formData.enderecoBrasil,
-        cidade: formData.cidadeBrasil,
-        estado: formData.estadoBrasil,
-        cep: formData.cep,
-        telefones: formData.telefoneBrasil ? [formData.telefoneBrasil] : [],
-      },
+      usaName: formData.usaName,
+      usaCpf: formData.usaCpf,
+      usaPhone: formData.usaPhone,
+      usaAddress: formData.usaAddress,
+      brazilName: formData.brazilName,
+      brazilCpf: formData.brazilCpf,
+      brazilPhone: formData.brazilPhone,
+      brazilAddress: formData.brazilAddress,
       attendant: formData.atendente,
       status: formData.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
     };
 
     const original = editingCliente!;
+    const origUsaAddr = original.usaAddress as { rua?: string; numero?: string; cidade?: string; estado?: string; zipCode?: string; complemento?: string };
+    const origBrAddr = original.brazilAddress as { rua?: string; numero?: string; cidade?: string; estado?: string; cep?: string; complemento?: string };
     const patch: UpdateClientsDTO = {};
 
-    if (current.name !== original.nome) patch.name = current.name;
-    if (current.cpf !== original.cpf) patch.cpf = current.cpf;
-    if (current.usaPhone !== original.telefoneUSA)
+    if (current.usaName !== original.usaNome) patch.usaName = current.usaName;
+    if (current.usaCpf !== original.usaCpf) patch.usaCpf = current.usaCpf;
+    if (current.usaPhone !== original.usaPhone)
       patch.usaPhone = current.usaPhone;
+    if (current.brazilName !== original.brazilNome) patch.brazilName = current.brazilName;
+    if (current.brazilCpf !== original.brazilCpf) patch.brazilCpf = current.brazilCpf;
+    if (current.brazilPhone !== original.brazilPhone) patch.brazilPhone = current.brazilPhone;
     if (current.attendant !== original.atendente)
       patch.attendant = current.attendant;
     if (
@@ -385,27 +428,22 @@ export default function ClientesView() {
       patch.status = current.status;
 
     const usaAddressChanged =
-      current.usaAddress.rua !== original.enderecoUSA.rua ||
-      current.usaAddress.numero !== original.enderecoUSA.numero ||
-      current.usaAddress.cidade !== original.enderecoUSA.cidade ||
-      current.usaAddress.estado !== original.enderecoUSA.estado ||
-      current.usaAddress.zipCode !== original.enderecoUSA.zipCode ||
+      current.usaAddress.rua !== (origUsaAddr?.rua ?? "") ||
+      current.usaAddress.numero !== (origUsaAddr?.numero ?? "") ||
+      current.usaAddress.cidade !== (origUsaAddr?.cidade ?? "") ||
+      current.usaAddress.estado !== (origUsaAddr?.estado ?? "") ||
+      current.usaAddress.zipCode !== (origUsaAddr?.zipCode ?? "") ||
       (current.usaAddress.complemento ?? "") !==
-        (original.enderecoUSA.complemento ?? "");
+        (origUsaAddr?.complemento ?? "");
     if (usaAddressChanged) patch.usaAddress = current.usaAddress;
 
     const brazilDestChanged =
-      current.brazilDestination.nomeRecebedor !==
-        original.destinoBrasil.nomeRecebedor ||
-      current.brazilDestination.cpfRecebedor !==
-        original.destinoBrasil.cpfRecebedor ||
-      current.brazilDestination.endereco !== original.destinoBrasil.endereco ||
-      current.brazilDestination.cidade !== original.destinoBrasil.cidade ||
-      current.brazilDestination.estado !== original.destinoBrasil.estado ||
-      current.brazilDestination.cep !== original.destinoBrasil.cep ||
-      JSON.stringify(current.brazilDestination.telefones) !==
-        JSON.stringify(original.destinoBrasil.telefones);
-    if (brazilDestChanged) patch.brazilDestination = current.brazilDestination;
+      current.brazilAddress.rua !== (origBrAddr?.rua ?? "") ||
+      current.brazilAddress.numero !== (origBrAddr?.numero ?? "") ||
+      current.brazilAddress.cidade !== (origBrAddr?.cidade ?? "") ||
+      current.brazilAddress.estado !== (origBrAddr?.estado ?? "") ||
+      current.brazilAddress.cep !== (origBrAddr?.cep ?? "");
+    if (brazilDestChanged) patch.brazilAddress = current.brazilAddress;
 
     return patch;
   };
@@ -418,13 +456,16 @@ export default function ClientesView() {
     }
 
     const possiveisCampos = [
-      "name",
-      "cpf",
+      "usaName",
+      "usaCpf",
       "usaPhone",
+      "usaAddress",
+      "brazilName",
+      "brazilCpf",
+      "brazilPhone",
+      "brazilAddress",
       "attendant",
       "status",
-      "usaAddress",
-      "brazilDestination",
     ] as const;
 
     const camposAlterados = Object.keys(
@@ -432,13 +473,16 @@ export default function ClientesView() {
     ) as (typeof possiveisCampos)[number][];
 
     const old: Record<string, unknown> = {
-      name: editingCliente!.nome,
-      cpf: editingCliente!.cpf,
-      usaPhone: editingCliente!.telefoneUSA,
+      usaName: editingCliente!.usaNome,
+      usaCpf: editingCliente!.usaCpf,
+      usaPhone: editingCliente!.usaPhone,
+      usaAddress: editingCliente!.usaAddress,
+      brazilName: editingCliente!.brazilNome,
+      brazilCpf: editingCliente!.brazilCpf,
+      brazilPhone: editingCliente!.brazilPhone,
+      brazilAddress: editingCliente!.brazilAddress,
       attendant: editingCliente!.atendente,
       status: editingCliente!.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
-      usaAddress: editingCliente!.enderecoUSA,
-      brazilDestination: editingCliente!.destinoBrasil,
     };
 
     const payloadBeforeAfter = Object.fromEntries(
@@ -464,29 +508,17 @@ export default function ClientesView() {
 
     const clienteData: Cliente = {
       id: editingCliente!.id,
-      nome: formData.nome,
-      cpf: formData.cpf,
-      telefoneUSA: formData.telefoneUSA,
-      enderecoUSA: {
-        rua: formData.ruaUSA,
-        numero: formData.numeroUSA,
-        cidade: formData.cidadeUSA,
-        estado: formData.estadoUSA,
-        zipCode: formData.zipCode,
-        complemento: formData.complementoUSA,
-      },
-      destinoBrasil: {
-        nomeRecebedor: formData.nomeRecebedor,
-        cpfRecebedor: formData.cpfRecebedor,
-        endereco: formData.enderecoBrasil,
-        cidade: formData.cidadeBrasil,
-        estado: formData.estadoBrasil,
-        cep: formData.cep,
-        telefones: [formData.telefoneBrasil],
-      },
+      usaNome: formData.usaName,
+      usaCpf: formData.usaCpf,
+      usaPhone: formData.usaPhone,
+      usaAddress: formData.usaAddress,
+      brazilNome: formData.brazilName,
+      brazilCpf: formData.brazilCpf,
+      brazilPhone: formData.brazilPhone,
+      brazilAddress: formData.brazilAddress,
       atendente: formData.atendente,
       dataCadastro: editingCliente!.dataCadastro,
-      status: "ACTIVE",
+      status: formData.status as "ACTIVE" | "INACTIVE",
     };
 
     updateCliente(editingCliente!.id, result.data ?? clienteData);
@@ -569,25 +601,25 @@ export default function ClientesView() {
   const filteredClientes = useMemo(() => {
     return clientes.filter((cliente) => {
       // Search
+      const usaAddr = cliente.usaAddress as { cidade?: string };
+      const brAddr = cliente.brazilAddress as { cidade?: string };
       const matchesSearch =
-        cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cliente.cpf.includes(searchTerm) ||
-        cliente.telefoneUSA.includes(searchTerm) ||
-        cliente.enderecoUSA.cidade
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        cliente.destinoBrasil.cidade
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
+        cliente.usaNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cliente.usaCpf.includes(searchTerm) ||
+        cliente.usaPhone.includes(searchTerm) ||
+        (usaAddr?.cidade ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cliente.brazilNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cliente.brazilCpf.includes(searchTerm) ||
+        cliente.brazilPhone.includes(searchTerm) ||
+        (brAddr?.cidade ?? "").toLowerCase().includes(searchTerm.toLowerCase());
 
       if (!matchesSearch) return false;
 
       // Estado
+      const usaEstado = (cliente.usaAddress as { estado?: string })?.estado ?? "";
       if (
         filters.estado &&
-        !cliente.enderecoUSA.estado
-          .toLowerCase()
-          .includes(filters.estado.toLowerCase())
+        !usaEstado.toLowerCase().includes(filters.estado.toLowerCase())
       ) {
         return false;
       }
@@ -636,10 +668,10 @@ export default function ClientesView() {
     }).length;
 
     const estadosUnicos = new Set(
-      filteredClientes.map((c) => c.enderecoUSA.estado),
+      filteredClientes.map((c) => (c.usaAddress as { estado?: string })?.estado ?? ""),
     ).size;
     const cidadesBrasilUnicas = new Set(
-      filteredClientes.map((c) => c.destinoBrasil.cidade),
+      filteredClientes.map((c) => (c.brazilAddress as { cidade?: string })?.cidade ?? ""),
     ).size;
 
     return { total, novosUltimaSemana, estadosUnicos, cidadesBrasilUnicas };
@@ -690,11 +722,14 @@ export default function ClientesView() {
 
   /** Rótulos amigáveis para os campos do histórico. */
   const fieldLabel: Record<string, string> = {
-    name: "Nome",
-    cpf: "CPF",
+    usaName: "Nome (USA)",
+    usaCpf: "CPF (USA)",
     usaPhone: "Telefone EUA",
     usaAddress: "Endereço EUA",
-    brazilDestination: "Destino Brasil",
+    brazilName: "Nome Recebedor (Brasil)",
+    brazilCpf: "CPF Recebedor (Brasil)",
+    brazilPhone: "Telefone Brasil",
+    brazilAddress: "Endereço Brasil",
     attendant: "Atendente",
     status: "Status",
   };
@@ -764,43 +799,42 @@ export default function ClientesView() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="nome">Nome Completo *</Label>
+                        <Label htmlFor="usaName">Nome Completo (USA) *</Label>
                         <Input
-                          id="nome"
-                          value={formData.nome}
+                          id="usaName"
+                          value={formData.usaName}
                           onChange={(e) =>
-                            setFormData({ ...formData, nome: e.target.value })
+                            setFormData({ ...formData, usaName: e.target.value })
                           }
                           required
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="cpf">CPF *</Label>
+                        <Label htmlFor="usaCpf">CPF (USA)</Label>
                         <Input
-                          id="cpf"
-                          value={formData.cpf}
+                          id="usaCpf"
+                          value={formData.usaCpf}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              cpf: formatCPF(e.target.value),
+                              usaCpf: formatCPF(e.target.value),
                             })
                           }
                           placeholder="123.456.789-00"
                           maxLength={14}
-                          required
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="telefoneUSA">Telefone USA *</Label>
+                        <Label htmlFor="usaPhone">Telefone USA *</Label>
                         <Input
-                          id="telefoneUSA"
-                          value={formData.telefoneUSA}
+                          id="usaPhone"
+                          value={formData.usaPhone}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              telefoneUSA: formatNumberTelephoneEUA(
+                              usaPhone: formatNumberTelephoneEUA(
                                 e.target.value,
                               ),
                             })
@@ -828,26 +862,29 @@ export default function ClientesView() {
 
                     <div className="grid grid-cols-3 gap-4">
                       <div className="col-span-2 space-y-2">
-                        <Label htmlFor="ruaUSA">Rua *</Label>
+                        <Label htmlFor="ruaUSA">Rua (USA) *</Label>
                         <Input
                           id="ruaUSA"
-                          value={formData.ruaUSA}
+                          value={formData.usaAddress.rua}
                           onChange={(e) =>
-                            setFormData({ ...formData, ruaUSA: e.target.value })
+                            setFormData({
+                              ...formData,
+                              usaAddress: { ...formData.usaAddress, rua: e.target.value },
+                            })
                           }
                           required
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="numeroUSA">Número *</Label>
+                        <Label htmlFor="numeroUSA">Número (USA) *</Label>
                         <Input
                           id="numeroUSA"
-                          value={formData.numeroUSA}
+                          value={formData.usaAddress.numero}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              numeroUSA: e.target.value,
+                              usaAddress: { ...formData.usaAddress, numero: e.target.value },
                             })
                           }
                           required
@@ -857,14 +894,14 @@ export default function ClientesView() {
 
                     <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="cidadeUSA">Cidade *</Label>
+                        <Label htmlFor="cidadeUSA">Cidade (USA) *</Label>
                         <Input
                           id="cidadeUSA"
-                          value={formData.cidadeUSA}
+                          value={formData.usaAddress.cidade}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              cidadeUSA: e.target.value,
+                              usaAddress: { ...formData.usaAddress, cidade: e.target.value },
                             })
                           }
                           required
@@ -872,13 +909,13 @@ export default function ClientesView() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="estadoUSA">Estado *</Label>
+                        <Label htmlFor="estadoUSA">Estado (USA) *</Label>
                         <Select
-                          value={formData.estadoUSA || undefined}
+                          value={formData.usaAddress.estado || undefined}
                           onValueChange={(value) =>
                             setFormData({
                               ...formData,
-                              estadoUSA: value,
+                              usaAddress: { ...formData.usaAddress, estado: value },
                             })
                           }
                           required
@@ -900,11 +937,11 @@ export default function ClientesView() {
                         <Label htmlFor="zipCode">ZIP Code *</Label>
                         <Input
                           id="zipCode"
-                          value={formData.zipCode}
+                          value={formData.usaAddress.zipCode}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              zipCode: e.target.value,
+                              usaAddress: { ...formData.usaAddress, zipCode: e.target.value },
                             })
                           }
                           placeholder="33101"
@@ -914,14 +951,14 @@ export default function ClientesView() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="complementoUSA">Complemento</Label>
+                      <Label htmlFor="complementoUSA">Complemento (USA)</Label>
                       <Input
                         id="complementoUSA"
-                        value={formData.complementoUSA}
+                        value={formData.usaAddress.complemento}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            complementoUSA: e.target.value,
+                            usaAddress: { ...formData.usaAddress, complemento: e.target.value },
                           })
                         }
                       />
@@ -936,14 +973,14 @@ export default function ClientesView() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="nomeRecebedor">Nome Recebedor *</Label>
+                        <Label htmlFor="brazilName">Nome Recebedor (Brasil) *</Label>
                         <Input
-                          id="nomeRecebedor"
-                          value={formData.nomeRecebedor}
+                          id="brazilName"
+                          value={formData.brazilName}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              nomeRecebedor: e.target.value,
+                              brazilName: e.target.value,
                             })
                           }
                           required
@@ -951,51 +988,64 @@ export default function ClientesView() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="cpfRecebedor">CPF Recebedor *</Label>
+                        <Label htmlFor="brazilCpf">CPF Recebedor (Brasil)</Label>
                         <Input
-                          id="cpfRecebedor"
-                          value={formData.cpfRecebedor}
+                          id="brazilCpf"
+                          value={formData.brazilCpf}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              cpfRecebedor: formatCPF(e.target.value),
+                              brazilCpf: formatCPF(e.target.value),
                             })
                           }
                           placeholder="987.654.321-00"
                           maxLength={14}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="col-span-2 space-y-2">
+                        <Label htmlFor="ruaBrasil">Rua (Brasil) *</Label>
+                        <Input
+                          id="ruaBrasil"
+                          value={formData.brazilAddress.rua}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              brazilAddress: { ...formData.brazilAddress, rua: e.target.value },
+                            })
+                          }
+                          placeholder="Rua das Flores"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="numeroBrasil">Número (Brasil) *</Label>
+                        <Input
+                          id="numeroBrasil"
+                          value={formData.brazilAddress.numero}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              brazilAddress: { ...formData.brazilAddress, numero: e.target.value },
+                            })
+                          }
                           required
                         />
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="enderecoBrasil">
-                        Endereço Completo *
-                      </Label>
-                      <Input
-                        id="enderecoBrasil"
-                        value={formData.enderecoBrasil}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            enderecoBrasil: e.target.value,
-                          })
-                        }
-                        placeholder="Rua das Flores, 789, Apt 101"
-                        required
-                      />
-                    </div>
-
                     <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="cidadeBrasil">Cidade *</Label>
+                        <Label htmlFor="cidadeBrasil">Cidade (Brasil) *</Label>
                         <Input
                           id="cidadeBrasil"
-                          value={formData.cidadeBrasil}
+                          value={formData.brazilAddress.cidade}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              cidadeBrasil: e.target.value,
+                              brazilAddress: { ...formData.brazilAddress, cidade: e.target.value },
                             })
                           }
                           required
@@ -1003,13 +1053,13 @@ export default function ClientesView() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="estadoBrasil">Estado *</Label>
+                        <Label htmlFor="estadoBrasil">Estado (Brasil) *</Label>
                         <Select
-                          value={formData.estadoBrasil || undefined}
+                          value={formData.brazilAddress.estado || undefined}
                           onValueChange={(value) =>
                             setFormData({
                               ...formData,
-                              estadoBrasil: value,
+                              brazilAddress: { ...formData.brazilAddress, estado: value },
                             })
                           }
                           required
@@ -1031,12 +1081,15 @@ export default function ClientesView() {
                         <Label htmlFor="cep">CEP Brasil *</Label>
                         <Input
                           id="cep"
-                          value={formData.cep}
+                          value={formData.brazilAddress.cep}
                           onChange={(e) => {
                             const formatted = formatCepBrasil(e.target.value);
                             setFormData((prev) => ({
                               ...prev,
-                              cep: formatted,
+                              brazilAddress: {
+                                ...prev.brazilAddress,
+                                cep: formatted,
+                              },
                             }));
                             if (formatted.replace(/\D/g, "").length === 8) {
                               handleCepBrasilChange(formatted);
@@ -1056,20 +1109,34 @@ export default function ClientesView() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="telefoneBrasil">Telefone Brasil *</Label>
+                      <Label htmlFor="brazilPhone">Telefone Brasil *</Label>
                       <Input
-                        id="telefoneBrasil"
-                        value={formData.telefoneBrasil}
+                        id="brazilPhone"
+                        value={formData.brazilPhone}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            telefoneBrasil: formatNumberTelephoneBrasil(
+                            brazilPhone: formatNumberTelephoneBrasil(
                               e.target.value,
                             ),
                           })
                         }
                         placeholder="+55 11 98765-4321"
                         required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="complementoBrasil">Complemento (Brasil)</Label>
+                      <Input
+                        id="complementoBrasil"
+                        value={formData.brazilAddress.complemento}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            brazilAddress: { ...formData.brazilAddress, complemento: e.target.value },
+                          })
+                        }
                       />
                     </div>
 
@@ -1301,7 +1368,7 @@ export default function ClientesView() {
                         </div>
                         <div className="flex-1">
                           <CardTitle className="text-lg mb-1">
-                            {cliente.nome}
+                            {cliente.usaNome}
                           </CardTitle>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-xs">
@@ -1325,15 +1392,15 @@ export default function ClientesView() {
                   <CardContent className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Phone className="w-4 h-4 flex-shrink-0" />
-                      <span>{cliente.telefoneUSA}</span>
+                      <span>{cliente.usaPhone}</span>
                     </div>
                     <div className="flex items-start gap-2 text-sm text-muted-foreground">
                       <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
                       <span className="line-clamp-2">
-                        {cliente.enderecoUSA.cidade},{" "}
-                        {cliente.enderecoUSA.estado} →{" "}
-                        {cliente.destinoBrasil.cidade},{" "}
-                        {cliente.destinoBrasil.estado}
+                        {(cliente.usaAddress as { cidade?: string; estado?: string }).cidade},{" "}
+                        {(cliente.usaAddress as { estado?: string }).estado} →{" "}
+                        {(cliente.brazilAddress as { cidade?: string; estado?: string }).cidade},{" "}
+                        {(cliente.brazilAddress as { estado?: string }).estado}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1364,7 +1431,7 @@ export default function ClientesView() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDelete(cliente.id, cliente.nome);
+                          handleDelete(cliente.id, cliente.usaNome);
                         }}
                         className="text-red-600 hover:text-red-700"
                       >
@@ -1419,7 +1486,7 @@ export default function ClientesView() {
                             <div className="flex-1 space-y-2">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <h3 className="font-semibold text-lg">
-                                  {cliente.nome}
+                                  {cliente.usaNome}
                                 </h3>
                                 <Badge variant="outline">
                                   {cliente.atendente}
@@ -1444,11 +1511,11 @@ export default function ClientesView() {
                                   </p>
                                   <p className="flex items-center gap-1">
                                     <FileText className="w-3 h-3" />
-                                    {cliente.cpf}
+                                    {cliente.usaCpf}
                                   </p>
                                   <p className="flex items-center gap-1">
                                     <Phone className="w-3 h-3" />
-                                    {cliente.telefoneUSA}
+                                    {cliente.usaPhone}
                                   </p>
                                 </div>
                                 <div>
@@ -1458,9 +1525,9 @@ export default function ClientesView() {
                                   <p className="flex items-start gap-1">
                                     <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
                                     <span>
-                                      {cliente.enderecoUSA.cidade},{" "}
-                                      {cliente.enderecoUSA.estado}{" "}
-                                      {cliente.enderecoUSA.zipCode}
+                                      {(cliente.usaAddress as { cidade?: string; estado?: string; zipCode?: string }).cidade},{" "}
+                                      {(cliente.usaAddress as { estado?: string }).estado}{" "}
+                                      {(cliente.usaAddress as { zipCode?: string }).zipCode}
                                     </span>
                                   </p>
                                 </div>
@@ -1471,12 +1538,12 @@ export default function ClientesView() {
                                   <p className="flex items-start gap-1">
                                     <Flag className="w-3 h-3 mt-0.5 flex-shrink-0" />
                                     <span>
-                                      {cliente.destinoBrasil.cidade},{" "}
-                                      {cliente.destinoBrasil.estado}
+                                      {(cliente.brazilAddress as { cidade?: string; estado?: string }).cidade},{" "}
+                                      {(cliente.brazilAddress as { estado?: string }).estado}
                                     </span>
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {cliente.destinoBrasil.nomeRecebedor}
+                                    {cliente.brazilNome}
                                   </p>
                                 </div>
                               </div>
@@ -1499,7 +1566,7 @@ export default function ClientesView() {
                               size="icon"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDelete(cliente.id, cliente.nome);
+                                handleDelete(cliente.id, cliente.usaNome);
                               }}
                               className="text-red-600 hover:text-red-700"
                             >
@@ -1543,7 +1610,7 @@ export default function ClientesView() {
                   </div>
                   <div className="flex-1">
                     <h2 className="text-2xl font-bold text-foreground mb-2">
-                      {selectedCliente.nome}
+                      {selectedCliente.usaNome}
                     </h2>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge className="bg-blue-100 text-blue-700">
@@ -1587,7 +1654,9 @@ export default function ClientesView() {
                   variant="outline"
                   className="w-full"
                   onClick={() =>
-                    handleCallTelphone(selectedCliente.destinoBrasil.telefones)
+                    handleCallTelphone(
+                      selectedCliente.brazilPhone ? [selectedCliente.brazilPhone] : []
+                    )
                   }
                 >
                   <Phone className="w-4 h-4 mr-2" />
@@ -1598,7 +1667,7 @@ export default function ClientesView() {
                   className="w-full"
                   onClick={() =>
                     handleWhatsAppWindow(
-                      selectedCliente.destinoBrasil.telefones,
+                      selectedCliente.brazilPhone ? [selectedCliente.brazilPhone] : [],
                     )
                   }
                 >
@@ -1629,15 +1698,15 @@ export default function ClientesView() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">CPF</p>
-                    <p className="font-semibold">{selectedCliente.cpf}</p>
+                    <p className="text-sm text-muted-foreground mb-1">CPF (USA)</p>
+                    <p className="font-semibold">{selectedCliente.usaCpf}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">
                       Telefone USA
                     </p>
                     <p className="font-semibold">
-                      {selectedCliente.telefoneUSA}
+                      {selectedCliente.usaPhone}
                     </p>
                   </div>
                   <div>
@@ -1645,7 +1714,7 @@ export default function ClientesView() {
                       Telefone Brasil
                     </p>
                     <p className="font-semibold">
-                      {selectedCliente.destinoBrasil.telefones[0]}
+                      {selectedCliente.brazilPhone}
                     </p>
                   </div>
                 </CardContent>
@@ -1661,15 +1730,15 @@ export default function ClientesView() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <p className="font-semibold">
-                    {selectedCliente.enderecoUSA.rua},{" "}
-                    {selectedCliente.enderecoUSA.numero}
-                    {selectedCliente.enderecoUSA.complemento &&
-                      `, ${selectedCliente.enderecoUSA.complemento}`}
+                    {(selectedCliente.usaAddress as { rua?: string; numero?: string; complemento?: string }).rua},{" "}
+                    {(selectedCliente.usaAddress as { numero?: string }).numero}
+                    {(selectedCliente.usaAddress as { complemento?: string }).complemento &&
+                      `, ${(selectedCliente.usaAddress as { complemento?: string }).complemento}`}
                   </p>
                   <p className="text-muted-foreground">
-                    {selectedCliente.enderecoUSA.cidade},{" "}
-                    {selectedCliente.enderecoUSA.estado}{" "}
-                    {selectedCliente.enderecoUSA.zipCode}
+                    {(selectedCliente.usaAddress as { cidade?: string }).cidade},{" "}
+                    {(selectedCliente.usaAddress as { estado?: string }).estado}{" "}
+                    {(selectedCliente.usaAddress as { zipCode?: string }).zipCode}
                   </p>
                 </CardContent>
               </Card>
@@ -1688,7 +1757,7 @@ export default function ClientesView() {
                       Nome do Recebedor
                     </p>
                     <p className="font-semibold">
-                      {selectedCliente.destinoBrasil.nomeRecebedor}
+                      {selectedCliente.brazilNome}
                     </p>
                   </div>
                   <div>
@@ -1696,7 +1765,7 @@ export default function ClientesView() {
                       CPF do Recebedor
                     </p>
                     <p className="font-semibold">
-                      {selectedCliente.destinoBrasil.cpfRecebedor}
+                      {selectedCliente.brazilCpf}
                     </p>
                   </div>
                   <div>
@@ -1704,12 +1773,15 @@ export default function ClientesView() {
                       Endereço
                     </p>
                     <p className="font-semibold">
-                      {selectedCliente.destinoBrasil.endereco}
+                      {(selectedCliente.brazilAddress as { rua?: string }).rua},{" "}
+                      {(selectedCliente.brazilAddress as { numero?: string }).numero}
+                      {(selectedCliente.brazilAddress as { complemento?: string }).complemento &&
+                        `, ${(selectedCliente.brazilAddress as { complemento?: string }).complemento}`}
                     </p>
                     <p className="text-muted-foreground">
-                      {selectedCliente.destinoBrasil.cidade},{" "}
-                      {selectedCliente.destinoBrasil.estado} - CEP:{" "}
-                      {selectedCliente.destinoBrasil.cep}
+                      {(selectedCliente.brazilAddress as { cidade?: string }).cidade},{" "}
+                      {(selectedCliente.brazilAddress as { estado?: string }).estado} - CEP:{" "}
+                      {(selectedCliente.brazilAddress as { cep?: string }).cep}
                     </p>
                   </div>
                 </CardContent>
@@ -1883,7 +1955,7 @@ export default function ClientesView() {
                     variant="destructive"
                     className="w-full"
                     onClick={() =>
-                      handleDelete(selectedCliente.id, selectedCliente.nome)
+                      handleDelete(selectedCliente.id, selectedCliente.usaNome)
                     }
                   >
                     <Trash2 className="w-4 h-4 mr-2" />

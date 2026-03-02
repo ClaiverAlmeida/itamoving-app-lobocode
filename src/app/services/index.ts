@@ -8,3 +8,5 @@ export { deliveryPricesService } from "./prices/delivery.service";
 export { productsService } from "./prices/products.service";
 // Serviço de Stock
 export { stockService } from "./stock.service";
+// Serviço de User
+export { userService } from "./user.service";

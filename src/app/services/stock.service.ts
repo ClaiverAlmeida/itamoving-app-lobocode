@@ -5,7 +5,7 @@ export interface Estoque {
   smallBoxes?: number;
   mediumBoxes?: number;
   largeBoxes?: number;
-  personalizedBoxes?: number;
+  personalizedItems?: number;
   adhesiveTape?: number;
   stockMovements?: EstoqueMovimentacao[];
 }
@@ -14,7 +14,7 @@ export interface EstoqueAtualizado {
   smallBoxes?: number;
   mediumBoxes?: number;
   largeBoxes?: number;
-  personalizedBoxes?: number;
+  personalizedItems?: number;
   adhesiveTape?: number;
 }
 
@@ -25,12 +25,22 @@ export interface EstoqueMovimentacao {
     | "SMALL_BOX"
     | "MEDIUM_BOX"
     | "LARGE_BOX"
-    | "PERSONALIZED_BOX"
+    | "PERSONALIZED_ITEM"
     | "TAPE_ADHESIVE";
   quantity: number;
-  responsible: string;
   observations?: string;
   createdAt: string;
+  productId: string;
+  product: {
+    id: string;
+    name: string;
+    type: string;
+  };
+  user: {
+    id: string;
+    name: string;
+    role: "DRIVER";
+  };
 }
 
 export interface CriarMovimentacao {
@@ -39,11 +49,12 @@ export interface CriarMovimentacao {
     | "SMALL_BOX"
     | "MEDIUM_BOX"
     | "LARGE_BOX"
-    | "PERSONALIZED_BOX"
+    | "PERSONALIZED_ITEM"
     | "TAPE_ADHESIVE";
   quantity: number;
-  responsible: string;
+  userId: string;
   observations?: string;
+  productId: string;
 }
 
 export interface EstoqueBackend {
@@ -53,7 +64,7 @@ export interface EstoqueBackend {
   mediumBoxes: number;
   largeBoxes: number;
   adhesiveTape: number;
-  personalizedBoxes: number;
+  personalizedItems: number;
   createdAt: string;
   stockMovements: EstoqueMovimentacao[];
 }
@@ -65,7 +76,7 @@ function mapBackendToFrontend(stock: EstoqueBackend): Estoque {
     mediumBoxes: stock.mediumBoxes,
     largeBoxes: stock.largeBoxes,
     adhesiveTape: stock.adhesiveTape,
-    personalizedBoxes: stock.personalizedBoxes,
+    personalizedItems: stock.personalizedItems,
     stockMovements: stock.stockMovements,
   };
 }

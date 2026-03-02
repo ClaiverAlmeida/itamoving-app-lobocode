@@ -109,12 +109,12 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
   const lucro = receitaTotal - despesaTotal;
   const margemLucro = receitaTotal > 0 ? ((lucro / receitaTotal) * 100).toFixed(1) : 0;
 
-  const estoqueTotal = estoque.smallBoxes + estoque.mediumBoxes + estoque.largeBoxes + estoque.adhesiveTape + estoque.personalizedBoxes;
+  const estoqueTotal = estoque.smallBoxes + estoque.mediumBoxes + estoque.largeBoxes + estoque.adhesiveTape + estoque.personalizedItems;
   const estoqueBaixo = [
     { tipo: 'Caixas Pequenas', qtd: estoque.smallBoxes, minimo: 50 },
     { tipo: 'Caixas Médias', qtd: estoque.mediumBoxes, minimo: 30 },
     { tipo: 'Caixas Grandes', qtd: estoque.largeBoxes, minimo: 20 },
-    { tipo: 'Caixas Personalizadas', qtd: estoque.personalizedBoxes, minimo: 10 },
+    { tipo: 'Itens Personalizados', qtd: estoque.personalizedItems, minimo: 10 },
     { tipo: 'Fitas', qtd: estoque.adhesiveTape, minimo: 40 },
   ].filter(item => item.qtd < item.minimo);
 
@@ -270,7 +270,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
     { tipo: 'Pequenas', quantidade: estoque.smallBoxes, fill: '#5DADE2' },
     { tipo: 'Médias', quantidade: estoque.mediumBoxes, fill: '#F5A623' },
     { tipo: 'Grandes', quantidade: estoque.largeBoxes, fill: '#1E3A5F' },
-    { tipo: 'Personalizadas', quantidade: estoque.personalizedBoxes, fill: '#94A3B8' }, 
+    { tipo: 'Itens Personalizados', quantidade: estoque.personalizedItems, fill: '#94A3B8' }, 
     { tipo: 'Fitas', quantidade: estoque.adhesiveTape, fill: '#94A3B8' },
   ];
 
@@ -526,7 +526,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
               <p className={`text-xs mt-1 ${
                 estoqueBaixo.length > 0 ? 'text-orange-700' : 'text-slate-700'
               }`}>
-                P: {estoque.smallBoxes} | M: {estoque.mediumBoxes} | G: {estoque.largeBoxes} | Personalizadas: {estoque.personalizedBoxes} | Fitas: {estoque.adhesiveTape}
+                P: {estoque.smallBoxes} | M: {estoque.mediumBoxes} | G: {estoque.largeBoxes} | Itens Personalizados: {estoque.personalizedItems} | Fitas: {estoque.adhesiveTape}
               </p>
             </CardContent>
           </Card>

@@ -7,11 +7,28 @@ import { Cliente } from "../types";
  */
 export interface CreateClientsDTO {
   companyId?: string;
-  name: string;
-  cpf: string;
+  usaName: string;
+  usaCpf: string;
   usaPhone: string;
-  usaAddress: Record<string, unknown>;
-  brazilDestination: Record<string, unknown>;
+  usaAddress: {
+    rua: string;
+    numero: string;
+    cidade: string;
+    estado: string;
+    zipCode: string;
+    complemento: string;
+  };
+  brazilName: string;
+  brazilCpf: string;
+  brazilPhone: string;
+  brazilAddress: {
+    rua: string;
+    numero: string;
+    cidade: string;
+    estado: string;
+    cep: string;
+    complemento: string;
+  };
   attendant: string;
   status?: "ACTIVE" | "INACTIVE";
 }
@@ -51,11 +68,17 @@ export interface HistoryPagination {
 export interface ClientBackend {
   id: string;
   companyId: string;
-  name: string;
-  cpf: string;
+  
+  usaName: string;
+  usaCpf: string;
   usaPhone: string;
   usaAddress: Record<string, unknown>;
-  brazilDestination: Record<string, unknown>;
+  
+  brazilName: string;
+  brazilCpf: string;
+  brazilPhone: string;
+  brazilAddress: Record<string, unknown>;
+  
   attendant: string;
   status: "ACTIVE" | "INACTIVE";
   createdAt: string;
@@ -85,38 +108,29 @@ function mapBackendToFrontend(client: ClientBackend): Cliente {
       undefined,
   };
 
-  // Mapeia brazilDestination (JSON) para destinoBrasil estruturado
-  const brazilDest = client.brazilDestination as any;
-  const destinoBrasil = {
-    nomeRecebedor:
-      brazilDest?.nomeRecebedor ||
-      brazilDest?.nome ||
-      brazilDest?.receiverName ||
-      "",
-    cpfRecebedor:
-      brazilDest?.cpfRecebedor ||
-      brazilDest?.cpf ||
-      brazilDest?.receiverCpf ||
-      "",
-    endereco:
-      brazilDest?.endereco || brazilDest?.address || brazilDest?.rua || "",
-    cidade: brazilDest?.cidade || brazilDest?.city || "",
-    estado: brazilDest?.estado || brazilDest?.state || "",
-    cep: brazilDest?.cep || brazilDest?.postalCode || "",
-    telefones: Array.isArray(brazilDest?.telefones)
-      ? brazilDest.telefones
-      : brazilDest?.telefone
-        ? [brazilDest.telefone]
-        : [],
+  // Mapeia brazilDestination (JSON) para enderecoBrasil estruturado
+  const brazilAddress = client.brazilAddress as any;
+  const enderecoBrasil = {
+    rua: brazilAddress?.rua || brazilAddress?.street || brazilAddress?.address || "",
+    numero: brazilAddress?.numero || brazilAddress?.number || brazilAddress?.num || "",
+    cidade: brazilAddress?.cidade || brazilAddress?.city || "",
+    estado: brazilAddress?.estado || brazilAddress?.state || "",
+    cep: brazilAddress?.cep || "",
+    complemento: brazilAddress?.complemento || brazilAddress?.complement || "",
   };
 
   return {
     id: client.id,
-    nome: client.name,
-    cpf: client.cpf,
-    telefoneUSA: client.usaPhone,
-    enderecoUSA,
-    destinoBrasil,
+    usaNome: client.usaName,
+    usaCpf: client.usaCpf,
+    usaPhone: client.usaPhone,
+    usaAddress: enderecoUSA,
+    
+    brazilNome: client.brazilName,
+    brazilCpf: client.brazilCpf,
+    brazilPhone: client.brazilPhone,
+    brazilAddress: enderecoBrasil,
+    
     atendente: client.attendant,
     dataCadastro: client.createdAt,
     status: client.status,

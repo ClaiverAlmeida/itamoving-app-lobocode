@@ -3,11 +3,10 @@ import { PrecoProduto } from "../../types";
 
 export interface CreateProductPriceDTO {
   id?: string;
-  type: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_BOX" | "TAPE_ADHESIVE";
+  type: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_ITEM" | "TAPE_ADHESIVE";
   name: string;
   dimensions?: string | null;
   maxWeight?: number | null;
-  unit: string;
   costPrice: number;
   salePrice: number;
   active: boolean;
@@ -17,11 +16,10 @@ export interface CreateProductPriceDTO {
 export interface ProductPriceBackend {
   id: string;
   companyId: string;
-  type: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_BOX" | "TAPE_ADHESIVE";
+  type: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_ITEM" | "TAPE_ADHESIVE";
   name: string;
   dimensions?: string;
   maxWeight?: number;
-  unit: string;
   costPrice: number;
   salePrice: number;
   active: boolean;
@@ -48,7 +46,6 @@ function mapBackendToFrontend(product: ProductPriceBackend): PrecoProduto {
     name: product.name,
     dimensions: product.dimensions,
     maxWeight: product.maxWeight,
-    unit: product.unit,
     costPrice: product.costPrice,
     salePrice: product.salePrice,
     active: product.active,

@@ -172,9 +172,9 @@ class ApiService {
   private handleError(error: unknown): ApiResponse {
     let message = 'Erro desconhecido';
     if (error && typeof error === 'object' && 'response' in error) {
-      const res = (error as { response?: { data?: { message?: string; error?: string }; status?: number } }).response;
+      const res = (error as { response?: { data?: { message?: string | string[]; error?: string }; status?: number } }).response;
       const msg = res?.data?.message ?? res?.data?.error;
-      if (msg) message = typeof msg === 'string' ? msg : String(msg);
+      if (msg) message = Array.isArray(msg) ? msg.join(', ') : typeof msg === 'string' ? msg : String(msg);
       else if (res?.status === 401) message = 'Não autorizado';
       else if (res?.status === 403) message = 'Acesso negado';
       else if (res?.status === 404) message = 'Recurso não encontrado';
