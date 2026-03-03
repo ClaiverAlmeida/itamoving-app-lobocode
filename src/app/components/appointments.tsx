@@ -1,20 +1,39 @@
-import { useState, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Textarea } from './ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Calendar } from './ui/calendar';
-import { Badge } from './ui/badge';
-import { useData } from '../context/DataContext';
-import { Agendamento } from '../types';
-import { 
-  Plus, 
-  Calendar as CalendarIcon, 
-  MapPin, 
-  Clock, 
+import { useState, useMemo } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Textarea } from "./ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
+import { Calendar } from "./ui/calendar";
+import { Badge } from "./ui/badge";
+import { useData } from "../context/DataContext";
+import { Agendamento, Cliente } from "../types";
+import {
+  Plus,
+  Calendar as CalendarIcon,
+  MapPin,
+  Clock,
   User,
   Search,
   Filter,
@@ -30,150 +49,230 @@ import {
   Navigation,
   TrendingUp,
   BarChart3,
-  X
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { format, isYesterday, isToday, isTomorrow, isPast, isSameDay, addDays, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
-import { motion, AnimatePresence } from 'motion/react';
+  X,
+  MessageCircle,
+  Box,
+} from "lucide-react";
+import { toast } from "sonner";
+import {
+  format,
+  isYesterday,
+  isToday,
+  isTomorrow,
+  isPast,
+  isSameDay,
+  addDays,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+} from "date-fns";
+import { ptBR } from "date-fns/locale/pt-BR";
+import { motion, AnimatePresence } from "motion/react";
+import { AuthProvider, useAuth } from "../context/AuthContext";
+import { AtendenteSelect } from "./forms";
+import { clientsService } from "../services/clients.service";
 
-type ViewMode = 'calendar' | 'list' | 'timeline';
+type ViewMode = "calendar" | "list" | "timeline";
 
 export default function AgendamentosView() {
-  const { agendamentos, addAgendamento, updateAgendamento, deleteAgendamento, clientes } = useData();
+  const { agendamentos, addAgendamento, updateAgendamento, deleteAgendamento } =
+    useData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [viewMode, setViewMode] = useState<ViewMode>('calendar');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>("calendar");
+  const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null);
+  const [selectedAgendamento, setSelectedAgendamento] =
+    useState<Agendamento | null>(null);
+  const { user } = useAuth();
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+
   const [filters, setFilters] = useState({
     status: [] as string[],
-    atendente: '',
-    periodo: 'todos' as 'todos' | 'hoje' | 'semana' | 'mes',
+    atendente: "",
+    periodo: "todos" as "todos" | "hoje" | "semana" | "mes",
   });
-  
+
   const [formData, setFormData] = useState({
-    clienteId: '',
-    dataColeta: '',
-    horaColeta: '',
-    observacoes: '',
-    atendente: '',
+    clienteId: "",
+    dataColeta: "",
+    horaColeta: "",
+    qtdCaixas: 0,
+    observacoes: "",
+    atendente: "",
+    status: "",
   });
 
   const resetForm = () => {
     setFormData({
-      clienteId: '',
-      dataColeta: '',
-      horaColeta: '',
-      observacoes: '',
-      atendente: '',
+      clienteId: "",
+      dataColeta: "",
+      horaColeta: "",
+      qtdCaixas: 0,
+      observacoes: "",
+      atendente: "",
+      status: "",
     });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const cliente = clientes.find(c => c.id === formData.clienteId);
+    const cliente = clientes.find((c) => c.id === formData.clienteId);
     if (!cliente) {
-      toast.error('Cliente não encontrado');
+      toast.error("Cliente não encontrado");
+      return;
+    }
+
+    if (!formData.status?.trim()) {
+      toast.error("Selecione o status do agendamento.");
       return;
     }
 
     const novoAgendamento: Agendamento = {
       id: Date.now().toString(),
       clienteId: formData.clienteId,
-      clienteNome: cliente.nome,
+      clienteNome: cliente.usaNome,
       dataColeta: formData.dataColeta,
       horaColeta: formData.horaColeta,
-      endereco: `${cliente.enderecoUSA.rua}, ${cliente.enderecoUSA.numero}, ${cliente.enderecoUSA.cidade}, ${cliente.enderecoUSA.estado} ${cliente.enderecoUSA.zipCode}`,
-      status: 'pendente',
+      qtdCaixas: formData.qtdCaixas,
+      endereco: `${cliente.usaAddress.rua}, ${cliente.usaAddress.numero}, ${cliente.usaAddress.cidade}, ${cliente.usaAddress.estado} ${cliente.usaAddress.zipCode}`,
+      status: formData.status,
       observacoes: formData.observacoes,
       atendente: formData.atendente,
     };
 
     addAgendamento(novoAgendamento);
-    toast.success('Agendamento criado com sucesso!');
+    toast.success("Agendamento criado com sucesso!");
     resetForm();
     setIsDialogOpen(false);
   };
 
-  const handleStatusChange = (id: string, status: Agendamento['status']) => {
+  const handleStatusChange = (id: string, status: Agendamento["status"]) => {
     updateAgendamento(id, { status });
-    toast.success('Status atualizado!');
+    toast.success("Status atualizado!");
   };
 
   const handleDelete = (id: string, clienteNome: string) => {
-    if (window.confirm(`Tem certeza que deseja excluir o agendamento de ${clienteNome}?`)) {
+    if (
+      window.confirm(
+        `Tem certeza que deseja excluir o agendamento de ${clienteNome}?`,
+      )
+    ) {
       deleteAgendamento(id);
-      toast.success('Agendamento excluído!');
+      toast.success("Agendamento excluído!");
       setSelectedAgendamento(null);
     }
   };
 
   const statusConfig = {
-    pendente: { 
-      label: 'Pendente', 
-      color: 'bg-yellow-500', 
-      textColor: 'text-yellow-700',
-      bgLight: 'bg-yellow-50',
-      icon: AlertCircle 
+    PENDING: {
+      label: "Pendente",
+      color: "bg-yellow-500",
+      textColor: "text-yellow-700",
+      bgLight: "bg-yellow-50",
+      icon: AlertCircle,
     },
-    confirmado: { 
-      label: 'Confirmado', 
-      color: 'bg-green-500', 
-      textColor: 'text-green-700',
-      bgLight: 'bg-green-50',
-      icon: CheckCircle2 
+    CONFIRMED: {
+      label: "Confirmado",
+      color: "bg-green-500",
+      textColor: "text-green-700",
+      bgLight: "bg-green-50",
+      icon: CheckCircle2,
     },
-    coletado: { 
-      label: 'Coletado', 
-      color: 'bg-blue-500', 
-      textColor: 'text-blue-700',
-      bgLight: 'bg-blue-50',
-      icon: Package 
+    COLLECTED: {
+      label: "Coletado",
+      color: "bg-blue-500",
+      textColor: "text-blue-700",
+      bgLight: "bg-blue-50",
+      icon: Package,
     },
-    cancelado: { 
-      label: 'Cancelado', 
-      color: 'bg-red-500', 
-      textColor: 'text-red-700',
-      bgLight: 'bg-red-50',
-      icon: XCircle 
+    CANCELLED: {
+      label: "Cancelado",
+      color: "bg-red-500",
+      textColor: "text-red-700",
+      bgLight: "bg-red-50",
+      icon: XCircle,
     },
+  } as const;
+
+  type StatusKey = keyof typeof statusConfig;
+
+  const statusKeyMap: Record<string, StatusKey> = {
+    PENDING: "PENDING",
+    PENDENTE: "PENDING",
+    CONFIRMED: "CONFIRMED",
+    CONFIRMADO: "CONFIRMED",
+    COLLECTED: "COLLECTED",
+    COLETADO: "COLLECTED",
+    CANCELLED: "CANCELLED",
+    CANCELADO: "CANCELLED",
+  };
+
+  /** Retorna a chave normalizada do status (PENDING | CONFIRMED | COLLECTED | CANCELLED). */
+  const getStatusKey = (status: string): StatusKey =>
+    statusKeyMap[(status ?? "").toUpperCase()] ?? "PENDING";
+
+  /** Normaliza status (enum ou string em qualquer formato) para config (label, icon, cores). */
+  const getStatusConfig = (status: string) => statusConfig[getStatusKey(status)];
+
+  const dataPickerBlocked = () => {
+    const today = new Date().toISOString().split("T")[0];
+    return today;
+  };
+
+  const carregarClientes = async () => {
+    const result = await clientsService.getAll();
+    if (result.success && result.data?.data) {
+      setClientes(result.data.data);
+    } else if (result.error) {
+      toast.error(result.error);
+    }
   };
 
   const filteredAgendamentos = useMemo(() => {
-    return agendamentos.filter(agendamento => {
+    return agendamentos.filter((agendamento) => {
       // Search
-      const matchesSearch = 
-        agendamento.clienteNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch =
+        agendamento.clienteNome
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         agendamento.endereco.toLowerCase().includes(searchTerm.toLowerCase()) ||
         agendamento.atendente.toLowerCase().includes(searchTerm.toLowerCase());
 
       if (!matchesSearch) return false;
 
-      // Status
-      if (filters.status.length > 0 && !filters.status.includes(agendamento.status)) {
+      // Status (compara pela chave normalizada do enum)
+      if (
+        filters.status.length > 0 &&
+        !filters.status.includes(getStatusKey(agendamento.status))
+      ) {
         return false;
       }
 
       // Atendente
-      if (filters.atendente && !agendamento.atendente.toLowerCase().includes(filters.atendente.toLowerCase())) {
+      if (
+        filters.atendente &&
+        !agendamento.atendente
+          .toLowerCase()
+          .includes(filters.atendente.toLowerCase())
+      ) {
         return false;
       }
 
       // Período
-      if (filters.periodo !== 'todos') {
+      if (filters.periodo !== "todos") {
         const now = new Date();
-        const agendamentoDate = new Date(agendamento.dataColeta + 'T00:00:00');
-        
-        if (filters.periodo === 'hoje') {
+        const agendamentoDate = new Date(agendamento.dataColeta + "T00:00:00");
+
+        if (filters.periodo === "hoje") {
           if (!isToday(agendamentoDate)) return false;
-        } else if (filters.periodo === 'semana') {
+        } else if (filters.periodo === "semana") {
           const weekStart = startOfWeek(now, { locale: ptBR });
           const weekEnd = endOfWeek(now, { locale: ptBR });
-          if (agendamentoDate < weekStart || agendamentoDate > weekEnd) return false;
-        } else if (filters.periodo === 'mes') {
+          if (agendamentoDate < weekStart || agendamentoDate > weekEnd)
+            return false;
+        } else if (filters.periodo === "mes") {
           const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
           if (agendamentoDate < monthAgo) return false;
         }
@@ -184,36 +283,55 @@ export default function AgendamentosView() {
   }, [agendamentos, searchTerm, filters]);
 
   const agendamentosDosDia = useMemo(() => {
-    return filteredAgendamentos.filter(ag => 
-      isSameDay(new Date(ag.dataColeta + 'T00:00:00'), selectedDate)
+    return filteredAgendamentos.filter((ag) =>
+      isSameDay(new Date(ag.dataColeta + "T00:00:00"), selectedDate),
     );
   }, [filteredAgendamentos, selectedDate]);
 
   const statistics = useMemo(() => {
     const total = filteredAgendamentos.length;
-    const pendentes = filteredAgendamentos.filter(a => a.status === 'pendente').length;
-    const confirmados = filteredAgendamentos.filter(a => a.status === 'confirmado').length;
-    const coletados = filteredAgendamentos.filter(a => a.status === 'coletado').length;
-    const hoje = filteredAgendamentos.filter(a => isToday(new Date(a.dataColeta + 'T00:00:00'))).length;
-    const amanha = filteredAgendamentos.filter(a => isTomorrow(new Date(a.dataColeta + 'T00:00:00'))).length;
-    const atrasados = filteredAgendamentos.filter(a => 
-      isPast(new Date(a.dataColeta + 'T00:00:00')) && 
-      a.status === 'pendente' &&
-      !isToday(new Date(a.dataColeta + 'T00:00:00'))
+    const pendentes = filteredAgendamentos.filter(
+      (a) => a.status === "PENDING",
+    ).length;
+    const confirmados = filteredAgendamentos.filter(
+      (a) => a.status === "CONFIRMED",
+    ).length;
+    const coletados = filteredAgendamentos.filter(
+      (a) => a.status === "COLLECTED",
+    ).length;
+    const hoje = filteredAgendamentos.filter((a) =>
+      isToday(new Date(a.dataColeta + "T00:00:00")),
+    ).length;
+    const amanha = filteredAgendamentos.filter((a) =>
+      isTomorrow(new Date(a.dataColeta + "T00:00:00")),
+    ).length;
+    const atrasados = filteredAgendamentos.filter(
+      (a) =>
+        isPast(new Date(a.dataColeta + "T00:00:00")) &&
+        a.status === "PENDING" &&
+        !isToday(new Date(a.dataColeta + "T00:00:00")),
     ).length;
 
-    return { total, pendentes, confirmados, coletados, hoje, amanha, atrasados };
+    return {
+      total,
+      pendentes,
+      confirmados,
+      coletados,
+      hoje,
+      amanha,
+      atrasados,
+    };
   }, [filteredAgendamentos]);
 
   const getDateLabel = (date: Date) => {
-    if(isYesterday(date)) return 'Ontem';
-    if (isToday(date)) return 'Hoje';
-    if (isTomorrow(date)) return 'Amanhã';
+    if (isYesterday(date)) return "Ontem";
+    if (isToday(date)) return "Hoje";
+    if (isTomorrow(date)) return "Amanhã";
     return format(date, "EEEE, dd 'de' MMMM", { locale: ptBR });
   };
 
   const getDatesWithAgendamentos = () => {
-    return agendamentos.map(a => new Date(a.dataColeta + 'T00:00:00'));
+    return agendamentos.map((a) => new Date(a.dataColeta + "T00:00:00"));
   };
 
   const TimelineView = () => {
@@ -224,23 +342,26 @@ export default function AgendamentosView() {
     return (
       <div className="space-y-4">
         {daysOfWeek.map((day) => {
-          const dayAgendamentos = filteredAgendamentos.filter(ag =>
-            isSameDay(new Date(ag.dataColeta + 'T00:00:00'), day)
+          const dayAgendamentos = filteredAgendamentos.filter((ag) =>
+            isSameDay(new Date(ag.dataColeta + "T00:00:00"), day),
           );
 
           return (
-            <Card key={day.toString()} className={`${isToday(day) ? 'border-blue-500 border-2' : ''}`}>
+            <Card
+              key={day.toString()}
+              className={`${isToday(day) ? "border-blue-500 border-2" : ""}`}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-lg">{format(day, "EEEE, dd 'de' MMMM", { locale: ptBR })}</CardTitle>
+                    <CardTitle className="text-lg">
+                      {format(day, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                    </CardTitle>
                     <CardDescription>
                       {dayAgendamentos.length} agendamento(s)
                     </CardDescription>
                   </div>
-                  {isToday(day) && (
-                    <Badge className="bg-blue-500">Hoje</Badge>
-                  )}
+                  {isToday(day) && <Badge className="bg-blue-500">Hoje</Badge>}
                 </div>
               </CardHeader>
               <CardContent>
@@ -249,37 +370,53 @@ export default function AgendamentosView() {
                     {dayAgendamentos
                       .sort((a, b) => a.horaColeta.localeCompare(b.horaColeta))
                       .map((agendamento) => {
-                        const config = statusConfig[agendamento.status];
+                        const config = getStatusConfig(agendamento.status);
                         const StatusIcon = config.icon;
-                        
+
                         return (
                           <motion.div
                             key={agendamento.id}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             className={`p-4 rounded-lg border-l-4 ${config.bgLight} hover:shadow-md transition-all cursor-pointer`}
-                            style={{ borderLeftColor: config.color.replace('bg-', '#').replace('500', '600') }}
+                            style={{
+                              borderLeftColor: config.color
+                                .replace("bg-", "#")
+                                .replace("500", "600"),
+                            }}
                             onClick={() => setSelectedAgendamento(agendamento)}
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3 flex-1">
-                                <div className={`p-2 rounded-full ${config.color} bg-opacity-20`}>
-                                  <StatusIcon className={`w-4 h-4 ${config.textColor}`} />
+                                <div
+                                  className={`p-2 rounded-full ${config.color} bg-opacity-20`}
+                                >
+                                  <StatusIcon
+                                    className={`w-4 h-4 ${config.textColor}`}
+                                  />
                                 </div>
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-semibold">{agendamento.horaColeta}</span>
-                                    <span className="text-muted-foreground">•</span>
+                                    <span className="font-semibold">
+                                      {agendamento.horaColeta}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      •
+                                    </span>
                                     <span>{agendamento.clienteNome}</span>
                                   </div>
                                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <MapPin className="w-3 h-3" />
-                                    <span className="truncate">{agendamento.endereco}</span>
+                                    <span className="truncate">
+                                      {agendamento.endereco}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
                               <Badge className={config.bgLight}>
-                                <span className={config.textColor}>{config.label}</span>
+                                <span className={config.textColor}>
+                                  {config.label}
+                                </span>
                               </Badge>
                             </div>
                           </motion.div>
@@ -305,14 +442,16 @@ export default function AgendamentosView() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Agendamentos</h2>
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">
+              Agendamentos
+            </h2>
             <p className="text-muted-foreground mt-1 text-sm lg:text-base">
               Gerencie coletas de caixas e entregas
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button
-              variant={showFilters ? 'default' : 'outline'}
+              variant={showFilters ? "default" : "outline"}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
               className="flex-1 sm:flex-none"
@@ -324,10 +463,17 @@ export default function AgendamentosView() {
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Dialog open={isDialogOpen} onOpenChange={(open) => {
-              setIsDialogOpen(open);
-              if (!open) resetForm();
-            }}>
+            <Dialog
+              open={isDialogOpen}
+              onOpenChange={(open) => {
+                setIsDialogOpen(open);
+                carregarClientes();
+                if (!open) {
+                  resetForm();
+                  setClientes([]);
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />
@@ -347,18 +493,22 @@ export default function AgendamentosView() {
                     <Label htmlFor="clienteId">Cliente *</Label>
                     <Select
                       value={formData.clienteId}
-                      onValueChange={(value) => setFormData({ ...formData, clienteId: value })}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, clienteId: value })
+                      }
                       required
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o cliente" />
                       </SelectTrigger>
                       <SelectContent>
-                        {clientes.map(cliente => (
-                          <SelectItem key={cliente.id} value={cliente.id}>
-                            {cliente.nome} - {cliente.enderecoUSA.cidade}, {cliente.enderecoUSA.estado}
-                          </SelectItem>
-                        ))}
+                        {clientes.length > 0 &&
+                          clientes.map((cliente) => (
+                            <SelectItem key={cliente.id} value={cliente.id}>
+                              {cliente.usaNome} - {cliente.usaAddress.cidade},{" "}
+                              {cliente.usaAddress.estado}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -369,32 +519,83 @@ export default function AgendamentosView() {
                       <Input
                         id="dataColeta"
                         type="date"
+                        min={dataPickerBlocked()}
                         value={formData.dataColeta}
-                        onChange={(e) => setFormData({ ...formData, dataColeta: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            dataColeta: e.target.value,
+                          })
+                        }
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="horaColeta">Horário *</Label>
+                      <Label htmlFor="horaColeta">Horário Previsto</Label>
                       <Input
                         id="horaColeta"
                         type="time"
                         value={formData.horaColeta}
-                        onChange={(e) => setFormData({ ...formData, horaColeta: e.target.value })}
-                        required
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            horaColeta: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="atendente">Atendente *</Label>
+                    <Label htmlFor="qtdCaixas">Quantidade de caixas *</Label>
                     <Input
-                      id="atendente"
-                      value={formData.atendente}
-                      onChange={(e) => setFormData({ ...formData, atendente: e.target.value })}
-                      required
+                      id="qtdCaixas"
+                      type="number"
+                      min={1}
+                      value={formData.qtdCaixas}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          qtdCaixas: e.target.value,
+                        })
+                      }
                     />
+                  </div>
+
+                  <AtendenteSelect
+                    user={user ? { id: user.id, nome: user.nome } : null}
+                    value={formData.atendente}
+                    onValueChange={(id) =>
+                      setFormData({ ...formData, atendente: id })
+                    }
+                    label="Atendente *"
+                    required
+                  />
+
+                  {/* Definir Status */}
+                  <div className="space-y-2">
+                    <Label htmlFor="setStatus">Status *</Label>
+                    <Select
+                      required
+                      value={formData.status || undefined}
+                      onValueChange={(value) => {
+                        setFormData({
+                          ...formData,
+                          status: value as Agendamento["status"],
+                        });
+                      }}
+                    >
+                      <SelectTrigger id="setStatus" required aria-required>
+                        <SelectValue placeholder="Selecione o status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PENDING">Pendente</SelectItem>
+                        <SelectItem value="CONFIRMED">Confirmado</SelectItem>
+                        <SelectItem value="COLLECTED">Coletado</SelectItem>
+                        <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
@@ -402,22 +603,29 @@ export default function AgendamentosView() {
                     <Textarea
                       id="observacoes"
                       value={formData.observacoes}
-                      onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          observacoes: e.target.value,
+                        })
+                      }
                       placeholder="Informações adicionais..."
                       rows={3}
                     />
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => {
-                      resetForm();
-                      setIsDialogOpen(false);
-                    }}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        resetForm();
+                        setIsDialogOpen(false);
+                      }}
+                    >
                       Cancelar
                     </Button>
-                    <Button type="submit">
-                      Agendar
-                    </Button>
+                    <Button type="submit">Agendar</Button>
                   </div>
                 </form>
               </DialogContent>
@@ -429,55 +637,79 @@ export default function AgendamentosView() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
           <Card className="p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs lg:text-sm font-medium text-blue-900">Hoje</span>
+              <span className="text-xs lg:text-sm font-medium text-blue-900">
+                Hoje
+              </span>
               <CalendarIcon className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
             </div>
-            <p className="text-2xl lg:text-3xl font-bold text-blue-900">{statistics.hoje}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-blue-900">
+              {statistics.hoje}
+            </p>
             <p className="text-xs text-blue-700 mt-1">Agendamentos</p>
           </Card>
 
           <Card className="p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs lg:text-sm font-medium text-purple-900">Amanhã</span>
+              <span className="text-xs lg:text-sm font-medium text-purple-900">
+                Amanhã
+              </span>
               <Clock className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
             </div>
-            <p className="text-2xl lg:text-3xl font-bold text-purple-900">{statistics.amanha}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-purple-900">
+              {statistics.amanha}
+            </p>
             <p className="text-xs text-purple-700 mt-1">Programados</p>
           </Card>
 
           <Card className="p-4 lg:p-5 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs lg:text-sm font-medium text-yellow-900">Pendentes</span>
+              <span className="text-xs lg:text-sm font-medium text-yellow-900">
+                Pendentes
+              </span>
               <AlertCircle className="w-4 h-4 lg:w-5 lg:h-5 text-yellow-600" />
             </div>
-            <p className="text-2xl lg:text-3xl font-bold text-yellow-900">{statistics.pendentes}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-yellow-900">
+              {statistics.pendentes}
+            </p>
             <p className="text-xs text-yellow-700 mt-1">Aguardando</p>
           </Card>
 
           <Card className="p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs lg:text-sm font-medium text-green-900">Confirmados</span>
+              <span className="text-xs lg:text-sm font-medium text-green-900">
+                Confirmados
+              </span>
               <CheckCircle2 className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
             </div>
-            <p className="text-2xl lg:text-3xl font-bold text-green-900">{statistics.confirmados}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-green-900">
+              {statistics.confirmados}
+            </p>
             <p className="text-xs text-green-700 mt-1">Prontos</p>
           </Card>
 
           <Card className="p-4 lg:p-5 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs lg:text-sm font-medium text-red-900">Atrasados</span>
+              <span className="text-xs lg:text-sm font-medium text-red-900">
+                Atrasados
+              </span>
               <AlertCircle className="w-4 h-4 lg:w-5 lg:h-5 text-red-600" />
             </div>
-            <p className="text-2xl lg:text-3xl font-bold text-red-900">{statistics.atrasados}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-red-900">
+              {statistics.atrasados}
+            </p>
             <p className="text-xs text-red-700 mt-1">Urgente</p>
           </Card>
 
           <Card className="p-4 lg:p-5 bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs lg:text-sm font-medium text-slate-900">Total</span>
+              <span className="text-xs lg:text-sm font-medium text-slate-900">
+                Total
+              </span>
               <BarChart3 className="w-4 h-4 lg:w-5 lg:h-5 text-slate-600" />
             </div>
-            <p className="text-2xl lg:text-3xl font-bold text-slate-900">{statistics.total}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-slate-900">
+              {statistics.total}
+            </p>
             <p className="text-xs text-slate-700 mt-1">Agendamentos</p>
           </Card>
         </div>
@@ -493,31 +725,31 @@ export default function AgendamentosView() {
               className="pl-10"
             />
           </div>
-          
+
           {/* View Mode - Compacto em Mobile */}
           <div className="flex gap-1 border border-border rounded-lg p-1 bg-muted/30">
             <Button
-              variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+              variant={viewMode === "calendar" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setViewMode('calendar')}
+              onClick={() => setViewMode("calendar")}
               className="flex-1 sm:flex-none"
             >
               <CalendarIcon className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Calendário</span>
             </Button>
             <Button
-              variant={viewMode === 'timeline' ? 'default' : 'ghost'}
+              variant={viewMode === "timeline" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setViewMode('timeline')}
+              onClick={() => setViewMode("timeline")}
               className="flex-1 sm:flex-none"
             >
               <LayoutGrid className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Timeline</span>
             </Button>
             <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              variant={viewMode === "list" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setViewMode('list')}
+              onClick={() => setViewMode("list")}
               className="flex-1 sm:flex-none"
             >
               <List className="w-4 h-4 sm:mr-2" />
@@ -531,41 +763,54 @@ export default function AgendamentosView() {
           {showFilters && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
+              animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
             >
               <Card className="p-4 bg-gradient-to-br from-slate-50 to-slate-100">
                 <div className="space-y-4">
                   {/* Filtro de Período */}
                   <div>
-                    <label className="text-sm font-semibold mb-3 block text-slate-700">📅 Período</label>
+                    <label className="text-sm font-semibold mb-3 block text-slate-700">
+                      📅 Período
+                    </label>
                     <div className="flex gap-2 flex-wrap">
-                      {(['todos', 'hoje', 'semana', 'mes'] as const).map((periodo) => (
-                        <Badge
-                          key={periodo}
-                          onClick={() => setFilters({ ...filters, periodo })}
-                          className={`cursor-pointer px-4 py-2 transition-all ${
-                            filters.periodo === periodo
-                              ? 'bg-blue-600 text-white hover:bg-blue-700'
-                              : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'
-                          }`}
-                        >
-                          {periodo === 'todos' && 'Todos'}
-                          {periodo === 'hoje' && 'Hoje'}
-                          {periodo === 'semana' && 'Esta Semana'}
-                          {periodo === 'mes' && 'Este Mês'}
-                        </Badge>
-                      ))}
+                      {(["todos", "hoje", "semana", "mes"] as const).map(
+                        (periodo) => (
+                          <Badge
+                            key={periodo}
+                            onClick={() => setFilters({ ...filters, periodo })}
+                            className={`cursor-pointer px-4 py-2 transition-all ${
+                              filters.periodo === periodo
+                                ? "bg-blue-600 text-white hover:bg-blue-700"
+                                : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-100"
+                            }`}
+                          >
+                            {periodo === "todos" && "Todos"}
+                            {periodo === "hoje" && "Hoje"}
+                            {periodo === "semana" && "Esta Semana"}
+                            {periodo === "mes" && "Este Mês"}
+                          </Badge>
+                        ),
+                      )}
                     </div>
                   </div>
 
                   {/* Filtro de Status */}
                   <div>
                     <label className="text-sm font-semibold mb-3 block text-slate-700">
-                      🏷️ Status {filters.status.length > 0 && `(${filters.status.length})`}
+                      🏷️ Status{" "}
+                      {filters.status.length > 0 &&
+                        `(${filters.status.length})`}
                     </label>
                     <div className="flex gap-2 flex-wrap">
-                      {(['pendente', 'confirmado', 'coletado', 'cancelado'] as const).map((s) => {
+                      {(
+                        [
+                          "PENDING",
+                          "CONFIRMED",
+                          "COLLECTED",
+                          "CANCELLED",
+                        ] as const
+                      ).map((s) => {
                         const config = statusConfig[s];
                         const isSelected = filters.status.includes(s);
                         return (
@@ -575,8 +820,8 @@ export default function AgendamentosView() {
                               setFilters({
                                 ...filters,
                                 status: isSelected
-                                  ? filters.status.filter(x => x !== s)
-                                  : [...filters.status, s]
+                                  ? filters.status.filter((x) => x !== s)
+                                  : [...filters.status, s],
                               });
                             }}
                             className={`cursor-pointer px-4 py-2 transition-all flex items-center gap-2 ${
@@ -595,11 +840,15 @@ export default function AgendamentosView() {
 
                   {/* Filtro de Atendente */}
                   <div>
-                    <label className="text-sm font-semibold mb-3 block text-slate-700">👤 Atendente</label>
+                    <label className="text-sm font-semibold mb-3 block text-slate-700">
+                      👤 Atendente
+                    </label>
                     <Input
                       placeholder="Digite o nome do atendente..."
                       value={filters.atendente}
-                      onChange={(e) => setFilters({ ...filters, atendente: e.target.value })}
+                      onChange={(e) =>
+                        setFilters({ ...filters, atendente: e.target.value })
+                      }
                       className="bg-white"
                     />
                   </div>
@@ -613,11 +862,13 @@ export default function AgendamentosView() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setFilters({
-                      status: [],
-                      atendente: '',
-                      periodo: 'todos',
-                    })}
+                    onClick={() =>
+                      setFilters({
+                        status: [],
+                        atendente: "",
+                        periodo: "todos",
+                      })
+                    }
                     className="text-slate-600 hover:text-slate-900"
                   >
                     <X className="w-4 h-4 mr-1" />
@@ -631,14 +882,12 @@ export default function AgendamentosView() {
       </div>
 
       {/* Content Views */}
-      {viewMode === 'calendar' && (
+      {viewMode === "calendar" && (
         <div className="grid gap-6 md:grid-cols-3">
           <Card className="md:col-span-1">
             <CardHeader>
               <CardTitle>Calendário</CardTitle>
-              <CardDescription>
-                Selecione uma data
-              </CardDescription>
+              <CardDescription>Selecione uma data</CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
               <Calendar
@@ -652,9 +901,9 @@ export default function AgendamentosView() {
                 }}
                 modifiersStyles={{
                   agendado: {
-                    fontWeight: 'bold',
-                    textDecoration: 'underline',
-                    color: '#5DADE2',
+                    fontWeight: "bold",
+                    textDecoration: "underline",
+                    color: "#5DADE2",
                   },
                 }}
               />
@@ -674,9 +923,9 @@ export default function AgendamentosView() {
                   {agendamentosDosDia
                     .sort((a, b) => a.horaColeta.localeCompare(b.horaColeta))
                     .map((agendamento) => {
-                      const config = statusConfig[agendamento.status];
+                      const config = getStatusConfig(agendamento.status);
                       const StatusIcon = config.icon;
-                      
+
                       return (
                         <motion.div
                           key={agendamento.id}
@@ -685,25 +934,39 @@ export default function AgendamentosView() {
                           exit={{ opacity: 0, scale: 0.9 }}
                           className="group"
                         >
-                          <Card 
+                          <Card
                             className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${config.bgLight}`}
-                            style={{ borderLeftColor: config.color.replace('bg-', '#').replace('500', '600') }}
+                            style={{
+                              borderLeftColor: config.color
+                                .replace("bg-", "#")
+                                .replace("500", "600"),
+                            }}
                             onClick={() => setSelectedAgendamento(agendamento)}
                           >
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div className="flex items-start gap-3 flex-1">
-                                  <div className={`p-2 rounded-full ${config.color} bg-opacity-20`}>
-                                    <StatusIcon className={`w-5 h-5 ${config.textColor}`} />
+                                  <div
+                                    className={`p-2 rounded-full ${config.color} bg-opacity-20`}
+                                  >
+                                    <StatusIcon
+                                      className={`w-5 h-5 ${config.textColor}`}
+                                    />
                                   </div>
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-2">
-                                      <span className="font-semibold text-lg">{agendamento.horaColeta}</span>
+                                      <span className="font-semibold text-lg">
+                                        {agendamento.horaColeta}
+                                      </span>
                                       <Badge className={config.bgLight}>
-                                        <span className={config.textColor}>{config.label}</span>
+                                        <span className={config.textColor}>
+                                          {config.label}
+                                        </span>
                                       </Badge>
                                     </div>
-                                    <h4 className="font-semibold mb-1">{agendamento.clienteNome}</h4>
+                                    <h4 className="font-semibold mb-1">
+                                      {agendamento.clienteNome}
+                                    </h4>
                                     <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
                                       <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
                                       <span>{agendamento.endereco}</span>
@@ -722,7 +985,10 @@ export default function AgendamentosView() {
                                     size="sm"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.endereco)}`, '_blank');
+                                      window.open(
+                                        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.endereco)}`,
+                                        "_blank",
+                                      );
                                     }}
                                   >
                                     <Navigation className="w-4 h-4 mr-1" />
@@ -749,9 +1015,9 @@ export default function AgendamentosView() {
         </div>
       )}
 
-      {viewMode === 'timeline' && <TimelineView />}
+      {viewMode === "timeline" && <TimelineView />}
 
-      {viewMode === 'list' && (
+      {viewMode === "list" && (
         <Card>
           <CardHeader>
             <CardTitle>Todos os Agendamentos</CardTitle>
@@ -768,11 +1034,14 @@ export default function AgendamentosView() {
                   return a.horaColeta.localeCompare(b.horaColeta);
                 })
                 .map((agendamento) => {
-                  const config = statusConfig[agendamento.status];
+                  const config = getStatusConfig(agendamento.status);
                   const StatusIcon = config.icon;
-                  const agDate = new Date(agendamento.dataColeta + 'T00:00:00');
-                  const isAtrasado = isPast(agDate) && agendamento.status === 'pendente' && !isToday(agDate);
-                  
+                  const agDate = new Date(agendamento.dataColeta + "T00:00:00");
+                  const isAtrasado =
+                    isPast(agDate) &&
+                    getStatusKey(agendamento.status) === "PENDING" &&
+                    !isToday(agDate);
+
                   return (
                     <motion.div
                       key={agendamento.id}
@@ -780,54 +1049,82 @@ export default function AgendamentosView() {
                       animate={{ opacity: 1, y: 0 }}
                       className="group"
                     >
-                      <Card 
+                      <Card
                         className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${
-                          isAtrasado ? 'bg-red-50 border-red-500' : config.bgLight
+                          isAtrasado
+                            ? "bg-red-50 border-red-500"
+                            : config.bgLight
                         }`}
-                        style={{ 
-                          borderLeftColor: isAtrasado 
-                            ? '#EF4444' 
-                            : config.color.replace('bg-', '#').replace('500', '600') 
+                        style={{
+                          borderLeftColor: isAtrasado
+                            ? "#EF4444"
+                            : config.color
+                                .replace("bg-", "#")
+                                .replace("500", "600"),
                         }}
                         onClick={() => setSelectedAgendamento(agendamento)}
                       >
                         <CardContent className="p-4">
                           <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
                             <div className="flex items-start gap-3 flex-1 min-w-0 w-full">
-                              <div className={`p-2 rounded-full ${config.color} bg-opacity-20 flex-shrink-0`}>
-                                <StatusIcon className={`w-5 h-5 ${config.textColor}`} />
+                              <div
+                                className={`p-2 rounded-full ${config.color} bg-opacity-20 flex-shrink-0`}
+                              >
+                                <StatusIcon
+                                  className={`w-5 h-5 ${config.textColor}`}
+                                />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                                   <span className="font-semibold text-sm sm:text-base">
                                     {format(agDate, "dd/MM/yyyy")}
                                   </span>
-                                  <span className="text-muted-foreground">•</span>
-                                  <span className="font-semibold text-sm sm:text-base">{agendamento.horaColeta}</span>
+                                  <span className="text-muted-foreground">
+                                    •
+                                  </span>
+                                  <span className="font-semibold text-sm sm:text-base">
+                                    {agendamento.horaColeta}
+                                  </span>
                                   <Badge className={config.bgLight}>
-                                    <span className={config.textColor}>{config.label}</span>
+                                    <span className={config.textColor}>
+                                      {config.label}
+                                    </span>
                                   </Badge>
                                   {isAtrasado && (
                                     <Badge className="bg-red-100">
-                                      <span className="text-red-700">Atrasado</span>
+                                      <span className="text-red-700">
+                                        Atrasado
+                                      </span>
                                     </Badge>
                                   )}
                                 </div>
-                                <h4 className="font-semibold mb-1 truncate">{agendamento.clienteNome}</h4>
+                                <h4 className="font-semibold mb-1 truncate">
+                                  {agendamento.clienteNome}
+                                </h4>
                                 <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
                                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                  <span className="line-clamp-2 break-words">{agendamento.endereco}</span>
+                                  <span className="line-clamp-2 break-words">
+                                    {agendamento.endereco}
+                                  </span>
                                 </div>
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                                   <div className="flex items-center gap-1">
                                     <User className="w-3 h-3 flex-shrink-0" />
-                                    <span className="truncate">{agendamento.atendente}</span>
+                                    <span className="truncate">
+                                      {agendamento.atendente}
+                                    </span>
                                   </div>
                                   {agendamento.observacoes && (
-                                    <span className="text-xs italic line-clamp-1 break-words">
-                                      Obs: {agendamento.observacoes}
+                                    <span className="text-xs italic line-clamp-1 break-words flex items-center gap-1">
+                                      <MessageCircle className="w-3 h-3" />
+                                      {":"} {agendamento.observacoes}
                                     </span>
                                   )}
+                                  <span className="text-xs italic line-clamp-1 break-words flex items-center gap-1">
+                                    <Box className="w-3 h-3" />
+                                    {":"} {agendamento.qtdCaixas} {""}{" "}
+                                    {"Caixa(s)"}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -837,7 +1134,10 @@ export default function AgendamentosView() {
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.endereco)}`, '_blank');
+                                  window.open(
+                                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.endereco)}`,
+                                    "_blank",
+                                  );
                                 }}
                                 className="flex-1 sm:flex-none"
                               >
@@ -866,24 +1166,36 @@ export default function AgendamentosView() {
       <AnimatePresence>
         {selectedAgendamento && (
           <motion.div
-            initial={{ x: '100%' }}
+            initial={{ x: "100%" }}
             animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 25 }}
             className="fixed inset-y-0 right-0 w-full lg:w-[500px] bg-white shadow-2xl border-l border-border z-50 overflow-y-auto"
           >
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-border p-6 z-10">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h2 className="text-xl font-bold text-foreground mb-2">{selectedAgendamento.clienteNome}</h2>
-                  <Badge className={statusConfig[selectedAgendamento.status].bgLight}>
-                    <span className={statusConfig[selectedAgendamento.status].textColor}>
-                      {statusConfig[selectedAgendamento.status].label}
+                  <h2 className="text-xl font-bold text-foreground mb-2">
+                    {selectedAgendamento.clienteNome}
+                  </h2>
+                  <Badge
+                    className={getStatusConfig(selectedAgendamento.status).bgLight}
+                  >
+                    <span
+                      className={
+                        getStatusConfig(selectedAgendamento.status).textColor
+                      }
+                    >
+                      {getStatusConfig(selectedAgendamento.status).label}
                     </span>
                   </Badge>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedAgendamento(null)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedAgendamento(null)}
+                >
                   <X className="w-5 h-5" />
                 </Button>
               </div>
@@ -892,7 +1204,12 @@ export default function AgendamentosView() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <CalendarIcon className="w-4 h-4" />
-                  <span>{format(new Date(selectedAgendamento.dataColeta + 'T00:00:00'), "dd/MM/yyyy")}</span>
+                  <span>
+                    {format(
+                      new Date(selectedAgendamento.dataColeta + "T00:00:00"),
+                      "dd/MM/yyyy",
+                    )}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Clock className="w-4 h-4" />
@@ -909,12 +1226,19 @@ export default function AgendamentosView() {
                   <MapPin className="w-4 h-4" />
                   Endereço de Coleta
                 </h3>
-                <p className="text-sm text-muted-foreground">{selectedAgendamento.endereco}</p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedAgendamento.endereco}
+                </p>
                 <Button
                   variant="outline"
                   size="sm"
                   className="mt-2 w-full"
-                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedAgendamento.endereco)}`, '_blank')}
+                  onClick={() =>
+                    window.open(
+                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedAgendamento.endereco)}`,
+                      "_blank",
+                    )
+                  }
                 >
                   <Navigation className="w-4 h-4 mr-2" />
                   Abrir no Google Maps
@@ -927,16 +1251,28 @@ export default function AgendamentosView() {
                   <User className="w-4 h-4" />
                   Atendente Responsável
                 </h3>
-                <p className="text-sm text-muted-foreground">{selectedAgendamento.atendente}</p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedAgendamento.atendente}
+                </p>
               </div>
 
               {/* Observações */}
               {selectedAgendamento.observacoes && (
                 <div>
                   <h3 className="font-semibold mb-2">Observações</h3>
-                  <p className="text-sm text-muted-foreground italic">{selectedAgendamento.observacoes}</p>
+                  <p className="text-sm text-muted-foreground italic">
+                    {selectedAgendamento.observacoes}
+                  </p>
                 </div>
               )}
+
+              {/* Quantidade de Caixas */}
+              <div>
+                <h3 className="font-semibold mb-2">Quantidade de Caixas</h3>
+                <p className="text-sm text-muted-foreground">
+                  {selectedAgendamento.qtdCaixas} {"Caixa(s)"}
+                </p>
+              </div>
 
               {/* Alterar Status */}
               <div>
@@ -944,18 +1280,24 @@ export default function AgendamentosView() {
                 <Select
                   value={selectedAgendamento.status}
                   onValueChange={(value) => {
-                    handleStatusChange(selectedAgendamento.id, value as Agendamento['status']);
-                    setSelectedAgendamento({ ...selectedAgendamento, status: value as Agendamento['status'] });
+                    handleStatusChange(
+                      selectedAgendamento.id,
+                      value as Agendamento["status"],
+                    );
+                    setSelectedAgendamento({
+                      ...selectedAgendamento,
+                      status: value as Agendamento["status"],
+                    });
                   }}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="confirmado">Confirmado</SelectItem>
-                    <SelectItem value="coletado">Coletado</SelectItem>
-                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                    <SelectItem value="PENDING">Pendente</SelectItem>
+                    <SelectItem value="CONFIRMED">Confirmado</SelectItem>
+                    <SelectItem value="COLLECTED">Coletado</SelectItem>
+                    <SelectItem value="CANCELLED">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -965,7 +1307,12 @@ export default function AgendamentosView() {
                 <Button
                   variant="destructive"
                   className="w-full"
-                  onClick={() => handleDelete(selectedAgendamento.id, selectedAgendamento.clienteNome)}
+                  onClick={() =>
+                    handleDelete(
+                      selectedAgendamento.id,
+                      selectedAgendamento.clienteNome,
+                    )
+                  }
                 >
                   Excluir Agendamento
                 </Button>

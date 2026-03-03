@@ -169,20 +169,20 @@ export default function RelatoriosView() {
     const atendentes: Record<string, { clientes: number; receitas: number }> = {};
     
     clientes.forEach(c => {
-      if (!atendentes[c.atendente]) {
-        atendentes[c.atendente] = { clientes: 0, receitas: 0 };
+      const key = c.user?.id ?? "";
+      if (!key) return;
+      if (!atendentes[key]) {
+        atendentes[key] = { clientes: 0, receitas: 0 };
       }
-      atendentes[c.atendente].clientes += 1;
-      
-      // Somar receitas do cliente
+      atendentes[key].clientes += 1;
       const receitasCliente = transacoes
         .filter(t => t.clienteId === c.id && t.tipo === 'receita')
         .reduce((sum, t) => sum + t.valor, 0);
-      atendentes[c.atendente].receitas += receitasCliente;
+      atendentes[key].receitas += receitasCliente;
     });
-    
-    return Object.entries(atendentes).map(([nome, dados]) => ({
-      nome,
+    const userNames = new Map(clientes.map(c => [c.user?.id ?? "", c.user?.name ?? c.user?.id ?? "—"]));
+    return Object.entries(atendentes).map(([userId, dados]) => ({
+      nome: userNames.get(userId) ?? userId,
       clientes: dados.clientes,
       receitas: dados.receitas,
       ticketMedio: dados.clientes > 0 ? dados.receitas / dados.clientes : 0

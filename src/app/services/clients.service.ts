@@ -29,7 +29,7 @@ export interface CreateClientsDTO {
     cep: string;
     complemento: string;
   };
-  attendant: string;
+  userId: string;
   status?: "ACTIVE" | "INACTIVE";
 }
 
@@ -79,13 +79,17 @@ export interface ClientBackend {
   brazilPhone: string;
   brazilAddress: Record<string, unknown>;
   
-  attendant: string;
   status: "ACTIVE" | "INACTIVE";
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
   createdBy?: string | null;
   updatedBy?: string | null;
+  /** Atendente (vindo do backend com include da relação user) */
+  user?: {
+    id: string;
+    name: string;
+  };
 }
 
 /**
@@ -119,19 +123,21 @@ function mapBackendToFrontend(client: ClientBackend): Cliente {
     complemento: brazilAddress?.complemento || brazilAddress?.complement || "",
   };
 
+  const userId = client.user?.id ?? (client as { userId?: string }).userId ?? "";
+  const userName = client.user?.name ?? "";
+  const user = { id: userId, name: userName };
+
   return {
     id: client.id,
     usaNome: client.usaName,
     usaCpf: client.usaCpf,
     usaPhone: client.usaPhone,
     usaAddress: enderecoUSA,
-    
     brazilNome: client.brazilName,
     brazilCpf: client.brazilCpf,
     brazilPhone: client.brazilPhone,
     brazilAddress: enderecoBrasil,
-    
-    atendente: client.attendant,
+    user,
     dataCadastro: client.createdAt,
     status: client.status,
   };

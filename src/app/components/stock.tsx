@@ -42,7 +42,6 @@ import {
   Search,
   User,
   MessageCircle,
-  ChevronsUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
@@ -67,16 +66,7 @@ import {
   CriarMovimentacao,
 } from "../services/stock.service";
 import { PrecoProduto } from "../types";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "./ui/command";
-import { cn } from "./ui/utils";
+import { ResponsavelSelect } from "./forms";
 
 /** Chaves dos itens em inglês camelCase (payload: smallBoxes: 10) */
 const ITEM_KEYS_EN = [
@@ -196,7 +186,6 @@ export default function EstoqueView() {
   const [produtos, setProdutos] = useState<PrecoProduto[]>([]);
   const [motoristas, setMotoristas] = useState<UserTypeDriver[]>([]);
   const [selectedProduto, setSelectedProduto] = useState<string>("");
-  const [responsavelComboboxOpen, setResponsavelComboboxOpen] = useState(false);
 
   const MOVIMENTACOES_PAGE_SIZE = 10;
 
@@ -222,6 +211,8 @@ export default function EstoqueView() {
       });
     return [...movimentacoes]
       .filter((mov) => {
+        const productType =
+          ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[mov.product.type]];
         const type = typeStr(mov.type);
         const label = labelOf(mov);
         const date = dateStr(mov.createdAt);
@@ -229,7 +220,9 @@ export default function EstoqueView() {
         const resp = (mov.user.name ?? "").toLowerCase();
         const obs = (mov.observations ?? "").toLowerCase();
         const product = (mov.product.name ?? "").toLowerCase();
+
         return (
+          productType.toLowerCase().includes(term) ||
           type.includes(term) ||
           label.toLowerCase().includes(term) ||
           date.toLowerCase().includes(term) ||
@@ -342,8 +335,6 @@ export default function EstoqueView() {
     const atualizarEstoque: EstoqueAtualizado = {
       [selectedItem]: quantidade,
     };
-
-    console.log(responsavel);
 
     const movimentacaoPayload: CriarMovimentacao = {
       type: dialogType,
@@ -601,6 +592,19 @@ export default function EstoqueView() {
                     </select>
                   </div>
 
+                  {/* Mensagem de erro caso não tenha itens para a categoria selecionada */}
+                  {selectedItem &&
+                    !produtos.filter(
+                      (produto) =>
+                        produto.type === ITEM_KEY_TO_PRODUCT_TYPE[selectedItem],
+                    ).length && (
+                      <div className="space-y-2">
+                        <span className="text-red-600 text-sm">
+                          Nenhum item encontrado para a categoria selecionada.
+                        </span>
+                      </div>
+                    )}
+
                   {/* Adicionar item do estoque */}
                   {selectedItem && (
                     <div className="space-y-2">
@@ -649,59 +653,15 @@ export default function EstoqueView() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Responsável *</Label>
-                    <Popover
-                      open={responsavelComboboxOpen}
-                      onOpenChange={setResponsavelComboboxOpen}
-                    >
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={responsavelComboboxOpen}
-                          className={cn(
-                            "w-full justify-between font-normal",
-                            !responsavel && "text-muted-foreground",
-                          )}
-                        >
-                          {responsavel || "Selecione o responsável..."}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-[var(--radix-popover-trigger-width)] p-0"
-                        align="start"
-                      >
-                        <Command>
-                          <CommandInput placeholder="Buscar responsável..." />
-                          <CommandList>
-                            <CommandEmpty>
-                              Nenhum responsável encontrado.
-                            </CommandEmpty>
-                            <CommandGroup>
-                              {motoristas.map((motorista) => (
-                                <CommandItem
-                                  key={motorista.id}
-                                  onSelect={() => {
-                                    setResponsavel(motorista.id);
-                                    // TODO: Adicionar o nome do responsável visualmente e deixar o id como valor selecionado para payload
-                                    setResponsavelComboboxOpen(false);
-                                  }}
-                                >
-                                  <User className="mr-2 h-4 w-4" />
-                                  {motorista.name} -{" "}
-                                  {motorista.role === "DRIVER"
-                                    ? "Motorista"
-                                    : "Outro"}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                  <ResponsavelSelect
+                    label="Responsável *"
+                    items={motoristas}
+                    value={responsavel}
+                    onValueChange={setResponsavel}
+                    placeholder="Selecione o responsável..."
+                    searchPlaceholder="Buscar responsável..."
+                    emptyMessage="Nenhum responsável encontrado."
+                  />
 
                   <div className="space-y-2">
                     <Label>Observação</Label>

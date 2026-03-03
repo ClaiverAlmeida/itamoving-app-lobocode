@@ -11,7 +11,11 @@ export interface Cliente {
   brazilPhone: string;
   brazilAddress: Record<string, unknown>;
   
-  atendente: string;
+  /** Atendente: id e nome vêm do backend (relação user). No cadastro usa-se o usuário logado. */
+  user?: {
+    id: string;
+    name: string;
+  };
   dataCadastro: string;
   status: "ACTIVE" | "INACTIVE";
 }
@@ -44,10 +48,11 @@ export interface Agendamento {
   clienteNome: string;
   dataColeta: string;
   horaColeta: string;
+  qtdCaixas: number;
   endereco: string;
-  status: "pendente" | "confirmado" | "coletado" | "cancelado";
   observacoes?: string;
   atendente: string;
+  status: string;
 }
 
 export interface ItemEnvio {
