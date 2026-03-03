@@ -142,6 +142,8 @@ export default function AgendamentosView() {
       atendente: formData.atendente,
     };
 
+    console.log(novoAgendamento);
+    
     addAgendamento(novoAgendamento);
     toast.success("Agendamento criado com sucesso!");
     resetForm();
