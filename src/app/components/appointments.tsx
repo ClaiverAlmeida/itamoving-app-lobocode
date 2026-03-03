@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -65,12 +65,14 @@ import {
   startOfWeek,
   endOfWeek,
   eachDayOfInterval,
+  add,
 } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { motion, AnimatePresence } from "motion/react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { AtendenteSelect } from "./forms";
 import { clientsService } from "../services/clients.service";
+import { appointmentsService } from "../services/appointments.service";
 
 type ViewMode = "calendar" | "list" | "timeline";
 
@@ -86,39 +88,70 @@ export default function AgendamentosView() {
     useState<Agendamento | null>(null);
   const { user } = useAuth();
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [qtdCaixasPorDia, setQtdCaixasPorDia] = useState<
+    { collectionDate: string; qtyBoxes: number }[]
+  >([]);
+
+  useEffect(() => {
+    // TODO: Carregar todos os agendamentos
+  });
+
+  const carregarQtdCaixasPorDia = async (date: string) => {
+    const dateISO = new Date(date).toISOString();
+    const result = await appointmentsService.getAllQtdBoxesPerDay(dateISO);
+    if (result.success && result.data !== undefined) {
+      const raw = result.data as any;
+      const list: { collectionDate: string; qtyBoxes: number }[] =
+        Array.isArray(raw)
+          ? raw
+          : raw?.data != null
+            ? Array.isArray(raw.data)
+              ? raw.data
+              : [raw.data]
+            : typeof raw === "object" &&
+                raw !== null &&
+                ("qtyBoxes" in raw || "collectionDate" in raw)
+              ? [raw]
+              : [];
+      setQtdCaixasPorDia(list);
+    } else if (result.error) {
+      toast.error(result.error);
+    }
+  };
 
   const [filters, setFilters] = useState({
     status: [] as string[],
-    atendente: "",
+    userId: "",
     periodo: "todos" as "todos" | "hoje" | "semana" | "mes",
   });
 
   const [formData, setFormData] = useState({
-    clienteId: "",
-    dataColeta: "",
-    horaColeta: "",
-    qtdCaixas: 0,
-    observacoes: "",
-    atendente: "",
+    clientId: "",
+    collectionDate: "",
+    collectionTime: "",
+    qtyBoxes: 0,
+    observations: "",
+    userId: "",
     status: "",
   });
 
   const resetForm = () => {
     setFormData({
-      clienteId: "",
-      dataColeta: "",
-      horaColeta: "",
-      qtdCaixas: 0,
-      observacoes: "",
-      atendente: "",
+      clientId: "",
+      collectionDate: "",
+      collectionTime: "",
+      qtyBoxes: 0,
+      observations: "",
+      userId: "",
       status: "",
     });
+    setQtdCaixasPorDia([]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const cliente = clientes.find((c) => c.id === formData.clienteId);
+    const cliente = clientes.find((c) => c.id === formData.clientId);
     if (!cliente) {
       toast.error("Cliente não encontrado");
       return;
@@ -129,22 +162,58 @@ export default function AgendamentosView() {
       return;
     }
 
-    const novoAgendamento: Agendamento = {
-      id: Date.now().toString(),
-      clienteId: formData.clienteId,
-      clienteNome: cliente.usaNome,
-      dataColeta: formData.dataColeta,
-      horaColeta: formData.horaColeta,
-      qtdCaixas: formData.qtdCaixas,
-      endereco: `${cliente.usaAddress.rua}, ${cliente.usaAddress.numero}, ${cliente.usaAddress.cidade}, ${cliente.usaAddress.estado} ${cliente.usaAddress.zipCode}`,
-      status: formData.status,
-      observacoes: formData.observacoes,
-      atendente: formData.atendente,
+    const qty = Number(formData.qtyBoxes);
+    if (!Number.isInteger(qty) || qty < 1) {
+      toast.error("Quantidade de caixas deve ser pelo menos 1.");
+      return;
+    }
+
+    const rawDate = (formData.collectionDate ?? "").trim();
+    if (!rawDate) {
+      toast.error("Informe a data de coleta.");
+      return;
+    }
+    const collectionDateStr = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+      ? rawDate
+      : (() => {
+          const d = new Date(rawDate);
+          if (Number.isNaN(d.getTime())) {
+            return null;
+          }
+          return d.toISOString().split("T")[0];
+        })();
+    if (!collectionDateStr) {
+      toast.error("Data de coleta inválida.");
+      return;
+    }
+
+    const address = `${cliente.usaAddress.rua}, ${cliente.usaAddress.numero}, ${cliente.usaAddress.cidade}, ${cliente.usaAddress.estado} ${cliente.usaAddress.zipCode}`;
+
+    const payload = {
+      clientId: formData.clientId,
+      userId: formData.userId,
+      collectionDate: collectionDateStr,
+      collectionTime: formData.collectionTime ?? "",
+      qtyBoxes: qty,
+      address,
+      status: formData.status as
+        | "PENDING"
+        | "CONFIRMED"
+        | "COLLECTED"
+        | "CANCELLED",
+      ...(formData.observations != null && formData.observations !== ""
+        ? { observations: formData.observations }
+        : {}),
     };
 
-    console.log(novoAgendamento);
-    
-    addAgendamento(novoAgendamento);
+    const result = await appointmentsService.create(payload);
+
+    if (!result.success || !result.data) {
+      toast.error(result.error ?? "Erro ao criar agendamento.");
+      return;
+    }
+
+    addAgendamento(result.data);
     toast.success("Agendamento criado com sucesso!");
     resetForm();
     setIsDialogOpen(false);
@@ -155,10 +224,10 @@ export default function AgendamentosView() {
     toast.success("Status atualizado!");
   };
 
-  const handleDelete = (id: string, clienteNome: string) => {
+  const handleDelete = (id: string, clientName: string) => {
     if (
       window.confirm(
-        `Tem certeza que deseja excluir o agendamento de ${clienteNome}?`,
+        `Tem certeza que deseja excluir o agendamento de ${clientName}?`,
       )
     ) {
       deleteAgendamento(id);
@@ -216,7 +285,8 @@ export default function AgendamentosView() {
     statusKeyMap[(status ?? "").toUpperCase()] ?? "PENDING";
 
   /** Normaliza status (enum ou string em qualquer formato) para config (label, icon, cores). */
-  const getStatusConfig = (status: string) => statusConfig[getStatusKey(status)];
+  const getStatusConfig = (status: string) =>
+    statusConfig[getStatusKey(status)];
 
   const dataPickerBlocked = () => {
     const today = new Date().toISOString().split("T")[0];
@@ -236,11 +306,9 @@ export default function AgendamentosView() {
     return agendamentos.filter((agendamento) => {
       // Search
       const matchesSearch =
-        agendamento.clienteNome
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        agendamento.endereco.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        agendamento.atendente.toLowerCase().includes(searchTerm.toLowerCase());
+        agendamento.clientId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        agendamento.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        agendamento.userId.toLowerCase().includes(searchTerm.toLowerCase());
 
       if (!matchesSearch) return false;
 
@@ -252,12 +320,10 @@ export default function AgendamentosView() {
         return false;
       }
 
-      // Atendente
+      // userId
       if (
-        filters.atendente &&
-        !agendamento.atendente
-          .toLowerCase()
-          .includes(filters.atendente.toLowerCase())
+        filters.userId &&
+        !agendamento.userId.toLowerCase().includes(filters.userId.toLowerCase())
       ) {
         return false;
       }
@@ -265,7 +331,9 @@ export default function AgendamentosView() {
       // Período
       if (filters.periodo !== "todos") {
         const now = new Date();
-        const agendamentoDate = new Date(agendamento.dataColeta + "T00:00:00");
+        const agendamentoDate = new Date(
+          agendamento.collectionDate + "T00:00:00",
+        );
 
         if (filters.periodo === "hoje") {
           if (!isToday(agendamentoDate)) return false;
@@ -286,7 +354,7 @@ export default function AgendamentosView() {
 
   const agendamentosDosDia = useMemo(() => {
     return filteredAgendamentos.filter((ag) =>
-      isSameDay(new Date(ag.dataColeta + "T00:00:00"), selectedDate),
+      isSameDay(new Date(ag.collectionDate + "T00:00:00"), selectedDate),
     );
   }, [filteredAgendamentos, selectedDate]);
 
@@ -302,16 +370,16 @@ export default function AgendamentosView() {
       (a) => a.status === "COLLECTED",
     ).length;
     const hoje = filteredAgendamentos.filter((a) =>
-      isToday(new Date(a.dataColeta + "T00:00:00")),
+      isToday(new Date(a.collectionDate + "T00:00:00")),
     ).length;
     const amanha = filteredAgendamentos.filter((a) =>
-      isTomorrow(new Date(a.dataColeta + "T00:00:00")),
+      isTomorrow(new Date(a.collectionDate + "T00:00:00")),
     ).length;
     const atrasados = filteredAgendamentos.filter(
       (a) =>
-        isPast(new Date(a.dataColeta + "T00:00:00")) &&
+        isPast(new Date(a.collectionDate + "T00:00:00")) &&
         a.status === "PENDING" &&
-        !isToday(new Date(a.dataColeta + "T00:00:00")),
+        !isToday(new Date(a.collectionDate + "T00:00:00")),
     ).length;
 
     return {
@@ -333,7 +401,7 @@ export default function AgendamentosView() {
   };
 
   const getDatesWithAgendamentos = () => {
-    return agendamentos.map((a) => new Date(a.dataColeta + "T00:00:00"));
+    return agendamentos.map((a) => new Date(a.collectionDate + "T00:00:00"));
   };
 
   const TimelineView = () => {
@@ -345,7 +413,7 @@ export default function AgendamentosView() {
       <div className="space-y-4">
         {daysOfWeek.map((day) => {
           const dayAgendamentos = filteredAgendamentos.filter((ag) =>
-            isSameDay(new Date(ag.dataColeta + "T00:00:00"), day),
+            isSameDay(new Date(ag.collectionDate + "T00:00:00"), day),
           );
 
           return (
@@ -370,7 +438,9 @@ export default function AgendamentosView() {
                 {dayAgendamentos.length > 0 ? (
                   <div className="space-y-2">
                     {dayAgendamentos
-                      .sort((a, b) => a.horaColeta.localeCompare(b.horaColeta))
+                      .sort((a, b) =>
+                        a.collectionTime.localeCompare(b.collectionTime),
+                      )
                       .map((agendamento) => {
                         const config = getStatusConfig(agendamento.status);
                         const StatusIcon = config.icon;
@@ -400,17 +470,17 @@ export default function AgendamentosView() {
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
                                     <span className="font-semibold">
-                                      {agendamento.horaColeta}
+                                      {agendamento.collectionTime}
                                     </span>
                                     <span className="text-muted-foreground">
                                       •
                                     </span>
-                                    <span>{agendamento.clienteNome}</span>
+                                    <span>{agendamento.clientName}</span>
                                   </div>
                                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <MapPin className="w-3 h-3" />
                                     <span className="truncate">
-                                      {agendamento.endereco}
+                                      {agendamento.address}
                                     </span>
                                   </div>
                                 </div>
@@ -473,6 +543,7 @@ export default function AgendamentosView() {
                 if (!open) {
                   resetForm();
                   setClientes([]);
+                  setQtdCaixasPorDia([]);
                 }
               }}
             >
@@ -492,11 +563,11 @@ export default function AgendamentosView() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="clienteId">Cliente *</Label>
+                    <Label htmlFor="clientId">Cliente *</Label>
                     <Select
-                      value={formData.clienteId}
+                      value={formData.clientId}
                       onValueChange={(value) =>
-                        setFormData({ ...formData, clienteId: value })
+                        setFormData({ ...formData, clientId: value })
                       }
                       required
                     >
@@ -517,49 +588,121 @@ export default function AgendamentosView() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="dataColeta">Data da Coleta *</Label>
+                      <Label htmlFor="collectionDate">Data da Coleta *</Label>
                       <Input
-                        id="dataColeta"
+                        id="collectionDate"
                         type="date"
                         min={dataPickerBlocked()}
-                        value={formData.dataColeta}
-                        onChange={(e) =>
+                        value={formData.collectionDate}
+                        onChange={(e) => {
                           setFormData({
                             ...formData,
-                            dataColeta: e.target.value,
-                          })
-                        }
+                            collectionDate: e.target.value,
+                          });
+                          carregarQtdCaixasPorDia(e.target.value);
+                        }}
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="horaColeta">Horário Previsto</Label>
+                      <Label htmlFor="collectionTime">Horário Previsto</Label>
                       <Input
-                        id="horaColeta"
+                        id="collectionTime"
                         type="time"
-                        value={formData.horaColeta}
+                        value={formData.collectionTime}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            horaColeta: e.target.value,
+                            collectionTime: e.target.value,
                           })
                         }
                       />
                     </div>
                   </div>
 
+                  <AnimatePresence>
+                    {(() => {
+                      const list = Array.isArray(qtdCaixasPorDia)
+                        ? qtdCaixasPorDia
+                        : [];
+
+                      const item =
+                        list.length === 1
+                          ? list[0]
+                          : list.find(
+                              (q) =>
+                                q.collectionDate === formData.collectionDate,
+                            );
+                      const qty =
+                        item != null && typeof item.qtyBoxes === "number"
+                          ? item.qtyBoxes
+                          : null;
+                      const qtyAllowed = 13;
+                      const qtyExcess = Math.max(0, (qty ?? 0) - qtyAllowed);
+                      const qtyAllowedExcess = Math.max(
+                        0,
+                        qtyAllowed - (qty ?? 0),
+                      );
+                      const qtyProp = {
+                        color: qtyExcess > 0 ? "red" : "blue",
+                        textColor: qtyExcess > 0 ? "red" : "blue",
+                      };
+                      const existe = list.length > 0 && qty !== null;
+                      return existe ? (
+                        <motion.div
+                          className={`rounded-lg border border-${qtyProp.color}-200/60 bg-${qtyProp.color}-50/80 dark:bg-${qtyProp.color}-950/30 dark:border-${qtyProp.color}-800/50 px-4 py-3`}
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-${qtyProp.color}-500/15 text-${qtyProp.color}-600 dark:text-${qtyProp.color}-400`}
+                            >
+                              <Box className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className={`text-xs font-medium uppercase tracking-wide text-${qtyProp.color}-700/80 dark:text-${qtyProp.color}-300/80`}
+                              >
+                                Caixas agendadas para este dia
+                              </p>
+                              <p
+                                className={`mt-0.5 text-lg font-semibold tabular-nums text-${qtyProp.color}-900 dark:text-${qtyProp.color}-100`}
+                              >
+                                {qty} {qty === 1 ? "caixa" : "caixas"}
+                              </p>
+                              <p
+                                className={`text-xs font-medium text-${qtyProp.textColor}-500 mt-1`}
+                              >
+                                {qtyExcess} caixas a mais do que o permitido
+                              </p>
+                              <p
+                                className={`text-xs font-medium text-black-500 mt-1`}
+                              >
+                                {qtyAllowedExcess} caixas ainda são permitidas
+                                no dia.
+                              </p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ) : null;
+                    })()}
+                  </AnimatePresence>
+
                   <div className="space-y-2">
-                    <Label htmlFor="qtdCaixas">Quantidade de caixas *</Label>
+                    <Label htmlFor="qtyBoxes">Quantidade de caixas *</Label>
                     <Input
-                      id="qtdCaixas"
+                      id="qtyBoxes"
                       type="number"
                       min={1}
-                      value={formData.qtdCaixas}
+                      value={formData.qtyBoxes}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          qtdCaixas: e.target.value,
+                          qtyBoxes: parseInt(e.target.value),
                         })
                       }
                     />
@@ -567,9 +710,9 @@ export default function AgendamentosView() {
 
                   <AtendenteSelect
                     user={user ? { id: user.id, nome: user.nome } : null}
-                    value={formData.atendente}
+                    value={formData.userId}
                     onValueChange={(id) =>
-                      setFormData({ ...formData, atendente: id })
+                      setFormData({ ...formData, userId: id })
                     }
                     label="Atendente *"
                     required
@@ -601,14 +744,14 @@ export default function AgendamentosView() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="observacoes">Observações</Label>
+                    <Label htmlFor="observations">Observações</Label>
                     <Textarea
-                      id="observacoes"
-                      value={formData.observacoes}
+                      id="observations"
+                      value={formData.observations}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          observacoes: e.target.value,
+                          observations: e.target.value,
                         })
                       }
                       placeholder="Informações adicionais..."
@@ -840,16 +983,16 @@ export default function AgendamentosView() {
                     </div>
                   </div>
 
-                  {/* Filtro de Atendente */}
+                  {/* Filtro de userId */}
                   <div>
                     <label className="text-sm font-semibold mb-3 block text-slate-700">
-                      👤 Atendente
+                      👤 userId
                     </label>
                     <Input
-                      placeholder="Digite o nome do atendente..."
-                      value={filters.atendente}
+                      placeholder="Digite o nome do userId..."
+                      value={filters.userId}
                       onChange={(e) =>
-                        setFilters({ ...filters, atendente: e.target.value })
+                        setFilters({ ...filters, userId: e.target.value })
                       }
                       className="bg-white"
                     />
@@ -867,7 +1010,7 @@ export default function AgendamentosView() {
                     onClick={() =>
                       setFilters({
                         status: [],
-                        atendente: "",
+                        userId: "",
                         periodo: "todos",
                       })
                     }
@@ -923,7 +1066,9 @@ export default function AgendamentosView() {
               <div className="space-y-3">
                 <AnimatePresence>
                   {agendamentosDosDia
-                    .sort((a, b) => a.horaColeta.localeCompare(b.horaColeta))
+                    .sort((a, b) =>
+                      a.collectionTime.localeCompare(b.collectionTime),
+                    )
                     .map((agendamento) => {
                       const config = getStatusConfig(agendamento.status);
                       const StatusIcon = config.icon;
@@ -958,7 +1103,7 @@ export default function AgendamentosView() {
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-2">
                                       <span className="font-semibold text-lg">
-                                        {agendamento.horaColeta}
+                                        {agendamento.collectionTime}
                                       </span>
                                       <Badge className={config.bgLight}>
                                         <span className={config.textColor}>
@@ -967,16 +1112,16 @@ export default function AgendamentosView() {
                                       </Badge>
                                     </div>
                                     <h4 className="font-semibold mb-1">
-                                      {agendamento.clienteNome}
+                                      {agendamento.clientName}
                                     </h4>
                                     <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
                                       <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                      <span>{agendamento.endereco}</span>
+                                      <span>{agendamento.address}</span>
                                     </div>
                                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                       <div className="flex items-center gap-1">
                                         <User className="w-3 h-3" />
-                                        <span>{agendamento.atendente}</span>
+                                        <span>{agendamento.userId}</span>
                                       </div>
                                     </div>
                                   </div>
@@ -988,7 +1133,7 @@ export default function AgendamentosView() {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       window.open(
-                                        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.endereco)}`,
+                                        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.address)}`,
                                         "_blank",
                                       );
                                     }}
@@ -1031,14 +1176,18 @@ export default function AgendamentosView() {
             <div className="space-y-3">
               {filteredAgendamentos
                 .sort((a, b) => {
-                  const dateCompare = a.dataColeta.localeCompare(b.dataColeta);
+                  const dateCompare = a.collectionDate.localeCompare(
+                    b.collectionDate,
+                  );
                   if (dateCompare !== 0) return dateCompare;
-                  return a.horaColeta.localeCompare(b.horaColeta);
+                  return a.collectionTime.localeCompare(b.collectionTime);
                 })
                 .map((agendamento) => {
                   const config = getStatusConfig(agendamento.status);
                   const StatusIcon = config.icon;
-                  const agDate = new Date(agendamento.dataColeta + "T00:00:00");
+                  const agDate = new Date(
+                    agendamento.collectionDate + "T00:00:00",
+                  );
                   const isAtrasado =
                     isPast(agDate) &&
                     getStatusKey(agendamento.status) === "PENDING" &&
@@ -1085,7 +1234,9 @@ export default function AgendamentosView() {
                                     •
                                   </span>
                                   <span className="font-semibold text-sm sm:text-base">
-                                    {agendamento.horaColeta}
+                                    {agendamento.collectionTime
+                                      ? agendamento.collectionTime
+                                      : "--:--"}
                                   </span>
                                   <Badge className={config.bgLight}>
                                     <span className={config.textColor}>
@@ -1101,30 +1252,30 @@ export default function AgendamentosView() {
                                   )}
                                 </div>
                                 <h4 className="font-semibold mb-1 truncate">
-                                  {agendamento.clienteNome}
+                                  {agendamento.clientName}
                                 </h4>
                                 <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
                                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
                                   <span className="line-clamp-2 break-words">
-                                    {agendamento.endereco}
+                                    {agendamento.address}
                                   </span>
                                 </div>
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                                   <div className="flex items-center gap-1">
                                     <User className="w-3 h-3 flex-shrink-0" />
                                     <span className="truncate">
-                                      {agendamento.atendente}
+                                      {agendamento.userId}
                                     </span>
                                   </div>
-                                  {agendamento.observacoes && (
+                                  {agendamento.observations && (
                                     <span className="text-xs italic line-clamp-1 break-words flex items-center gap-1">
                                       <MessageCircle className="w-3 h-3" />
-                                      {":"} {agendamento.observacoes}
+                                      {":"} {agendamento.observations}
                                     </span>
                                   )}
                                   <span className="text-xs italic line-clamp-1 break-words flex items-center gap-1">
                                     <Box className="w-3 h-3" />
-                                    {":"} {agendamento.qtdCaixas} {""}{" "}
+                                    {":"} {agendamento.qtyBoxes} {""}{" "}
                                     {"Caixa(s)"}
                                   </span>
                                 </div>
@@ -1137,7 +1288,7 @@ export default function AgendamentosView() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   window.open(
-                                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.endereco)}`,
+                                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.address)}`,
                                     "_blank",
                                   );
                                 }}
@@ -1179,10 +1330,12 @@ export default function AgendamentosView() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <h2 className="text-xl font-bold text-foreground mb-2">
-                    {selectedAgendamento.clienteNome}
+                    {selectedAgendamento.clientName}
                   </h2>
                   <Badge
-                    className={getStatusConfig(selectedAgendamento.status).bgLight}
+                    className={
+                      getStatusConfig(selectedAgendamento.status).bgLight
+                    }
                   >
                     <span
                       className={
@@ -1208,14 +1361,16 @@ export default function AgendamentosView() {
                   <CalendarIcon className="w-4 h-4" />
                   <span>
                     {format(
-                      new Date(selectedAgendamento.dataColeta + "T00:00:00"),
+                      new Date(
+                        selectedAgendamento.collectionDate + "T00:00:00",
+                      ),
                       "dd/MM/yyyy",
                     )}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Clock className="w-4 h-4" />
-                  <span>{selectedAgendamento.horaColeta}</span>
+                  <span>{selectedAgendamento.collectionTime}</span>
                 </div>
               </div>
             </div>
@@ -1229,7 +1384,7 @@ export default function AgendamentosView() {
                   Endereço de Coleta
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {selectedAgendamento.endereco}
+                  {selectedAgendamento.address}
                 </p>
                 <Button
                   variant="outline"
@@ -1237,7 +1392,7 @@ export default function AgendamentosView() {
                   className="mt-2 w-full"
                   onClick={() =>
                     window.open(
-                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedAgendamento.endereco)}`,
+                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedAgendamento.address)}`,
                       "_blank",
                     )
                   }
@@ -1247,23 +1402,23 @@ export default function AgendamentosView() {
                 </Button>
               </div>
 
-              {/* Atendente */}
+              {/* userId */}
               <div>
                 <h3 className="font-semibold mb-2 flex items-center gap-2">
                   <User className="w-4 h-4" />
                   Atendente Responsável
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {selectedAgendamento.atendente}
+                  {selectedAgendamento.userId}
                 </p>
               </div>
 
               {/* Observações */}
-              {selectedAgendamento.observacoes && (
+              {selectedAgendamento.observations && (
                 <div>
                   <h3 className="font-semibold mb-2">Observações</h3>
                   <p className="text-sm text-muted-foreground italic">
-                    {selectedAgendamento.observacoes}
+                    {selectedAgendamento.observations}
                   </p>
                 </div>
               )}
@@ -1272,7 +1427,7 @@ export default function AgendamentosView() {
               <div>
                 <h3 className="font-semibold mb-2">Quantidade de Caixas</h3>
                 <p className="text-sm text-muted-foreground">
-                  {selectedAgendamento.qtdCaixas} {"Caixa(s)"}
+                  {selectedAgendamento.qtyBoxes} {"Caixa(s)"}
                 </p>
               </div>
 
@@ -1312,7 +1467,7 @@ export default function AgendamentosView() {
                   onClick={() =>
                     handleDelete(
                       selectedAgendamento.id,
-                      selectedAgendamento.clienteNome,
+                      selectedAgendamento.clientName,
                     )
                   }
                 >

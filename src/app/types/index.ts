@@ -43,16 +43,16 @@ export interface Estoque {
 }
 
 export interface Agendamento {
-  id: string;
-  clienteId: string;
-  clienteNome: string;
-  dataColeta: string;
-  horaColeta: string;
-  qtdCaixas: number;
-  endereco: string;
-  observacoes?: string;
-  atendente: string;
-  status: string;
+  id?: string;
+  clientId: string;
+  clientName: string;
+  collectionDate: string;
+  collectionTime: string;
+  qtyBoxes: number;
+  address: string;
+  observations?: string;
+  userId: string;
+  status: "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED";
 }
 
 export interface ItemEnvio {

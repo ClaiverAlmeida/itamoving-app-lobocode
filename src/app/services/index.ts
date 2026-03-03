@@ -10,3 +10,5 @@ export { productsService } from "./prices/products.service";
 export { stockService } from "./stock.service";
 // Serviço de User
 export { userService } from "./user.service";
+// Serviço de Appointments
+export { appointmentsService } from "./appointments.service";

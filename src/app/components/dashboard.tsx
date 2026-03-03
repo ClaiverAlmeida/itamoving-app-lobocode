@@ -88,15 +88,15 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
   // Cálculos
   const agendamentosHoje = agendamentos.filter(a => {
     const hoje = new Date().toISOString().split('T')[0];
-    return a.dataColeta === hoje;
+    return a.collectionDate === hoje;
   }).length;
 
   const agendamentosAmanha = agendamentos.filter(a => {
     const amanha = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    return a.dataColeta === amanha;
+    return a.collectionDate === amanha;
   }).length;
 
-  const agendamentosPendentes = agendamentos.filter(a => a.status === 'pendente').length;
+  const agendamentosPendentes = agendamentos.filter(a => a.status === 'PENDING').length;
 
   const receitaTotal = transacoes
     .filter(t => t.tipo === 'receita')
@@ -135,8 +135,8 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
 
     // Agendamentos atrasados
     const atrasados = agendamentos.filter(a => {
-      const dataAgendamento = new Date(a.dataColeta + 'T00:00:00');
-      return isPast(dataAgendamento) && a.status === 'pendente' && !isToday(dataAgendamento);
+      const dataAgendamento = new Date(a.collectionDate + 'T00:00:00');
+      return isPast(dataAgendamento) && a.status === 'PENDING' && !isToday(dataAgendamento);
     });
     
     if (atrasados.length > 0) {
@@ -204,7 +204,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
           atividades.push({
             id: `cliente-${c.id}`,
             tipo: 'cliente',
-            descricao: `Novo cliente cadastrado: ${c.nome}`,
+            descricao: `Novo cliente cadastrado: ${c.usaNome}`,
             data: dataCadastro,
             icone: Users,
             color: 'blue',
@@ -219,7 +219,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
         atividades.push({
           id: `agendamento-${a.id}`,
           tipo: 'agendamento',
-          descricao: `Agendamento criado para ${a.clienteNome}`,
+          descricao: `Agendamento criado para ${a.clientName}`,
           data: new Date(),
           icone: Calendar,
           color: 'green',
@@ -841,7 +841,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {agendamentos.slice(0, 6).map((agendamento) => {
-              const dataAgendamento = new Date(agendamento.dataColeta + 'T00:00:00');
+              const dataAgendamento = new Date(agendamento.collectionDate + 'T00:00:00');
               const ehHoje = isToday(dataAgendamento);
               const ehAmanha = isTomorrow(dataAgendamento);
               
@@ -861,10 +861,10 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="flex items-start justify-between">
-                          <h4 className="font-semibold text-sm">{agendamento.clienteNome}</h4>
+                          <h4 className="font-semibold text-sm">{agendamento.clientName}</h4>
                           <Badge className={
-                            agendamento.status === 'confirmado' ? 'bg-green-100 text-green-700' :
-                            agendamento.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' :
+                            agendamento.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
+                            agendamento.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
                             'bg-slate-100 text-slate-700'
                           }>
                             {agendamento.status}
@@ -878,11 +878,11 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3" />
-                          <span>{agendamento.horaColeta}</span>
+                          <span>{agendamento.collectionTime}</span>
                         </div>
                         <div className="flex items-start gap-2 text-xs text-muted-foreground">
                           <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                          <span className="line-clamp-2">{agendamento.endereco}</span>
+                          <span className="line-clamp-2">{agendamento.address}</span>
                         </div>
                       </div>
                     </CardContent>
