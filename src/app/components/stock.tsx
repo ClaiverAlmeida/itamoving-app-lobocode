@@ -592,7 +592,7 @@ export default function EstoqueView() {
                     </select>
                   </div>
 
-                  {/* Mensagem de erro caso não tenha itens para a categoria selecionada */}
+                  {/* Mensagem de erro caso não tenha itens para a categoria selecionada seja ativa */}
                   {selectedItem &&
                     !produtos.filter(
                       (produto) =>
