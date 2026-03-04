@@ -102,7 +102,7 @@ export interface EstoqueMovimentacao {
   };
 }
 
-const ITEM_LABELS: Record<ItemKeyEn, string> = {
+export const ITEM_LABELS: Record<ItemKeyEn, string> = {
   smallBoxes: "Caixas Pequenas",
   mediumBoxes: "Caixas Médias",
   largeBoxes: "Caixas Grandes",
@@ -110,7 +110,7 @@ const ITEM_LABELS: Record<ItemKeyEn, string> = {
   adhesiveTape: "Fitas Adesivas",
 };
 
-type ProductType =
+export type ProductType =
   | "SMALL_BOX"
   | "MEDIUM_BOX"
   | "LARGE_BOX"
@@ -118,7 +118,7 @@ type ProductType =
   | "TAPE_ADHESIVE";
 
 /** Backend productType (enum) → chave do frontend (camelCase) */
-const PRODUCT_TYPE_TO_ITEM_KEY: Record<ProductType, ItemKeyEn> = {
+export const PRODUCT_TYPE_TO_ITEM_KEY: Record<ProductType, ItemKeyEn> = {
   SMALL_BOX: "smallBoxes",
   MEDIUM_BOX: "mediumBoxes",
   LARGE_BOX: "largeBoxes",

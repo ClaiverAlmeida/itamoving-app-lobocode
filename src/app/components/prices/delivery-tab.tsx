@@ -83,14 +83,9 @@ const formEntregaInitial = {
 };
 
 export function PrecosEntregaTab() {
-  const {
-    precosEntrega,
-    setPrecosEntrega,
-    addPrecoEntrega,
-    updatePrecoEntrega,
-    deletePrecoEntrega,
-  } = useData();
+  const { setPrecosEntrega, deletePrecoEntrega } = useData();
 
+  const [entregas, setEntregas] = useState<PrecoEntrega[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEntregaDialogOpen, setIsEntregaDialogOpen] = useState(false);
   const [isEditEntregaDialogOpen, setIsEditEntregaDialogOpen] = useState(false);
@@ -106,6 +101,7 @@ export function PrecosEntregaTab() {
   const carregarPrecosEntrega = async (page = pageEntrega) => {
     const result = await deliveryPricesService.getAll(page, limitEntrega);
     if (result.success && result.data) {
+      setEntregas(result.data);
       setPrecosEntrega(result.data);
       if (result.pagination) setPaginationEntrega(result.pagination);
     } else if (result.error) {
@@ -203,11 +199,11 @@ export function PrecosEntregaTab() {
     );
 
     if (result.success) {
-      updatePrecoEntrega(selectedEntrega.id, patchPayload);
       toast.success("Preço de entrega atualizado com sucesso!");
       resetFormEntrega();
       setIsEditEntregaDialogOpen(false);
       setSelectedEntrega(null);
+      carregarPrecosEntrega(pageEntrega);
     } else {
       toast.error(result.error || "Erro ao atualizar preço de entrega");
     }
@@ -237,12 +233,16 @@ export function PrecosEntregaTab() {
   const handleExportarEntregas = async () => {
     const result = await deliveryPricesService.export();
     if (result.success && result.data) {
-      if(!result.data.length) {
+      if (!result.data.length) {
         toast.error("Nenhum preço de entrega cadastrado");
         return;
       }
-      
-      exportDocument.createPdf(result.data, "Delivery Prices", "Delivery prices list"); 
+
+      exportDocument.createPdf(
+        result.data,
+        "Delivery Prices",
+        "Delivery prices list",
+      );
       toast.success("Preços de entrega exportados com sucesso");
       // console.log(result.data);
       // TODO: Exportar os dados para um arquivo PDF
@@ -251,7 +251,7 @@ export function PrecosEntregaTab() {
     }
   };
 
-  const entregasFiltradas = precosEntrega.filter(
+  const entregasFiltradas = entregas.filter(
     (p) =>
       (p.originCity ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.destinationCity ?? "")
@@ -493,7 +493,11 @@ export function PrecosEntregaTab() {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline" size="icon" onClick={handleExportarEntregas}>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleExportarEntregas}
+            >
               <Download className="w-4 h-4" />
             </Button>
           </div>

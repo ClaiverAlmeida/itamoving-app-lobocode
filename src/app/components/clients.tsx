@@ -616,6 +616,11 @@ export default function ClientesView() {
     //TODO: Implementar a exportação de clientes
   };
 
+  const handleImport = async () => {
+    toast.info("Importação de clientes em desenvolvimento");
+    // const result = await clientsService.import();
+  };
+
   const handleCallTelphone = (telefones: string[]) => {
     if (!telefones || telefones.length === 0) {
       toast.error("Nenhum telefone encontrado");
@@ -814,6 +819,15 @@ export default function ClientesView() {
             >
               <Download className="w-4 h-4 mr-2" />
               Exportar
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="flex-1 sm:flex-none"
+              onClick={handleImport}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Importar
             </Button>
             <Dialog
               open={isDialogOpen}

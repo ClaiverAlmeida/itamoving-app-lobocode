@@ -404,110 +404,6 @@ const transacoesIniciais: Transacao[] = [
   },
 ];
 
-const precosEntregaIniciais: PrecoEntrega[] = [
-  {
-    id: '1',
-    originCity: 'Miami',
-    originState: 'FL',
-    destinationCity: 'São Paulo',
-    destinationState: 'SP',
-    pricePerKg: 8.50,
-    minimumPrice: 150.00,
-    deliveryDeadline: 30,
-    active: true,
-  },
-  {
-    id: '2',
-    originCity: 'Orlando',
-    originState: 'FL',
-    destinationCity: 'Rio de Janeiro',
-    destinationState: 'RJ',
-    pricePerKg: 9.00,
-    minimumPrice: 180.00,
-    deliveryDeadline: 28,
-    active: true,
-  },
-  {
-    id: '3',
-    originCity: 'Tampa',
-    originState: 'FL',
-    destinationCity: 'Belo Horizonte',
-    destinationState: 'MG',
-    pricePerKg: 8.75,
-    minimumPrice: 160.00,
-    deliveryDeadline: 32,
-    active: true,
-  },
-  {
-    id: '4',
-    originCity: 'Fort Lauderdale',
-    originState: 'FL',
-    destinationCity: 'Brasília',
-    destinationState: 'DF',
-    pricePerKg: 10.00,
-    minimumPrice: 200.00,
-    deliveryDeadline: 35,
-    active: false,
-  },
-];
-
-const precosProdutosIniciais: PrecoProduto[] = [
-  {
-    id: '1',
-    type: 'SMALL_BOX',
-    name: 'Caixa Pequena',
-    dimensions: '30x25x20cm',
-    maxWeight: 10,
-    costPrice: 3.50,
-    salePrice: 8.00,
-    active: true,
-  },
-  {
-    id: '2',
-    type: 'MEDIUM_BOX',
-    name: 'Caixa Média',
-    dimensions: '40x35x30cm',
-    maxWeight: 20,
-    costPrice: 5.00,
-    salePrice: 12.00,
-    active: true,
-  },
-  {
-    id: '3',
-    type: 'LARGE_BOX',
-    name: 'Caixa Grande',
-    dimensions: '50x45x40cm',
-    maxWeight: 30,
-    costPrice: 7.50,
-    salePrice: 18.00,
-    active: true,
-  },
-  {
-    id: '4',
-    type: 'TAPE_ADHESIVE',
-    name: 'Fita Adesiva Transparente',
-    costPrice: 1.20,
-    salePrice: 3.50,
-    active: true,
-  },
-  {
-    id: '5',
-    type: 'TAPE_ADHESIVE',
-    name: 'Fita Adesiva Marrom',
-    costPrice: 1.50,
-    salePrice: 4.00,
-    active: true,
-  },
-  {
-    id: '6',
-    type: 'TAPE_ADHESIVE',
-    name: 'Fita Adesiva Reforçada',
-    costPrice: 2.00,
-    salePrice: 5.50,
-    active: true,
-  },
-];
-
 const funcionariosIniciais: Funcionario[] = [
   {
     id: '1',
@@ -750,8 +646,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [containers, setContainers] = useState<Container[]>(containersIniciais);
   const [transacoes, setTransacoes] = useState<Transacao[]>(transacoesIniciais);
   const [rotas, setRotas] = useState<Rota[]>([]);
-  const [precosEntrega, setPrecosEntrega] = useState<PrecoEntrega[]>(precosEntregaIniciais);
-  const [precosProdutos, setPrecosProdutos] = useState<PrecoProduto[]>(precosProdutosIniciais);
+  const [precosEntrega, setPrecosEntrega] = useState<PrecoEntrega[]>([]);
+  const [precosProdutos, setPrecosProdutos] = useState<PrecoProduto[]>([]);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>(funcionariosIniciais);
   const [registrosPonto, setRegistrosPonto] = useState<RegistroPonto[]>(registrosPontoIniciais);
   const [folhasPagamento, setFolhasPagamento] = useState<Folha[]>(folhasPagamentoIniciais);

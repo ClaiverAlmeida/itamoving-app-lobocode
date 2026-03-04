@@ -59,6 +59,7 @@ import {
 } from "../../services/prices/products.service";
 
 import { exportDocument } from "../../utils";
+import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY, ProductType } from "../stock";
 
 const formProdutoInitial = {
   type: "SMALL_BOX" as
@@ -77,14 +78,9 @@ const formProdutoInitial = {
 };
 
 export function ProdutosTab() {
-  const {
-    precosProdutos,
-    addPrecoProduto,
-    setPrecosProdutos,
-    updatePrecoProduto,
-    deletePrecoProduto,
-  } = useData();
+  const { setPrecosProdutos, deletePrecoProduto } = useData();
 
+  const [produtos, setProdutos] = useState<PrecoProduto[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isProdutoDialogOpen, setIsProdutoDialogOpen] = useState(false);
   const [isEditProdutoDialogOpen, setIsEditProdutoDialogOpen] = useState(false);
@@ -100,6 +96,7 @@ export function ProdutosTab() {
   const carregarProdutos = async (page = pageProduto) => {
     const result = await productsService.getAll(page, limitProduto);
     if (result.success && result.data) {
+      setProdutos(result.data);
       setPrecosProdutos(result.data);
       if (result.pagination) setPaginationProduto(result.pagination);
     } else if (result.error) {
@@ -248,11 +245,11 @@ export function ProdutosTab() {
     );
 
     if (result.success) {
-      updatePrecoProduto(selectedProduto.id, patchPayload);
       toast.success("Produto atualizado com sucesso!");
       resetFormProduto();
       setIsEditProdutoDialogOpen(false);
       setSelectedProduto(null);
+      carregarProdutos(pageProduto);
     } else {
       toast.error(result.error || "Erro ao atualizar produto");
     }
@@ -296,10 +293,11 @@ export function ProdutosTab() {
     }
   };
 
-  const produtosFiltrados = precosProdutos.filter(
+  const produtosFiltrados = produtos.filter(
     (p) =>
       (p.name ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.type ?? "").toLowerCase().includes(searchTerm.toLowerCase()),
+    (ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[p.type as ProductType]] ?? "").toLowerCase().includes(searchTerm.toLowerCase()),
+    
   );
 
   return (
@@ -580,12 +578,10 @@ export function ProdutosTab() {
                           <div className="flex items-center justify-center gap-2">
                             {produto.type.includes("BOX") ? (
                               <Box className="w-5 h-5 text-blue-600" />
+                            ) : produto.type === "PERSONALIZED_ITEM" ? (
+                              <Package className="w-5 h-5 text-purple-600" />
                             ) : (
-                              produto.type === "PERSONALIZED_ITEM" ? (
-                                <Package className="w-5 h-5 text-purple-600" />
-                              ) : (
-                                <Package className="w-5 h-5 text-orange-600" />
-                              )
+                              <Package className="w-5 h-5 text-orange-600" />
                             )}
                             <div>
                               <div className="font-medium">{produto.name}</div>
