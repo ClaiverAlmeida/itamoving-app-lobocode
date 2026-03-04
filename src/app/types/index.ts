@@ -10,7 +10,7 @@ export interface Cliente {
   brazilCpf: string;
   brazilPhone: string;
   brazilAddress: Record<string, unknown>;
-  
+
   /** Atendente: id e nome vêm do backend (relação user). No cadastro usa-se o usuário logado. */
   user?: {
     id: string;
@@ -44,14 +44,19 @@ export interface Estoque {
 
 export interface Agendamento {
   id?: string;
-  clientId: string;
-  clientName: string;
   collectionDate: string;
   collectionTime: string;
   qtyBoxes: number;
   address: string;
   observations?: string;
-  userId: string;
+  user: {
+    id: string;
+    name: string;
+  };
+  client: {
+    id: string;
+    name: string;
+  };
   status: "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED";
 }
 
@@ -129,12 +134,16 @@ export interface PrecoEntrega {
 
 export interface PrecoProduto {
   id: string;
-  type: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_ITEM" | "TAPE_ADHESIVE";
+  type:
+    | "SMALL_BOX"
+    | "MEDIUM_BOX"
+    | "LARGE_BOX"
+    | "PERSONALIZED_ITEM"
+    | "TAPE_ADHESIVE";
   name: string;
   size?: string; // Para caixas: Pequena, Média, Grande
   dimensions?: string | null; // ex: "40x30x25cm"; null quando tipo Fita
   maxWeight?: number | null; // kg - para caixas; null quando tipo Fita
-  unit: string; // ex: "unidade", "rolo", "pacote"
   costPrice: number;
   salePrice: number;
   active: boolean;

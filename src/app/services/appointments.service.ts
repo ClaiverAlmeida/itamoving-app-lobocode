@@ -12,6 +12,8 @@ export interface CreateAppointmentsDTO {
   status: "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED";
 }
 
+export type UpdateAppointmentsDTO = Partial<CreateAppointmentsDTO>;
+
 export interface AppointmentsBackend {
   id: string;
   collectionDate: string;
@@ -38,15 +40,29 @@ export interface AppointmentsBackend {
   };
 }
 
+/** Garante collectionDate sempre como YYYY-MM-DD (evita mudança de dia por fuso). */
+function toDateOnly(value: string | undefined | null): string {
+  if (value == null) return "";
+  const s = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? s.slice(0, 10) : d.toISOString().slice(0, 10);
+}
+
 function mapBackendToFrontend(appointment: AppointmentsBackend): Agendamento {
   return {
     id: appointment.id,
-    clientId: appointment.client.id,
-    clientName: appointment.client.usaName,
-    userId: appointment.user?.id ?? "",
+    client: {
+      id: appointment.client.id,
+      name: appointment.client.usaName,
+    },
+    user: {
+      id: appointment.user?.id ?? "",
+      name: appointment.user?.name ?? "",
+    },
     observations: appointment.observations,
     status: appointment.status,
-    collectionDate: appointment.collectionDate,
+    collectionDate: toDateOnly(appointment.collectionDate),
     collectionTime: appointment.collectionTime,
     qtyBoxes: appointment.qtyBoxes,
     address: appointment.address,
@@ -54,6 +70,27 @@ function mapBackendToFrontend(appointment: AppointmentsBackend): Agendamento {
 }
 
 export class AppointmentsService {
+  async getAll(): Promise<{
+    success: boolean;
+    data?: Agendamento[];
+    error?: string;
+  }> {
+    try {
+      const result = await api.get<
+        AppointmentsBackend[] | { data: AppointmentsBackend[] }
+      >("/appointments");
+      if (result.success && result.data) {
+        const raw = (result.data as any)?.data ?? result.data;
+        const appointmentsBackend = raw as AppointmentsBackend[];
+        const appointments = appointmentsBackend.map(mapBackendToFrontend);
+        return { success: true, data: appointments };
+      }
+      return { success: false, error: "Erro ao buscar agendamentos" };
+    } catch (error) {
+      return { success: false, error: "Erro ao buscar agendamentos" };
+    }
+  }
+
   async getAllQtdBoxesPerDay(date: string): Promise<{
     success: boolean;
     data?: { collectionDate: string; qtyBoxes: number }[];
@@ -99,6 +136,40 @@ export class AppointmentsService {
       return { success: false, error: "Erro ao criar agendamento" };
     } catch (error) {
       return { success: false, error: "Erro ao criar agendamento" };
+    }
+  }
+
+  async update(
+    id: string,
+    data: UpdateAppointmentsDTO,
+  ): Promise<{ success: boolean; data?: Agendamento; error?: string }> {
+    try {
+      const result = await api.patch<
+        AppointmentsBackend | { data: AppointmentsBackend }
+      >(`/appointments/${id}`, data);
+      if (result.success && result.data) {
+        const raw = (result.data as any)?.data ?? result.data;
+        const appointmentsBackend = raw as AppointmentsBackend;
+        const appointment = mapBackendToFrontend(appointmentsBackend);
+        return { success: true, data: appointment };
+      }
+      return { success: false, error: "Erro ao atualizar agendamento" };
+    } catch (error) {
+      return { success: false, error: "Erro ao atualizar agendamento" };
+    }
+  }
+
+  async delete(id: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const result = await api.delete<
+        AppointmentsBackend | { data: AppointmentsBackend }
+      >(`/appointments/${id}`);
+      if (result.success && result.data) {
+        return { success: true };
+      }
+      return { success: false, error: "Erro ao excluir agendamento" };
+    } catch (error) {
+      return { success: false, error: "Erro ao excluir agendamento" };
     }
   }
 }

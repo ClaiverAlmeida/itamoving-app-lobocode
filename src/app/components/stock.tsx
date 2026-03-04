@@ -596,11 +596,13 @@ export default function EstoqueView() {
                   {selectedItem &&
                     !produtos.filter(
                       (produto) =>
+                        produto.active === true &&
                         produto.type === ITEM_KEY_TO_PRODUCT_TYPE[selectedItem],
                     ).length && (
                       <div className="space-y-2">
                         <span className="text-red-600 text-sm">
-                          Nenhum item encontrado para a categoria selecionada.
+                          Nenhum item encontrado e ativo para a categoria
+                          selecionada.
                         </span>
                       </div>
                     )}
@@ -615,8 +617,9 @@ export default function EstoqueView() {
                           !selectedItem ||
                           !produtos.filter(
                             (produto) =>
+                              produto.active === true &&
                               produto.type ===
-                              ITEM_KEY_TO_PRODUCT_TYPE[selectedItem],
+                                ITEM_KEY_TO_PRODUCT_TYPE[selectedItem],
                           ).length
                         } // Tirar disabled caso precise
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg"

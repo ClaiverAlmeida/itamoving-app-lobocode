@@ -219,7 +219,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
         atividades.push({
           id: `agendamento-${a.id}`,
           tipo: 'agendamento',
-          descricao: `Agendamento criado para ${a.clientName}`,
+          descricao: `Agendamento criado para ${a.client.name}`,
           data: new Date(),
           icone: Calendar,
           color: 'green',

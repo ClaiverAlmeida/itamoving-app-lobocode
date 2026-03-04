@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { BrowserRouter, useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
 import DashboardView from './components/dashboard';
 import ClientesView from './components/clients';
@@ -14,13 +15,13 @@ import Login from './components/login';
 import MotoristaApp from './components/driver-app';
 import { DataProvider } from './context/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Package, 
-  Calendar, 
-  Container, 
-  DollarSign, 
+import {
+  LayoutDashboard,
+  Users,
+  Package,
+  Calendar,
+  Container,
+  DollarSign,
   FileText,
   Menu,
   X,
@@ -30,19 +31,99 @@ import {
   UserCog,
   Truck,
   Shield,
-  Lock
+  Lock,
 } from 'lucide-react';
 import { Badge } from './components/ui/badge';
 import { Card, CardContent } from './components/ui/card';
 import logo from '../assets/2ac2fb95a59823c3119ddd194998db2f41de4a80.png';
 
-type View = 'dashboard' | 'clientes' | 'estoque' | 'agendamentos' | 'containers' | 'financeiro' | 'relatorios' | 'atendimentos' | 'precos' | 'rh' | 'motorista';
+const STORAGE_KEY = 'itamoving_last_route';
+
+type View =
+  | 'dashboard'
+  | 'clientes'
+  | 'estoque'
+  | 'agendamentos'
+  | 'containers'
+  | 'financeiro'
+  | 'relatorios'
+  | 'atendimentos'
+  | 'precos'
+  | 'rh'
+  | 'motorista';
+
+/** Rotas em inglês (URL) -> view interno */
+const PATH_TO_VIEW: Record<string, View> = {
+  dashboard: 'dashboard',
+  clients: 'clientes',
+  pricing: 'precos',
+  stock: 'estoque',
+  appointments: 'agendamentos',
+  containers: 'containers',
+  financial: 'financeiro',
+  reports: 'relatorios',
+  services: 'atendimentos',
+  hr: 'rh',
+  driver: 'motorista',
+};
+
+const VIEW_TO_PATH: Record<View, string> = {
+  dashboard: 'dashboard',
+  clientes: 'clients',
+  precos: 'pricing',
+  estoque: 'stock',
+  agendamentos: 'appointments',
+  containers: 'containers',
+  financeiro: 'financial',
+  relatorios: 'reports',
+  atendimentos: 'services',
+  rh: 'hr',
+  motorista: 'driver',
+};
+
+function pathToView(pathname: string): View {
+  const segment = pathname.replace(/^\//, '').toLowerCase() || 'dashboard';
+  return PATH_TO_VIEW[segment] ?? 'dashboard';
+}
 
 function MainApp() {
   const { user, logout, hasPermission } = useAuth();
-  const [activeView, setActiveView] = useState<View>('dashboard');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const activeView = pathToView(location.pathname);
+
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Restaurar última rota ao abrir na raiz (só quando path é / ou vazio)
+  useEffect(() => {
+    const path = location.pathname || '/';
+    if (path === '/') {
+      try {
+        const last = localStorage.getItem(STORAGE_KEY);
+        const target = last && last.startsWith('/') && last.length > 1 ? last : '/dashboard';
+        navigate(target, { replace: true });
+      } catch (_) {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [location.pathname]);
+
+  // Persistir rota atual no localStorage (em inglês)
+  useEffect(() => {
+    const view = pathToView(location.pathname);
+    const path = VIEW_TO_PATH[view];
+    if (location.pathname !== '/' && location.pathname !== '') {
+      try {
+        localStorage.setItem(STORAGE_KEY, `/${path}`);
+      } catch (_) {}
+    }
+  }, [location.pathname]);
+
+  const setActiveView = (view: View) => {
+    navigate(`/${VIEW_TO_PATH[view]}`);
+    setMobileMenuOpen(false);
+  };
 
   // Definir menu baseado no papel do usuário
   const getMenuItems = () => {
@@ -190,10 +271,7 @@ function MainApp() {
               return (
                 <li key={item.id}>
                   <button
-                    onClick={() => {
-                      setActiveView(item.id);
-                      setMobileMenuOpen(false); // Close mobile menu on navigation
-                    }}
+                    onClick={() => setActiveView(item.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-pointer ${
                       isActive 
                         ? 'bg-accent text-white shadow-lg scale-105' 
@@ -302,22 +380,46 @@ function AcessoNegado() {
   );
 }
 
-function AppContent() {
+function LoginPage() {
   const { user } = useAuth();
-
-  if (!user) {
-    return <Login />;
+  if (user) {
+    try {
+      const last = localStorage.getItem(STORAGE_KEY);
+      const target = last && last.startsWith('/') && last.length > 1 ? last : '/dashboard';
+      return <Navigate to={target} replace />;
+    } catch (_) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
+  return <Login />;
+}
 
-  return <MainApp />;
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  return <>{children}</>;
+}
+
+function AppContent() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="*" element={<RequireAuth><MainApp /></RequireAuth>} />
+    </Routes>
+  );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <DataProvider>
-        <AppContent />
-      </DataProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <DataProvider>
+          <AppContent />
+        </DataProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

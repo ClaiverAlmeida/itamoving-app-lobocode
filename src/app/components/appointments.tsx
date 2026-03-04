@@ -77,8 +77,13 @@ import { appointmentsService } from "../services/appointments.service";
 type ViewMode = "calendar" | "list" | "timeline";
 
 export default function AgendamentosView() {
-  const { agendamentos, addAgendamento, updateAgendamento, deleteAgendamento } =
-    useData();
+  const {
+    agendamentos,
+    setAgendamentos,
+    addAgendamento,
+    updateAgendamento,
+    deleteAgendamento,
+  } = useData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("calendar");
@@ -93,8 +98,14 @@ export default function AgendamentosView() {
   >([]);
 
   useEffect(() => {
-    // TODO: Carregar todos os agendamentos
-  });
+    const carregarAgendamentos = async () => {
+      const result = await appointmentsService.getAll();
+      if (result.success && result.data) {
+        setAgendamentos(result.data);
+      }
+    };
+    carregarAgendamentos();
+  }, [setAgendamentos]);
 
   const carregarQtdCaixasPorDia = async (date: string) => {
     const dateISO = new Date(date).toISOString();
@@ -219,20 +230,40 @@ export default function AgendamentosView() {
     setIsDialogOpen(false);
   };
 
-  const handleStatusChange = (id: string, status: Agendamento["status"]) => {
-    updateAgendamento(id, { status });
-    toast.success("Status atualizado!");
+  const handleStatusChange = async (
+    id: string,
+    status: Agendamento["status"],
+  ) => {
+    const result = await appointmentsService.update(id, { status });
+    console.log(result);
+    if (result.success && result.data) {
+      updateAgendamento(id, { status });
+      setSelectedAgendamento(result.data);
+      setSelectedAgendamento(null);
+      toast.success("Status atualizado!");
+      return result.data;
+    } else {
+      toast.error(result.error ?? "Erro ao atualizar status do agendamento.");
+    }
   };
 
-  const handleDelete = (id: string, clientName: string) => {
-    if (
-      window.confirm(
-        `Tem certeza que deseja excluir o agendamento de ${clientName}?`,
-      )
-    ) {
-      deleteAgendamento(id);
-      toast.success("Agendamento excluído!");
-      setSelectedAgendamento(null);
+  const handleDelete = async (id: string, clientName: string) => {
+    const confirm = window.confirm(
+      `Tem certeza que deseja excluir o agendamento de ${clientName}?`,
+    );
+    if (confirm) {
+      const result = await appointmentsService.delete(id);
+      if (result.success) {
+        deleteAgendamento(id);
+        setSelectedAgendamento(null);
+        toast.success("Agendamento excluído com sucesso!");
+        return true;
+      } else {
+        toast.error(result.error ?? "Erro ao excluir agendamento.");
+        return null;
+      }
+    } else {
+      return null;
     }
   };
 
@@ -306,9 +337,11 @@ export default function AgendamentosView() {
     return agendamentos.filter((agendamento) => {
       // Search
       const matchesSearch =
-        agendamento.clientId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        agendamento.client.name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         agendamento.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        agendamento.userId.toLowerCase().includes(searchTerm.toLowerCase());
+        agendamento.user.name.toLowerCase().includes(searchTerm.toLowerCase());
 
       if (!matchesSearch) return false;
 
@@ -323,7 +356,9 @@ export default function AgendamentosView() {
       // userId
       if (
         filters.userId &&
-        !agendamento.userId.toLowerCase().includes(filters.userId.toLowerCase())
+        !agendamento.user.name
+          .toLowerCase()
+          .includes(filters.userId.toLowerCase())
       ) {
         return false;
       }
@@ -332,7 +367,7 @@ export default function AgendamentosView() {
       if (filters.periodo !== "todos") {
         const now = new Date();
         const agendamentoDate = new Date(
-          agendamento.collectionDate + "T00:00:00",
+          (agendamento.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z",
         );
 
         if (filters.periodo === "hoje") {
@@ -354,7 +389,10 @@ export default function AgendamentosView() {
 
   const agendamentosDosDia = useMemo(() => {
     return filteredAgendamentos.filter((ag) =>
-      isSameDay(new Date(ag.collectionDate + "T00:00:00"), selectedDate),
+      isSameDay(
+        new Date((ag.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z"),
+        selectedDate,
+      ),
     );
   }, [filteredAgendamentos, selectedDate]);
 
@@ -370,16 +408,24 @@ export default function AgendamentosView() {
       (a) => a.status === "COLLECTED",
     ).length;
     const hoje = filteredAgendamentos.filter((a) =>
-      isToday(new Date(a.collectionDate + "T00:00:00")),
+      isToday(
+        new Date((a.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z"),
+      ),
     ).length;
     const amanha = filteredAgendamentos.filter((a) =>
-      isTomorrow(new Date(a.collectionDate + "T00:00:00")),
+      isTomorrow(
+        new Date((a.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z"),
+      ),
     ).length;
     const atrasados = filteredAgendamentos.filter(
       (a) =>
-        isPast(new Date(a.collectionDate + "T00:00:00")) &&
+        isPast(
+          new Date((a.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z"),
+        ) &&
         a.status === "PENDING" &&
-        !isToday(new Date(a.collectionDate + "T00:00:00")),
+        !isToday(
+          new Date((a.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z"),
+        ),
     ).length;
 
     return {
@@ -401,7 +447,9 @@ export default function AgendamentosView() {
   };
 
   const getDatesWithAgendamentos = () => {
-    return agendamentos.map((a) => new Date(a.collectionDate + "T00:00:00"));
+    return agendamentos.map(
+      (a) => new Date((a.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z"),
+    );
   };
 
   const TimelineView = () => {
@@ -413,7 +461,12 @@ export default function AgendamentosView() {
       <div className="space-y-4">
         {daysOfWeek.map((day) => {
           const dayAgendamentos = filteredAgendamentos.filter((ag) =>
-            isSameDay(new Date(ag.collectionDate + "T00:00:00"), day),
+            isSameDay(
+              new Date(
+                (ag.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z",
+              ),
+              day,
+            ),
           );
 
           return (
@@ -475,7 +528,7 @@ export default function AgendamentosView() {
                                     <span className="text-muted-foreground">
                                       •
                                     </span>
-                                    <span>{agendamento.clientName}</span>
+                                    <span>{agendamento.client.name}</span>
                                   </div>
                                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <MapPin className="w-3 h-3" />
@@ -578,8 +631,9 @@ export default function AgendamentosView() {
                         {clientes.length > 0 &&
                           clientes.map((cliente) => (
                             <SelectItem key={cliente.id} value={cliente.id}>
-                              {cliente.usaNome} - {cliente.usaAddress.cidade},{" "}
-                              {cliente.usaAddress.estado}
+                              {cliente.usaNome} -{" "}
+                              {cliente.usaAddress.cidade as string},{" "}
+                              {cliente.usaAddress.estado as string}
                             </SelectItem>
                           ))}
                       </SelectContent>
@@ -986,10 +1040,10 @@ export default function AgendamentosView() {
                   {/* Filtro de userId */}
                   <div>
                     <label className="text-sm font-semibold mb-3 block text-slate-700">
-                      👤 userId
+                      👤 Atendente
                     </label>
                     <Input
-                      placeholder="Digite o nome do userId..."
+                      placeholder="Digite o nome da atendente..."
                       value={filters.userId}
                       onChange={(e) =>
                         setFilters({ ...filters, userId: e.target.value })
@@ -1112,7 +1166,7 @@ export default function AgendamentosView() {
                                       </Badge>
                                     </div>
                                     <h4 className="font-semibold mb-1">
-                                      {agendamento.clientName}
+                                      {agendamento.client.name}
                                     </h4>
                                     <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
                                       <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -1121,7 +1175,7 @@ export default function AgendamentosView() {
                                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                       <div className="flex items-center gap-1">
                                         <User className="w-3 h-3" />
-                                        <span>{agendamento.userId}</span>
+                                        <span>{agendamento.user.name}</span>
                                       </div>
                                     </div>
                                   </div>
@@ -1185,10 +1239,16 @@ export default function AgendamentosView() {
                 .map((agendamento) => {
                   const config = getStatusConfig(agendamento.status);
                   const StatusIcon = config.icon;
-                  const agDate = new Date(
-                    agendamento.collectionDate + "T00:00:00",
+                  const dateStr = (agendamento.collectionDate ?? "").slice(
+                    0,
+                    10,
                   );
+                  const agDate =
+                    dateStr.length >= 10
+                      ? new Date(dateStr + "T12:00:00.000Z")
+                      : new Date(NaN);
                   const isAtrasado =
+                    !Number.isNaN(agDate.getTime()) &&
                     isPast(agDate) &&
                     getStatusKey(agendamento.status) === "PENDING" &&
                     !isToday(agDate);
@@ -1228,7 +1288,9 @@ export default function AgendamentosView() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                                   <span className="font-semibold text-sm sm:text-base">
-                                    {format(agDate, "dd/MM/yyyy")}
+                                    {dateStr.length >= 10
+                                      ? `${dateStr.slice(8, 10)}/${dateStr.slice(5, 7)}/${dateStr.slice(0, 4)}`
+                                      : format(agDate, "dd/MM/yyyy")}
                                   </span>
                                   <span className="text-muted-foreground">
                                     •
@@ -1252,7 +1314,7 @@ export default function AgendamentosView() {
                                   )}
                                 </div>
                                 <h4 className="font-semibold mb-1 truncate">
-                                  {agendamento.clientName}
+                                  {agendamento.client.name}
                                 </h4>
                                 <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
                                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -1264,7 +1326,7 @@ export default function AgendamentosView() {
                                   <div className="flex items-center gap-1">
                                     <User className="w-3 h-3 flex-shrink-0" />
                                     <span className="truncate">
-                                      {agendamento.userId}
+                                      {agendamento.user.name}
                                     </span>
                                   </div>
                                   {agendamento.observations && (
@@ -1330,7 +1392,7 @@ export default function AgendamentosView() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <h2 className="text-xl font-bold text-foreground mb-2">
-                    {selectedAgendamento.clientName}
+                    {selectedAgendamento.client.name}
                   </h2>
                   <Badge
                     className={
@@ -1360,12 +1422,14 @@ export default function AgendamentosView() {
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <CalendarIcon className="w-4 h-4" />
                   <span>
-                    {format(
-                      new Date(
-                        selectedAgendamento.collectionDate + "T00:00:00",
-                      ),
-                      "dd/MM/yyyy",
-                    )}
+                    {((): string => {
+                      const s = (
+                        selectedAgendamento.collectionDate ?? ""
+                      ).slice(0, 10);
+                      return s.length >= 10
+                        ? `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`
+                        : "--";
+                    })()}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -1409,7 +1473,7 @@ export default function AgendamentosView() {
                   Atendente Responsável
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {selectedAgendamento.userId}
+                  {selectedAgendamento.user?.name}
                 </p>
               </div>
 
@@ -1438,7 +1502,7 @@ export default function AgendamentosView() {
                   value={selectedAgendamento.status}
                   onValueChange={(value) => {
                     handleStatusChange(
-                      selectedAgendamento.id,
+                      selectedAgendamento.id!,
                       value as Agendamento["status"],
                     );
                     setSelectedAgendamento({
@@ -1466,8 +1530,8 @@ export default function AgendamentosView() {
                   className="w-full"
                   onClick={() =>
                     handleDelete(
-                      selectedAgendamento.id,
-                      selectedAgendamento.clientName,
+                      selectedAgendamento.id!,
+                      selectedAgendamento.client.name,
                     )
                   }
                 >

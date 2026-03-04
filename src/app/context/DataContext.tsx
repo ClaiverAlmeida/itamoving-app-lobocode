@@ -71,32 +71,6 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const agendamentosIniciais: Agendamento[] = [
-  {
-    id: '1',
-    clientId: '1',
-    clientName: 'João Silva',
-    collectionDate: '2024-12-28',
-    collectionTime: '14:00',
-    qtyBoxes: 2,
-    address: '123 Main Street, Miami, FL 33101',
-    status: 'CONFIRMED',
-    observations: 'Portão azul',
-    userId: 'Ana Paula',
-  },
-  {
-    id: '2',
-    clientId: '2',
-    clientName: 'Carlos Mendes',
-    collectionDate: '2024-12-28',
-    collectionTime: '16:00',
-    qtyBoxes: 3,
-    address: '456 Oak Avenue, Orlando, FL 32801',
-    status: 'PENDING',
-    userId: 'Lucas Santos',
-  },
-];
-
 const containersIniciais: Container[] = [
   {
     id: '1',
@@ -772,7 +746,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     adhesiveTape: 0,
   });
   
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>(agendamentosIniciais);
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [containers, setContainers] = useState<Container[]>(containersIniciais);
   const [transacoes, setTransacoes] = useState<Transacao[]>(transacoesIniciais);
   const [rotas, setRotas] = useState<Rota[]>([]);
