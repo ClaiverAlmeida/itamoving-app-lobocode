@@ -80,9 +80,9 @@ export default function RelatoriosView() {
   const estoqueArray = Array.isArray(estoque) ? estoque : [];
 
   const filteredClientes = clientes.filter(cliente =>
-    cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cliente.cpf.includes(searchTerm) ||
-    cliente.telefoneUSA.includes(searchTerm)
+    cliente.usaNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cliente.usaCpf.includes(searchTerm) ||
+    cliente.usaPhone.includes(searchTerm)
   );
 
   const gerarRelatorioPDF = (tipo: string) => {
@@ -106,9 +106,9 @@ export default function RelatoriosView() {
     const containersEntregue = containers.filter(c => c.status === 'entregue').length;
     
     // Agendamentos por status
-    const agendamentosConfirmados = agendamentos.filter(a => a.status === 'confirmado').length;
-    const agendamentosPendentes = agendamentos.filter(a => a.status === 'pendente').length;
-    const agendamentosConcluidos = agendamentos.filter(a => a.status === 'concluido').length;
+    const agendamentosConfirmados = agendamentos.filter(a => a.status === 'CONFIRMED').length;
+    const agendamentosPendentes = agendamentos.filter(a => a.status === 'PENDING').length;
+    const agendamentosConcluidos = agendamentos.filter(a => a.status === 'COLLECTED').length;
     
     // Ticket médio
     const ticketMedio = totalClientes > 0 ? receitas / totalClientes : 0;
@@ -140,7 +140,7 @@ export default function RelatoriosView() {
   const clientesPorEstado = useMemo(() => {
     const estados: Record<string, number> = {};
     clientes.forEach(c => {
-      const estado = c.enderecoUSA.estado;
+      const estado = c.usaAddress.estado as string;
       estados[estado] = (estados[estado] || 0) + 1;
     });
     return Object.entries(estados)
