@@ -69,34 +69,25 @@ export interface ItemEnvio {
 }
 
 export interface Container {
-  id: string;
-  numero: string;
-  tipo?: "20ft" | "40ft" | "40ft HC" | "45ft HC";
-  origem?: string;
-  destino?: string;
-  dataEnvio: string;
-  dataEmbarque?: string;
-  previsaoChegada?: string;
-  status:
-    | "preparando"
-    | "enviado"
-    | "em-transito"
-    | "entregue"
-    | "preparacao"
-    | "transito"
-    | "entregue"
-    | "cancelado";
+  id?: string;
+  number: string;
+  type?: "C20FT" | "C40FT" | "C40FTHC" | "C45FTHC";
+  origin?: string;
+  destination?: string;
+  boardingDate?: string;
+  estimatedArrival?: string;
   volume?: number;
-  linkRastreamento?: string;
-  caixas: {
-    clienteId: string;
-    clienteNome: string;
-    numeroCaixa: string;
-    tamanho: string;
-    peso: number;
-  }[];
-  pesoTotal: number;
-  limiteP: number;
+  weightLimit: number;
+  trackingLink?: string;
+  status: "PREPARATION" | "SHIPPED" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
+  // boxes: {
+  //   clientId: string;
+  //   clientName: string;
+  //   boxNumber: string;
+  //   size: string;
+  //   weight: number;
+  // }[];
+  // totalWeight: number;
 }
 
 export interface Transacao {

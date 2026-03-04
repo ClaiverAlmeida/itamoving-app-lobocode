@@ -119,10 +119,10 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
   ].filter(item => item.qtd < item.minimo);
 
   const containersAtivos = containers.filter(c => 
-    c.status === 'preparacao' || c.status === 'transito'
+    c.status === 'PREPARATION' || c.status === 'IN_TRANSIT' || c.status === 'SHIPPED' || c.status === 'DELIVERED' || c.status === 'CANCELLED'
   ).length;
 
-  const containersEmTransito = containers.filter(c => c.status === 'transito').length;
+  const containersEmTransito = containers.filter(c => c.status === 'IN_TRANSIT').length;
 
   const clientesNovosUltimaSemana = clientes.filter(c => {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -230,13 +230,13 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
     containers
       .slice(0, 2)
       .forEach(c => {
-        const dataEmbarque = new Date(c.dataEmbarque);
+        const dataEmbarque = new Date(c.boardingDate || '');
         // Só adiciona se a data for válida
         if (!isNaN(dataEmbarque.getTime())) {
           atividades.push({
             id: `container-${c.id}`,
             tipo: 'container',
-            descricao: `Container ${c.numero} - ${c.status}`,
+            descricao: `Container ${c.number} - ${c.status}`,
             data: dataEmbarque,
             icone: Container,
             color: 'purple',
@@ -259,10 +259,10 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
 
   // Dados para gráfico de status de containers
   const containersStatusData = [
-    { name: 'Em Preparação', value: containers.filter(c => c.status === 'preparacao').length, color: '#F5A623' },
-    { name: 'Em Trânsito', value: containers.filter(c => c.status === 'transito').length, color: '#5DADE2' },
-    { name: 'Entregue', value: containers.filter(c => c.status === 'entregue').length, color: '#10B981' },
-    { name: 'Cancelado', value: containers.filter(c => c.status === 'cancelado').length, color: '#EF4444' },
+    { name: 'Em Preparação', value: containers.filter(c => c.status === 'PREPARATION').length, color: '#F5A623' },
+    { name: 'Em Trânsito', value: containers.filter(c => c.status === 'IN_TRANSIT').length, color: '#5DADE2' },
+    { name: 'Entregue', value: containers.filter(c => c.status === 'DELIVERED').length, color: '#10B981' },
+    { name: 'Cancelado', value: containers.filter(c => c.status === 'CANCELLED').length, color: '#EF4444' },
   ];
 
   // Dados para gráfico de estoque
@@ -861,7 +861,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="flex items-start justify-between">
-                          <h4 className="font-semibold text-sm">{agendamento.clientName}</h4>
+                          <h4 className="font-semibold text-sm">{agendamento.client?.name}</h4>
                           <Badge className={
                             agendamento.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
                             agendamento.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :

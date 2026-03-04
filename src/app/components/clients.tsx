@@ -103,6 +103,7 @@ export default function ClientesView() {
     useData();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   /** Histórico de atividades por cliente (paginado, 7 por página) */
@@ -616,6 +617,7 @@ export default function ClientesView() {
     //TODO: Implementar a exportação de clientes
   };
 
+  /** Importação de clientes em desenvolvimento */
   const handleImport = async () => {
     toast.info("Importação de clientes em desenvolvimento");
     // const result = await clientsService.import();
@@ -820,15 +822,61 @@ export default function ClientesView() {
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              className="flex-1 sm:flex-none"
-              onClick={handleImport}
+
+            {/* Importação de clientes - Json e Excel */}
+            <Dialog
+                 open={isImportDialogOpen}
+                 onOpenChange={(open) => {
+                   setIsImportDialogOpen(open);
+                 }}
             >
-              <Download className="w-4 h-4 mr-2" />
-              Importar
-            </Button>
+              <DialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="flex-1 sm:flex-none"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Importar
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Importar Clientes</DialogTitle>
+                </DialogHeader>
+                <DialogDescription>
+                  Selecione ou arraste e solte o arquivo para importar os
+                  clientes
+                </DialogDescription>
+                <div className="gap-2 flex flex-col inline-flex h-full w-full justify-center items-center">
+                  <div className="flex flex-row gap-2 items-center mt-10 border-2 border-dashed border-gray-600 rounded-md p-10 justify-center cursor-pointer">
+                    <Download className="w-8 h-8 mr-2" />
+                    <Input type="file" accept=".json, .xlsx, .csv" id="file" className="cursor-pointer w-full h-full" />
+                  </div>
+                  <div className="flex justify-end gap-2 mt-10 w-full">
+                    <Button
+                      type="submit"
+                      className="flex-1 sm:flex-none"
+                      onClick={handleImport}
+                    >
+                      Confirmar Importação
+                    </Button>
+                    <Button
+                      type="button"
+                      className="flex-1 sm:flex-none"
+                      variant="outline"
+                      onClick={() => {
+                        setIsImportDialogOpen(false);
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Novo Cliente */}
             <Dialog
               open={isDialogOpen}
               onOpenChange={(open) => {

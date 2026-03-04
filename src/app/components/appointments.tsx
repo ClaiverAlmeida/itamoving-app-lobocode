@@ -353,7 +353,7 @@ export default function AgendamentosView() {
         return false;
       }
 
-      // userId
+      // Atendente Responsável
       if (
         filters.userId &&
         !agendamento.user.name
@@ -395,6 +395,10 @@ export default function AgendamentosView() {
       ),
     );
   }, [filteredAgendamentos, selectedDate]);
+
+  const somaCaixasDosDia = useMemo(() => {
+    return agendamentosDosDia.reduce((acc, a) => acc + a.qtyBoxes, 0);
+  }, [agendamentosDosDia]);
 
   const statistics = useMemo(() => {
     const total = filteredAgendamentos.length;
@@ -534,6 +538,12 @@ export default function AgendamentosView() {
                                     <MapPin className="w-3 h-3" />
                                     <span className="truncate">
                                       {agendamento.address}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Box className="w-3 h-3" />
+                                    <span className="truncate">
+                                      {agendamento.qtyBoxes} Caixa(s)
                                     </span>
                                   </div>
                                 </div>
@@ -1037,7 +1047,7 @@ export default function AgendamentosView() {
                     </div>
                   </div>
 
-                  {/* Filtro de userId */}
+                  {/* Filtro de Atendente */}
                   <div>
                     <label className="text-sm font-semibold mb-3 block text-slate-700">
                       👤 Atendente
@@ -1113,7 +1123,14 @@ export default function AgendamentosView() {
             <CardHeader>
               <CardTitle>{getDateLabel(selectedDate)}</CardTitle>
               <CardDescription>
-                {agendamentosDosDia.length} agendamento(s) programado(s)
+                <span className="flex flex-col items-start gap-2 text-sm text-muted-foreground mt-2">
+                  <span className="text-foreground">
+                    {agendamentosDosDia.length} agendamento(s) programado(s)
+                  </span>
+                  <span className="font-bold text-foreground">
+                    {somaCaixasDosDia} Caixa(s) do dia.
+                  </span>
+                </span>
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1176,6 +1193,12 @@ export default function AgendamentosView() {
                                       <div className="flex items-center gap-1">
                                         <User className="w-3 h-3" />
                                         <span>{agendamento.user.name}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <Box className="w-3 h-3 text-foreground" />
+                                        <span className="font-bold text-xs text-foreground">
+                                          {agendamento.qtyBoxes} Caixa(s)
+                                        </span>
                                       </div>
                                     </div>
                                   </div>
@@ -1335,8 +1358,8 @@ export default function AgendamentosView() {
                                       {":"} {agendamento.observations}
                                     </span>
                                   )}
-                                  <span className="text-xs italic line-clamp-1 break-words flex items-center gap-1">
-                                    <Box className="w-3 h-3" />
+                                  <span className="text-xs font-bold text-foreground line-clamp-1 break-words flex items-center gap-1">
+                                    <Box className="w-3 h-3 text-foreground" />
                                     {":"} {agendamento.qtyBoxes} {""}{" "}
                                     {"Caixa(s)"}
                                   </span>
@@ -1466,7 +1489,7 @@ export default function AgendamentosView() {
                 </Button>
               </div>
 
-              {/* userId */}
+              {/* Atendente Responsável */}
               <div>
                 <h3 className="font-semibold mb-2 flex items-center gap-2">
                   <User className="w-4 h-4" />

@@ -35,7 +35,7 @@ export default function MotoristaApp() {
   const [ordemConcluida, setOrdemConcluida] = useState<OrdemServicoMotorista | null>(null);
 
   // Filter confirmed agendamentos
-  const agendamentosConfirmados = agendamentos.filter((a) => a.status === "confirmado");
+  const agendamentosConfirmados = agendamentos.filter((a) => a.status === "CONFIRMED");
 
   const handleIniciarAtendimento = (agendamento: any) => {
     setAgendamentoSelecionado(agendamento);
@@ -335,7 +335,7 @@ export default function MotoristaApp() {
             <div className="text-center p-4 bg-white rounded-lg shadow-sm">
               <Box className="w-8 h-8 mx-auto text-blue-600 mb-2" />
               <p className="text-3xl font-bold text-blue-900">
-                {estoque.caixasPequenas}
+                {estoque.smallBoxes}
               </p>
               <p className="text-sm text-muted-foreground">
                 Pequenas
@@ -344,7 +344,7 @@ export default function MotoristaApp() {
             <div className="text-center p-4 bg-white rounded-lg shadow-sm">
               <Package className="w-8 h-8 mx-auto text-orange-600 mb-2" />
               <p className="text-3xl font-bold text-orange-900">
-                {estoque.caixasMedias}
+                {estoque.mediumBoxes}
               </p>
               <p className="text-sm text-muted-foreground">
                 Médias
@@ -353,7 +353,7 @@ export default function MotoristaApp() {
             <div className="text-center p-4 bg-white rounded-lg shadow-sm">
               <Box className="w-10 h-10 mx-auto text-purple-600 mb-2" />
               <p className="text-3xl font-bold text-purple-900">
-                {estoque.caixasGrandes}
+                {estoque.largeBoxes}
               </p>
               <p className="text-sm text-muted-foreground">
                 Grandes
@@ -362,7 +362,7 @@ export default function MotoristaApp() {
             <div className="text-center p-4 bg-white rounded-lg shadow-sm">
               <Package className="w-8 h-8 mx-auto text-green-600 mb-2" />
               <p className="text-3xl font-bold text-green-900">
-                {estoque.fitas}
+                {estoque.adhesiveTape}
               </p>
               <p className="text-sm text-muted-foreground">
                 Fitas
@@ -376,7 +376,7 @@ export default function MotoristaApp() {
       <div className="grid gap-4 md:grid-cols-2">
         <AnimatePresence>
           {agendamentosConfirmados.map((agendamento, index) => {
-            const cliente = clientes.find(c => c.id === agendamento.clienteId);
+            const cliente = clientes.find(c => c.id === agendamento.client?.id);
             return (
               <motion.div
                 key={agendamento.id}
@@ -389,11 +389,11 @@ export default function MotoristaApp() {
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="text-lg">
-                          {agendamento.clienteNome}
+                          {agendamento.client?.name}
                         </CardTitle>
                         <CardDescription className="flex items-center gap-1 mt-1">
                           <Phone className="w-3 h-3" />
-                          {cliente?.telefoneUSA || agendamento.telefone || "(305) 555-0100"}
+                          {cliente?.usaPhone ?? ""}
                         </CardDescription>
                       </div>
                       <Badge variant="outline" className="text-[#1E3A5F] border-[#1E3A5F]">
@@ -406,11 +406,11 @@ export default function MotoristaApp() {
                     <Calendar className="w-4 h-4 text-muted-foreground" />
                     <span>
                       {format(
-                        new Date(agendamento.dataColeta),
+                        new Date(agendamento.collectionDate),
                         "dd/MM/yyyy",
                         { locale: ptBR },
                       )}{" "}
-                      às {agendamento.horaColeta}
+                      às {agendamento.collectionTime}
                     </span>
                   </div>
 
@@ -418,7 +418,7 @@ export default function MotoristaApp() {
                     <Home className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                     <span className="line-clamp-2">
                       <span className="font-semibold text-xs text-muted-foreground mr-1">COLETA:</span>
-                      {agendamento.endereco}
+                      {agendamento.address}
                     </span>
                   </div>
 
@@ -426,7 +426,7 @@ export default function MotoristaApp() {
                     <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                     <span className="line-clamp-2">
                       <span className="font-semibold text-xs text-muted-foreground mr-1">ENTREGA:</span>
-                      {agendamento.destino || "Endereço de entrega a definir"}
+                      {agendamento.address || "Endereço de entrega a definir"}
                     </span>
                   </div>
                 </CardContent>

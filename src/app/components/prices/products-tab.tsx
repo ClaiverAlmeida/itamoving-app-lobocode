@@ -59,7 +59,7 @@ import {
 } from "../../services/prices/products.service";
 
 import { exportDocument } from "../../utils";
-import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY, ProductType } from "../stock";
+// import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY, ProductType } from "../stock";
 
 const formProdutoInitial = {
   type: "SMALL_BOX" as
@@ -294,10 +294,8 @@ export function ProdutosTab() {
   };
 
   const produtosFiltrados = produtos.filter(
-    (p) =>
-      (p.name ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[p.type as ProductType]] ?? "").toLowerCase().includes(searchTerm.toLowerCase()),
-    
+    (p) => (p.name ?? "").toLowerCase().includes(searchTerm.toLowerCase()),
+    // (ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[p.type as ProductType]] ?? "").toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
