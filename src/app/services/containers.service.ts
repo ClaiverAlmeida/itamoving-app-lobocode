@@ -19,37 +19,67 @@ export type UpdateContainersDTO = Partial<CreateContainersDTO>;
 export interface ContainersBackend {
   id: string;
   number: string;
-  type: "C20FT" | "C40FT" | "C40FTHC" | "C45FTHC";
-  origin: string;
-  destination: string;
-  boardingDate: string;
-  estimatedArrival: string;
-  volume: number;
+  type?: "C20FT" | "C40FT" | "C40FTHC" | "C45FTHC";
+  origin?: string;
+  destination?: string;
+  shipmentDate?: string;
+  boardingDate?: string;
+  estimatedArrival?: string;
+  volume?: number;
   weightLimit: number;
-  trackingLink: string;
-  status: "PREPARATION" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
-  createdAt: string;
-  updatedAt: string;
+  trackingLink?: string;
+  status: string;
+  totalWeight?: number;
+  boxes?: { clientId: string; clientName: string; boxNumber: string; size: string; weight: number }[];
+  createdAt?: string;
+  updatedAt?: string;
   deletedAt?: string | null;
 }
 
+function toDateOnly(v: string | undefined | null): string {
+  if (v == null) return "";
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? s.slice(0, 10) : d.toISOString().slice(0, 10);
+}
+
 function mapBackendToFrontend(container: ContainersBackend): Container {
+  const boxes = container.boxes ?? [];
+  const totalWeight =
+    container.totalWeight ?? boxes.reduce((s, b) => s + (b?.weight ?? 0), 0);
   return {
     id: container.id,
     number: container.number,
     type: container.type,
     origin: container.origin,
     destination: container.destination,
-    boardingDate: container.boardingDate,
-    estimatedArrival: container.estimatedArrival,
+    shipmentDate: toDateOnly(container.shipmentDate),
+    boardingDate: toDateOnly(container.boardingDate),
+    estimatedArrival: toDateOnly(container.estimatedArrival),
     volume: container.volume,
-    weightLimit: container.weightLimit,
+    weightLimit: container.weightLimit ?? 0,
     trackingLink: container.trackingLink,
-    status: container.status,
+    status: container.status as Container["status"],
+    totalWeight,
+    boxes,
   };
 }
 
 export class ContainersService {
+  async getAll(): Promise<{ success: boolean; data?: Container[]; error?: string }> {
+    try {
+      const result = await api.get<ContainersBackend[] | { data: ContainersBackend[] }>("/containers");
+      if (!result.success) return { success: false, error: result.error ?? "Erro ao buscar containers" };
+      const raw = result.data as ContainersBackend[] | { data: ContainersBackend[] } | undefined;
+      const list = Array.isArray(raw) ? raw : raw?.data ?? [];
+      const containers = list.map(mapBackendToFrontend);
+      return { success: true, data: containers };
+    } catch {
+      return { success: false, error: "Erro ao buscar containers" };
+    }
+  }
+
   async create(
     data: CreateContainersDTO,
   ): Promise<{ success: boolean; data?: Container; error?: string }> {
@@ -65,9 +95,9 @@ export class ContainersService {
         return { success: true, data: container };
       }
 
-      return { success: false, error: "Erro ao criar container" };
+      return { success: false, error: `Erro ao cadastrar container: ${result.error}` };
     } catch (error) {
-      return { success: false, error: "Erro ao criar container" };
+      return { success: false, error: `Erro ao cadastrar container: ${error}` };
     }
   }
 

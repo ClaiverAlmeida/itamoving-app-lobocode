@@ -52,33 +52,33 @@ type View =
   | 'rh'
   | 'motorista';
 
-/** Rotas em inglês (URL) -> view interno */
+/** Rotas em português (URL) -> view interno */
 const PATH_TO_VIEW: Record<string, View> = {
   dashboard: 'dashboard',
-  clients: 'clientes',
-  pricing: 'precos',
-  stock: 'estoque',
-  appointments: 'agendamentos',
+  clientes: 'clientes',
+  precos: 'precos',
+  estoque: 'estoque',
+  agendamentos: 'agendamentos',
   containers: 'containers',
-  financial: 'financeiro',
-  reports: 'relatorios',
-  services: 'atendimentos',
-  hr: 'rh',
-  driver: 'motorista',
+  financeiro: 'financeiro',
+  relatorios: 'relatorios',
+  atendimentos: 'atendimentos',
+  rh: 'rh',
+  motorista: 'motorista',
 };
 
 const VIEW_TO_PATH: Record<View, string> = {
   dashboard: 'dashboard',
-  clientes: 'clients',
-  precos: 'pricing',
-  estoque: 'stock',
-  agendamentos: 'appointments',
+  clientes: 'clientes',
+  precos: 'precos',
+  estoque: 'estoque',
+  agendamentos: 'agendamentos',
   containers: 'containers',
-  financeiro: 'financial',
-  relatorios: 'reports',
-  atendimentos: 'services',
-  rh: 'hr',
-  motorista: 'driver',
+  financeiro: 'financeiro',
+  relatorios: 'relatorios',
+  atendimentos: 'atendimentos',
+  rh: 'rh',
+  motorista: 'motorista',
 };
 
 function pathToView(pathname: string): View {

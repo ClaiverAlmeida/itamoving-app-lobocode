@@ -67,6 +67,7 @@ import {
 } from "../services/stock.service";
 import { PrecoProduto } from "../types";
 import { ResponsavelSelect } from "./forms";
+import { EmptyStateAlert } from "./EmptyStateAlert";
 
 /** Chaves dos itens em inglês camelCase (payload: smallBoxes: 10) */
 const ITEM_KEYS_EN = [
@@ -82,11 +83,11 @@ export interface EstoqueMovimentacao {
   id: string;
   type: "ENTRY" | "EXIT";
   productType:
-    | "SMALL_BOX"
-    | "MEDIUM_BOX"
-    | "LARGE_BOX"
-    | "PERSONALIZED_ITEM"
-    | "TAPE_ADHESIVE";
+  | "SMALL_BOX"
+  | "MEDIUM_BOX"
+  | "LARGE_BOX"
+  | "PERSONALIZED_ITEM"
+  | "TAPE_ADHESIVE";
   quantity: number;
   user: {
     id: string;
@@ -450,7 +451,7 @@ export default function EstoqueView() {
         (m) =>
           m.type === "ENTRY" &&
           Date.now() - new Date(m.createdAt).getTime() <
-            7 * 24 * 60 * 60 * 1000,
+          7 * 24 * 60 * 60 * 1000,
       )
       .reduce((sum, m) => sum + getMovQuantity(m), 0);
 
@@ -459,7 +460,7 @@ export default function EstoqueView() {
         (m) =>
           m.type === "EXIT" &&
           Date.now() - new Date(m.createdAt).getTime() <
-            7 * 24 * 60 * 60 * 1000,
+          7 * 24 * 60 * 60 * 1000,
       )
       .reduce((sum, m) => sum + getMovQuantity(m), 0);
 
@@ -599,12 +600,10 @@ export default function EstoqueView() {
                         produto.active === true &&
                         produto.type === ITEM_KEY_TO_PRODUCT_TYPE[selectedItem],
                     ).length && (
-                      <div className="space-y-2">
-                        <span className="text-red-600 text-sm">
-                          Nenhum item encontrado e ativo para a categoria
-                          selecionada.
-                        </span>
-                      </div>
+                      <EmptyStateAlert
+                        title="Nenhum item encontrado para a categoria"
+                        description="Não há itens ativos para a categoria selecionada. Cadastre um item ou ative um existente. O campo Item do Estoque ficará desabilitado até que exista ao menos um item ativo para a categoria selecionada."
+                      />
                     )}
 
                   {/* Adicionar item do estoque */}
@@ -619,7 +618,7 @@ export default function EstoqueView() {
                             (produto) =>
                               produto.active === true &&
                               produto.type ===
-                                ITEM_KEY_TO_PRODUCT_TYPE[selectedItem],
+                              ITEM_KEY_TO_PRODUCT_TYPE[selectedItem],
                           ).length
                         } // Tirar disabled caso precise
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg"
@@ -631,7 +630,7 @@ export default function EstoqueView() {
                           .filter(
                             (produto) =>
                               produto.type ===
-                                ITEM_KEY_TO_PRODUCT_TYPE[selectedItem] &&
+                              ITEM_KEY_TO_PRODUCT_TYPE[selectedItem] &&
                               produto.active === true,
                           )
                           .map((produto) => (
@@ -778,8 +777,7 @@ export default function EstoqueView() {
               transition={{ duration: 0.3 }}
             >
               <Card
-                className={`hover:shadow-lg transition-all border-l-4 ${
-                  item.cor === "red"
+                className={`hover:shadow-lg transition-all border-l-4 ${item.cor === "red"
                     ? "border-red-500 bg-red-50"
                     : item.cor === "green"
                       ? "border-green-500 bg-green-50"
@@ -788,15 +786,14 @@ export default function EstoqueView() {
                         : item.cor === "purple"
                           ? "border-purple-500 bg-purple-50"
                           : "border-blue-500 bg-blue-50"
-                }`}
+                  }`}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
                     {item.nome}
                   </CardTitle>
                   <Icon
-                    className={`h-5 w-5 ${
-                      item.cor === "red"
+                    className={`h-5 w-5 ${item.cor === "red"
                         ? "text-red-600"
                         : item.cor === "green"
                           ? "text-green-600"
@@ -805,7 +802,7 @@ export default function EstoqueView() {
                             : item.cor === "purple"
                               ? "text-purple-600"
                               : "text-blue-600"
-                    }`}
+                      }`}
                   />
                 </CardHeader>
                 <CardContent>
@@ -837,8 +834,7 @@ export default function EstoqueView() {
                       </div>
                       <div className="w-full bg-slate-200 rounded-full h-2">
                         <div
-                          className={`h-2 rounded-full transition-all ${
-                            item.cor === "red"
+                          className={`h-2 rounded-full transition-all ${item.cor === "red"
                               ? "bg-red-500"
                               : item.cor === "green"
                                 ? "bg-green-500"
@@ -847,7 +843,7 @@ export default function EstoqueView() {
                                   : item.cor === "purple"
                                     ? "bg-purple-500"
                                     : "bg-blue-500"
-                          }`}
+                            }`}
                           style={{ width: `${Math.min(percentual, 100)}%` }}
                         />
                       </div>
@@ -1071,36 +1067,32 @@ export default function EstoqueView() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    className={`p-4 rounded-lg border-l-4 ${
-                      mov.type === "ENTRY"
+                    className={`p-4 rounded-lg border-l-4 ${mov.type === "ENTRY"
                         ? "bg-green-50 border-green-500"
                         : "bg-orange-50 border-orange-500"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3 flex-1">
                         <div
-                          className={`p-2 rounded-full ${
-                            mov.type === "ENTRY"
+                          className={`p-2 rounded-full ${mov.type === "ENTRY"
                               ? "bg-green-100"
                               : "bg-orange-100"
-                          }`}
+                            }`}
                         >
                           {mov.type === "ENTRY" ? (
                             <ArrowUpRight
-                              className={`w-4 h-4 ${
-                                mov.type === "ENTRY"
+                              className={`w-4 h-4 ${mov.type === "ENTRY"
                                   ? "text-green-600"
                                   : "text-orange-600"
-                              }`}
+                                }`}
                             />
                           ) : (
                             <ArrowDownRight
-                              className={`w-4 h-4 ${
-                                mov.type === "EXIT"
+                              className={`w-4 h-4 ${mov.type === "EXIT"
                                   ? "text-orange-600"
                                   : "text-green-600"
-                              }`}
+                                }`}
                             />
                           )}
                         </div>
@@ -1122,11 +1114,10 @@ export default function EstoqueView() {
                               {mov.type === "ENTRY" ? "Entrada" : "Saída"}
                             </Badge>
                             <span
-                              className={`font-bold ${
-                                mov.type === "ENTRY"
+                              className={`font-bold ${mov.type === "ENTRY"
                                   ? "text-green-600"
                                   : "text-orange-600"
-                              }`}
+                                }`}
                             >
                               {mov.type === "ENTRY" ? "+" : "-"}
                               {qty}

@@ -27,6 +27,7 @@ import {
 } from "./ui/dialog";
 import { Calendar } from "./ui/calendar";
 import { Badge } from "./ui/badge";
+import { EmptyStateAlert } from "./EmptyStateAlert";
 import { useData } from "../context/DataContext";
 import { Agendamento, Cliente } from "../types";
 import {
@@ -96,6 +97,11 @@ export default function AgendamentosView() {
   const [qtdCaixasPorDia, setQtdCaixasPorDia] = useState<
     { collectionDate: string; qtyBoxes: number }[]
   >([]);
+
+  const clientesAtivos = useMemo(
+    () => clientes.filter((c) => c.status === "ACTIVE"),
+    [clientes]
+  );
 
   useEffect(() => {
     const carregarAgendamentos = async () => {
@@ -629,6 +635,7 @@ export default function AgendamentosView() {
                     <Label htmlFor="clientId">Cliente *</Label>
                     <Select
                       value={formData.clientId}
+                      disabled={!clientesAtivos.length}
                       onValueChange={(value) =>
                         setFormData({ ...formData, clientId: value })
                       }
@@ -638,17 +645,23 @@ export default function AgendamentosView() {
                         <SelectValue placeholder="Selecione o cliente" />
                       </SelectTrigger>
                       <SelectContent>
-                        {clientes.length > 0 &&
-                          clientes.map((cliente) => (
-                            <SelectItem key={cliente.id} value={cliente.id}>
-                              {cliente.usaNome} -{" "}
-                              {cliente.usaAddress.cidade as string},{" "}
-                              {cliente.usaAddress.estado as string}
-                            </SelectItem>
-                          ))}
+                        {clientesAtivos.map((cliente) => (
+                          <SelectItem key={cliente.id} value={cliente.id}>
+                            {cliente.usaNome} -{" "}
+                            {cliente.usaAddress.cidade as string},{" "}
+                            {cliente.usaAddress.estado as string}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  {!clientesAtivos.length && (
+                    <EmptyStateAlert
+                      title="Nenhum cliente ativo"
+                      description="Não há clientes ativos para agendamento. Cadastre um cliente ou ative um existente. O campo Cliente ficará desabilitado até que exista ao menos um cliente ativo."
+                    />
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">

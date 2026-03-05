@@ -1,3 +1,5 @@
+import { containersServices } from "./containers.service";
+
 export { api } from "./api.service";
 
 // Serviço de Clients
@@ -12,3 +14,5 @@ export { stockService } from "./stock.service";
 export { userService } from "./user.service";
 // Serviço de Appointments
 export { appointmentsService } from "./appointments.service";
+// Servico de Containers
+export { containersServices } from "./containers.service";

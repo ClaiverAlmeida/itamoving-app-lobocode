@@ -55,6 +55,7 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
@@ -104,6 +105,7 @@ export default function ClientesView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   /** Histórico de atividades por cliente (paginado, 7 por página) */
@@ -350,8 +352,8 @@ export default function ClientesView() {
         const cepExibir =
           data.cep && String(data.cep).trim()
             ? String(data.cep)
-                .replace(/\D/g, "")
-                .replace(/(\d{5})(\d{3})/, "$1-$2")
+              .replace(/\D/g, "")
+              .replace(/(\d{5})(\d{3})/, "$1-$2")
             : cepFormatado;
 
         setFormData((prev) => ({
@@ -476,7 +478,7 @@ export default function ClientesView() {
       current.usaAddress.estado !== (origUsaAddr?.estado ?? "") ||
       current.usaAddress.zipCode !== (origUsaAddr?.zipCode ?? "") ||
       (current.usaAddress.complemento ?? "") !==
-        (origUsaAddr?.complemento ?? "");
+      (origUsaAddr?.complemento ?? "");
     if (usaAddressChanged) patch.usaAddress = current.usaAddress;
 
     const brazilDestChanged =
@@ -618,7 +620,19 @@ export default function ClientesView() {
   };
 
   /** Importação de clientes em desenvolvimento */
-  const handleImport = async () => {
+  const handleImport = async (file: File | null) => {
+    if (!file) {
+      toast.error("Nenhum arquivo selecionado");
+      return;
+    }
+
+    const fileType = file.type;
+    if (fileType !== "application/json" && fileType !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" && fileType !== "text/csv") {
+      toast.error("Formato de arquivo inválido");
+      return;
+    }
+
+    const reader = new FileReader();
     toast.info("Importação de clientes em desenvolvimento");
     // const result = await clientsService.import();
   };
@@ -643,8 +657,7 @@ export default function ClientesView() {
     window.open(`https://api.whatsapp.com/send?phone=${telefone}`, "_blank");
   };
 
-  // TODO
-  // Documentos do Cliente
+  // TODO - Documentos do Cliente
 
   const filteredClientes = useMemo(() => {
     return clientes.filter((cliente) => {
@@ -825,10 +838,11 @@ export default function ClientesView() {
 
             {/* Importação de clientes - Json e Excel */}
             <Dialog
-                 open={isImportDialogOpen}
-                 onOpenChange={(open) => {
-                   setIsImportDialogOpen(open);
-                 }}
+              open={isImportDialogOpen}
+              onOpenChange={(open) => {
+                setIsImportDialogOpen(open);
+                if (!open) setImportFile(null);
+              }}
             >
               <DialogTrigger asChild>
                 <Button
@@ -845,31 +859,68 @@ export default function ClientesView() {
                   <DialogTitle>Importar Clientes</DialogTitle>
                 </DialogHeader>
                 <DialogDescription>
-                  Selecione ou arraste e solte o arquivo para importar os
-                  clientes
+                  Selecione ou arraste e solte o arquivo para importar os clientes.
                 </DialogDescription>
-                <div className="gap-2 flex flex-col inline-flex h-full w-full justify-center items-center">
-                  <div className="flex flex-row gap-2 items-center mt-10 border-2 border-dashed border-gray-600 rounded-md p-10 justify-center cursor-pointer">
-                    <Download className="w-8 h-8 mr-2" />
-                    <Input type="file" accept=".json, .xlsx, .csv" id="file" className="cursor-pointer w-full h-full" />
+                <div className="flex flex-col gap-6 w-full py-2">
+                  <label
+                    htmlFor="file-import-clientes"
+                    className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-muted-foreground/40 bg-muted/30 px-8 py-12 cursor-pointer transition-colors hover:border-primary/50 hover:bg-muted/50"
+                  >
+                    <Upload className="h-10 w-10 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">
+                      Clique ou arraste o arquivo aqui
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Formatos aceitos: .json, .xlsx, .csv
+                    </span>
+                    <Input
+                      id="file-import-clientes"
+                      type="file"
+                      accept=".json,.xlsx,.csv"
+                      className="sr-only"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        setImportFile(f ?? null);
+                      }}
+                    />
+                  </label>
+                  <div className="flex items-center justify-between gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+                    {importFile ? (
+                      <>
+                        <span className="min-w-0 flex-1 break-words text-foreground" title={importFile.name}>
+                          <strong>Arquivo selecionado:</strong> {importFile.name}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0 h-8 w-8 p-0"
+                          onClick={() => {
+                            setImportFile(null);
+                            const input = document.getElementById("file-import-clientes") as HTMLInputElement;
+                            if (input) input.value = "";
+                          }}
+                          aria-label="Remover arquivo"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Nenhum arquivo selecionado
+                      </span>
+                    )}
                   </div>
-                  <div className="flex justify-end gap-2 mt-10 w-full">
-                    <Button
-                      type="submit"
-                      className="flex-1 sm:flex-none"
-                      onClick={handleImport}
-                    >
-                      Confirmar Importação
-                    </Button>
+                  <div className="flex flex-row justify-end gap-2">
                     <Button
                       type="button"
-                      className="flex-1 sm:flex-none"
                       variant="outline"
-                      onClick={() => {
-                        setIsImportDialogOpen(false);
-                      }}
+                      onClick={() => setIsImportDialogOpen(false)}
                     >
                       Cancelar
+                    </Button>
+                    <Button type="button" onClick={() => handleImport(importFile)}>
+                      Confirmar Importação
                     </Button>
                   </div>
                 </div>
@@ -2049,30 +2100,28 @@ export default function ClientesView() {
                             const linhaAtividade = (
                               <>
                                 <div
-                                  className={`p-2 rounded-full flex-shrink-0 ${
-                                    color === "blue"
-                                      ? "bg-blue-100"
-                                      : color === "green"
-                                        ? "bg-green-100"
-                                        : color === "purple"
-                                          ? "bg-purple-100"
-                                          : color === "red"
-                                            ? "bg-red-100"
-                                            : "bg-orange-100"
-                                  }`}
+                                  className={`p-2 rounded-full flex-shrink-0 ${color === "blue"
+                                    ? "bg-blue-100"
+                                    : color === "green"
+                                      ? "bg-green-100"
+                                      : color === "purple"
+                                        ? "bg-purple-100"
+                                        : color === "red"
+                                          ? "bg-red-100"
+                                          : "bg-orange-100"
+                                    }`}
                                 >
                                   <Icon
-                                    className={`w-4 h-4 ${
-                                      color === "blue"
-                                        ? "text-blue-600"
-                                        : color === "green"
-                                          ? "text-green-600"
-                                          : color === "purple"
-                                            ? "text-purple-600"
-                                            : color === "red"
-                                              ? "text-red-600"
-                                              : "text-orange-600"
-                                    }`}
+                                    className={`w-4 h-4 ${color === "blue"
+                                      ? "text-blue-600"
+                                      : color === "green"
+                                        ? "text-green-600"
+                                        : color === "purple"
+                                          ? "text-purple-600"
+                                          : color === "red"
+                                            ? "text-red-600"
+                                            : "text-orange-600"
+                                      }`}
                                   />
                                 </div>
                                 <div className="flex-1 min-w-0 space-y-2">
@@ -2115,58 +2164,58 @@ export default function ClientesView() {
                         )}
                         {historicoPorCliente[selectedCliente.id].totalPages >
                           1 && (
-                          <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={
-                                loadingHistoricoId === selectedCliente.id ||
-                                historicoPorCliente[selectedCliente.id].page <=
+                            <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  loadingHistoricoId === selectedCliente.id ||
+                                  historicoPorCliente[selectedCliente.id].page <=
                                   1
-                              }
-                              onClick={() =>
-                                loadHistoricoPage(
-                                  selectedCliente.id,
-                                  historicoPorCliente[selectedCliente.id].page -
+                                }
+                                onClick={() =>
+                                  loadHistoricoPage(
+                                    selectedCliente.id,
+                                    historicoPorCliente[selectedCliente.id].page -
                                     1,
-                                )
-                              }
-                            >
-                              <ChevronLeft className="w-4 h-4 mr-1" />
-                              Anterior
-                            </Button>
-                            <span className="text-xs text-muted-foreground">
-                              Página{" "}
-                              {historicoPorCliente[selectedCliente.id].page} de{" "}
-                              {
-                                historicoPorCliente[selectedCliente.id]
-                                  .totalPages
-                              }{" "}
-                              ({historicoPorCliente[selectedCliente.id].total}{" "}
-                              atividades)
-                            </span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={
-                                loadingHistoricoId === selectedCliente.id ||
-                                historicoPorCliente[selectedCliente.id].page >=
+                                  )
+                                }
+                              >
+                                <ChevronLeft className="w-4 h-4 mr-1" />
+                                Anterior
+                              </Button>
+                              <span className="text-xs text-muted-foreground">
+                                Página{" "}
+                                {historicoPorCliente[selectedCliente.id].page} de{" "}
+                                {
                                   historicoPorCliente[selectedCliente.id]
                                     .totalPages
-                              }
-                              onClick={() =>
-                                loadHistoricoPage(
-                                  selectedCliente.id,
-                                  historicoPorCliente[selectedCliente.id].page +
+                                }{" "}
+                                ({historicoPorCliente[selectedCliente.id].total}{" "}
+                                atividades)
+                              </span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  loadingHistoricoId === selectedCliente.id ||
+                                  historicoPorCliente[selectedCliente.id].page >=
+                                  historicoPorCliente[selectedCliente.id]
+                                    .totalPages
+                                }
+                                onClick={() =>
+                                  loadHistoricoPage(
+                                    selectedCliente.id,
+                                    historicoPorCliente[selectedCliente.id].page +
                                     1,
-                                )
-                              }
-                            >
-                              Próxima
-                              <ChevronRight className="w-4 h-4 ml-1" />
-                            </Button>
-                          </div>
-                        )}
+                                  )
+                                }
+                              >
+                                Próxima
+                                <ChevronRight className="w-4 h-4 ml-1" />
+                              </Button>
+                            </div>
+                          )}
                       </>
                     )}
                   </div>

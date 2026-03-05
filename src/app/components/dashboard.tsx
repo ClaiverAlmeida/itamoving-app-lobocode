@@ -1,17 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { 
-  Users, 
-  Package, 
-  Calendar, 
-  TrendingUp, 
-  DollarSign, 
-  Container, 
-  ArrowUpRight, 
+import {
+  Users,
+  Package,
+  Calendar,
+  TrendingUp,
+  DollarSign,
+  Container,
+  ArrowUpRight,
   ArrowDownRight,
   AlertTriangle,
   Clock,
@@ -35,25 +35,28 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  PieChart, 
-  Pie, 
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
   Cell,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
   ResponsiveContainer,
   LineChart,
   Line
 } from 'recharts';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
+import { clientsService, containersServices, stockService, appointmentsService } from '../services';
+import { Cliente as ClienteType, Container as ContainerType, Estoque as EstoqueType, Agendamento as AgendamentoType } from '../types';
+import { toast } from 'sonner';
 
 interface Alerta {
   id: string;
@@ -81,9 +84,68 @@ interface DashboardViewProps {
 }
 
 export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
-  const { clientes, estoque, agendamentos, containers, transacoes } = useData();
+  const { transacoes } = useData();
   const { user, hasPermission } = useAuth();
+  const [clientes, setClientes] = useState<ClienteType[]>([]);
+  const [containers, setContainers] = useState<ContainerType[]>([]);
+  const [agendamentos, setAgendamentos] = useState<AgendamentoType[]>([]);
+  const [estoque, setEstoque] = useState<EstoqueType>({
+    smallBoxes: 0,
+    mediumBoxes: 0,
+    largeBoxes: 0,
+    personalizedItems: 0,
+    adhesiveTape: 0,
+  });
   const [selectedPeriod, setSelectedPeriod] = useState<'dia' | 'semana' | 'mes'>('semana');
+
+  // Carregar dados do dashboard
+  useEffect(() => {
+    const carregarDados = async () => {
+      // Clientes
+      const result = await clientsService.getAll();
+      if (result.success && result.data?.data) {
+        setClientes(result.data.data);
+      } else if (result.error) {
+        toast.error(result.error);
+      }
+      {
+        // Containers
+        const result = await containersServices.getAll();
+        if (result.success && result.data) {
+          setContainers(result.data);
+        } else if (result.error) {
+          toast.error(result.error);
+        }
+      }
+      {
+        // Estoque: API retorna { data: { data: Estoque[] } }; usa o primeiro registro
+        const result = await stockService.getAll();
+        if (result.success && result.data?.data?.length) {
+          const first = result.data.data[0];
+          setEstoque({
+            smallBoxes: first.smallBoxes ?? 0,
+            mediumBoxes: first.mediumBoxes ?? 0,
+            largeBoxes: first.largeBoxes ?? 0,
+            personalizedItems: first.personalizedItems ?? 0,
+            adhesiveTape: first.adhesiveTape ?? 0,
+          });
+        } else if (result.error) {
+          toast.error(result.error);
+        }
+      }
+      {
+        // Agendamentos
+        const result = await appointmentsService.getAll();
+        if (result.success && result.data) {
+          setAgendamentos(result.data);
+        } else if (result.error) {
+          toast.error(result.error);
+        }
+      }
+    }
+
+    carregarDados();
+  }, []);
 
   // Cálculos
   const agendamentosHoje = agendamentos.filter(a => {
@@ -118,7 +180,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
     { tipo: 'Fitas', qtd: estoque.adhesiveTape, minimo: 40 },
   ].filter(item => item.qtd < item.minimo);
 
-  const containersAtivos = containers.filter(c => 
+  const containersAtivos = containers.filter(c =>
     c.status === 'PREPARATION' || c.status === 'IN_TRANSIT' || c.status === 'SHIPPED' || c.status === 'DELIVERED' || c.status === 'CANCELLED'
   ).length;
 
@@ -138,7 +200,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
       const dataAgendamento = new Date(a.collectionDate + 'T00:00:00');
       return isPast(dataAgendamento) && a.status === 'PENDING' && !isToday(dataAgendamento);
     });
-    
+
     if (atrasados.length > 0) {
       alerts.push({
         id: 'agendamentos-atrasados',
@@ -270,7 +332,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
     { tipo: 'Pequenas', quantidade: estoque.smallBoxes, fill: '#5DADE2' },
     { tipo: 'Médias', quantidade: estoque.mediumBoxes, fill: '#F5A623' },
     { tipo: 'Grandes', quantidade: estoque.largeBoxes, fill: '#1E3A5F' },
-    { tipo: 'Itens Personalizados', quantidade: estoque.personalizedItems, fill: '#94A3B8' }, 
+    { tipo: 'Itens Personalizados', quantidade: estoque.personalizedItems, fill: '#94A3B8' },
     { tipo: 'Fitas', quantidade: estoque.adhesiveTape, fill: '#94A3B8' },
   ];
 
@@ -286,8 +348,8 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
   ];
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
       currency: 'USD',
       notation: 'compact',
       maximumFractionDigits: 1
@@ -316,8 +378,8 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
         </div>
         <div className="flex gap-2 flex-wrap">
           {hasPermission('relatorios', 'read') && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => onNavigate?.('relatorios')}
               className="flex-1 sm:flex-none"
@@ -340,7 +402,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
             {alertas.map((alerta) => {
               const Icon = alerta.icone;
               const colors = getAlertaColor(alerta.tipo);
-              
+
               return (
                 <motion.div
                   key={alerta.id}
@@ -487,25 +549,21 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <Card className={`bg-gradient-to-br border-2 hover:shadow-xl transition-all cursor-pointer group ${
-            estoqueBaixo.length > 0 
-              ? 'from-orange-50 to-orange-100 border-orange-300' 
-              : 'from-slate-50 to-slate-100 border-slate-200'
-          }`}>
+          <Card className={`bg-gradient-to-br border-2 hover:shadow-xl transition-all cursor-pointer group ${estoqueBaixo.length > 0
+            ? 'from-orange-50 to-orange-100 border-orange-300'
+            : 'from-slate-50 to-slate-100 border-slate-200'
+            }`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={`text-sm font-medium ${
-                estoqueBaixo.length > 0 ? 'text-orange-900' : 'text-slate-900'
-              }`}>
+              <CardTitle className={`text-sm font-medium ${estoqueBaixo.length > 0 ? 'text-orange-900' : 'text-slate-900'
+                }`}>
                 Estoque Total
               </CardTitle>
-              <Package className={`h-5 w-5 group-hover:scale-110 transition-transform ${
-                estoqueBaixo.length > 0 ? 'text-orange-600' : 'text-slate-600'
-              }`} />
+              <Package className={`h-5 w-5 group-hover:scale-110 transition-transform ${estoqueBaixo.length > 0 ? 'text-orange-600' : 'text-slate-600'
+                }`} />
             </CardHeader>
             <CardContent>
-              <div className={`text-3xl font-bold ${
-                estoqueBaixo.length > 0 ? 'text-orange-900' : 'text-slate-900'
-              }`}>
+              <div className={`text-3xl font-bold ${estoqueBaixo.length > 0 ? 'text-orange-900' : 'text-slate-900'
+                }`}>
                 {estoqueTotal}
               </div>
               {estoqueBaixo.length > 0 ? (
@@ -523,9 +581,8 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                   </Badge>
                 </div>
               )}
-              <p className={`text-xs mt-1 ${
-                estoqueBaixo.length > 0 ? 'text-orange-700' : 'text-slate-700'
-              }`}>
+              <p className={`text-xs mt-1 ${estoqueBaixo.length > 0 ? 'text-orange-700' : 'text-slate-700'
+                }`}>
                 P: {estoque.smallBoxes} | M: {estoque.mediumBoxes} | G: {estoque.largeBoxes} | Itens Personalizados: {estoque.personalizedItems} | Fitas: {estoque.adhesiveTape}
               </p>
             </CardContent>
@@ -599,52 +656,52 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                 <LineChart data={financeiroData}>
                   <defs>
                     <linearGradient id="colorReceitas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorDespesas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#EF4444" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorLucro" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                   <XAxis dataKey="mes" stroke="#64748B" />
                   <YAxis stroke="#64748B" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'white', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
                       border: '1px solid #E2E8F0',
                       borderRadius: '8px',
                       boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                     }}
                   />
                   <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="receitas" 
-                    stroke="#10B981" 
+                  <Line
+                    type="monotone"
+                    dataKey="receitas"
+                    stroke="#10B981"
                     strokeWidth={3}
                     fill="url(#colorReceitas)"
                     dot={{ r: 4 }}
                     activeDot={{ r: 6 }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="despesas" 
-                    stroke="#EF4444" 
+                  <Line
+                    type="monotone"
+                    dataKey="despesas"
+                    stroke="#EF4444"
                     strokeWidth={3}
                     fill="url(#colorDespesas)"
                     dot={{ r: 4 }}
                     activeDot={{ r: 6 }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="lucro" 
-                    stroke="#8B5CF6" 
+                  <Line
+                    type="monotone"
+                    dataKey="lucro"
+                    stroke="#8B5CF6"
                     strokeWidth={3}
                     fill="url(#colorLucro)"
                     dot={{ r: 4 }}
@@ -687,9 +744,9 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
                     border: '1px solid #E2E8F0',
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
@@ -717,16 +774,16 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                 <XAxis dataKey="tipo" stroke="#64748B" />
                 <YAxis stroke="#64748B" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
                     border: '1px solid #E2E8F0',
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                   }}
                 />
-                <Bar 
-                  dataKey="quantidade" 
+                <Bar
+                  dataKey="quantidade"
                   radius={[8, 8, 0, 0]}
                   animationDuration={1500}
                 >
@@ -753,9 +810,9 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                 <XAxis dataKey="dia" stroke="#64748B" />
                 <YAxis stroke="#64748B" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
                     border: '1px solid #E2E8F0',
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
@@ -785,7 +842,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
             <div className="space-y-4 max-h-[250px] overflow-y-auto">
               {atividadesRecentes.map((atividade) => {
                 const Icon = atividade.icone;
-                
+
                 return (
                   <motion.div
                     key={atividade.id}
@@ -793,18 +850,16 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                     animate={{ opacity: 1, x: 0 }}
                     className="flex items-start gap-3"
                   >
-                    <div className={`p-2 rounded-full ${
-                      atividade.color === 'blue' ? 'bg-blue-100' :
+                    <div className={`p-2 rounded-full ${atividade.color === 'blue' ? 'bg-blue-100' :
                       atividade.color === 'green' ? 'bg-green-100' :
-                      atividade.color === 'purple' ? 'bg-purple-100' :
-                      'bg-orange-100'
-                    }`}>
-                      <Icon className={`w-4 h-4 ${
-                        atividade.color === 'blue' ? 'text-blue-600' :
+                        atividade.color === 'purple' ? 'bg-purple-100' :
+                          'bg-orange-100'
+                      }`}>
+                      <Icon className={`w-4 h-4 ${atividade.color === 'blue' ? 'text-blue-600' :
                         atividade.color === 'green' ? 'text-green-600' :
-                        atividade.color === 'purple' ? 'text-purple-600' :
-                        'text-orange-600'
-                      }`} />
+                          atividade.color === 'purple' ? 'text-purple-600' :
+                            'text-orange-600'
+                        }`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{atividade.descricao}</p>
@@ -844,7 +899,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
               const dataAgendamento = new Date(agendamento.collectionDate + 'T00:00:00');
               const ehHoje = isToday(dataAgendamento);
               const ehAmanha = isTomorrow(dataAgendamento);
-              
+
               return (
                 <motion.div
                   key={agendamento.id}
@@ -853,19 +908,18 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <Card className={`hover:shadow-lg transition-all border-l-4 ${
-                    ehHoje ? 'border-green-500 bg-green-50' :
+                  <Card className={`hover:shadow-lg transition-all border-l-4 ${ehHoje ? 'border-green-500 bg-green-50' :
                     ehAmanha ? 'border-blue-500 bg-blue-50' :
-                    'border-slate-300'
-                  }`}>
+                      'border-slate-300'
+                    }`}>
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="flex items-start justify-between">
                           <h4 className="font-semibold text-sm">{agendamento.client?.name}</h4>
                           <Badge className={
                             agendamento.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
-                            agendamento.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-slate-100 text-slate-700'
+                              agendamento.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-slate-100 text-slate-700'
                           }>
                             {agendamento.status}
                           </Badge>

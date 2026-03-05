@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -27,7 +27,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { useData } from "../context/DataContext";
-import { Container as ContainerType } from "../types";
+import { Container, Container as ContainerType } from "../types";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { format } from "date-fns";
@@ -75,15 +75,12 @@ import {
   Truck,
   Globe,
   Edit,
-  MoreVertical,
-  Save,
-  XCircle,
 } from "lucide-react";
+import { containersServices } from "../services";
 import {
-  CreateContainersDTO,
   UpdateContainersDTO,
-  containersServices,
 } from "../services/containers.service";
+
 
 type ViewMode = "grid" | "list" | "kanban";
 
@@ -99,6 +96,7 @@ interface ContainerEvento {
 export default function ContainersView() {
   const {
     containers,
+    setContainers,
     addContainer,
     updateContainer,
     deleteContainer,
@@ -107,6 +105,7 @@ export default function ContainersView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showFilters, setShowFilters] = useState(false);
+
   const [selectedContainer, setSelectedContainer] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -158,6 +157,16 @@ export default function ContainersView() {
       trackingLink: "",
     });
   };
+
+  useEffect(() => {
+    const carregarContainers = async () => {
+      const result = await containersServices.getAll();
+      if (result.success && result.data) {
+        setContainers(result.data);
+      }
+    };
+    carregarContainers();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,9 +279,20 @@ export default function ContainersView() {
     };
 
     const patchPayload = getUpdatePayload();
-
+    console.log(patchPayload);
     if (Object.keys(patchPayload).length === 0) {
       toast.info("Nenhum campo alterado.");
+      return;
+    }
+
+    // Validar se a data do embarque vem depois da data de chegada estimada
+    const boardingDate = new Date(formData.boardingDate).getTime();
+    const estimatedArrival = new Date(formData.estimatedArrival).getTime();
+
+    if (Number(boardingDate) > Number(estimatedArrival)) {
+      toast.error(
+        "A data de embarque não pode ser maior que a data de chegada estimada.",
+      );
       return;
     }
 
@@ -287,6 +307,7 @@ export default function ContainersView() {
       resetForm();
       setIsEditDialogOpen(false);
       setIsEditing(false);
+      setSelectedContainer(result.data);
     } else {
       toast.error(result.error ?? "Erro ao atualizar container.");
       return;
@@ -594,7 +615,11 @@ export default function ContainersView() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) resetForm();
+            }
+            }>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />
@@ -994,11 +1019,10 @@ export default function ContainersView() {
                           <Badge
                             key={status}
                             onClick={() => setFilters({ ...filters, status })}
-                            className={`cursor-pointer px-4 py-2 transition-all ${
-                              isSelected
-                                ? `${statusColors[status]} text-white hover:opacity-90`
-                                : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-100"
-                            }`}
+                            className={`cursor-pointer px-4 py-2 transition-all ${isSelected
+                              ? `${statusColors[status]} text-white hover:opacity-90`
+                              : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-100"
+                              }`}
                           >
                             {statusLabels[status]}
                           </Badge>
@@ -1661,38 +1685,34 @@ export default function ContainersView() {
                           <div key={evento.id} className="flex gap-4">
                             <div className="flex flex-col items-center">
                               <div
-                                className={`p-2 rounded-full ${
-                                  evento.concluido
-                                    ? "bg-green-100"
-                                    : "bg-slate-100"
-                                }`}
+                                className={`p-2 rounded-full ${evento.concluido
+                                  ? "bg-green-100"
+                                  : "bg-slate-100"
+                                  }`}
                               >
                                 <Icon
-                                  className={`w-4 h-4 ${
-                                    evento.concluido
-                                      ? "text-green-600"
-                                      : "text-slate-400"
-                                  }`}
+                                  className={`w-4 h-4 ${evento.concluido
+                                    ? "text-green-600"
+                                    : "text-slate-400"
+                                    }`}
                                 />
                               </div>
                               {!isLast && (
                                 <div
-                                  className={`w-0.5 flex-1 min-h-[40px] ${
-                                    evento.concluido
-                                      ? "bg-green-200"
-                                      : "bg-slate-200"
-                                  }`}
+                                  className={`w-0.5 flex-1 min-h-[40px] ${evento.concluido
+                                    ? "bg-green-200"
+                                    : "bg-slate-200"
+                                    }`}
                                 />
                               )}
                             </div>
                             <div className="flex-1 pb-4">
                               <div className="flex items-center justify-between mb-1">
                                 <h4
-                                  className={`font-semibold ${
-                                    evento.concluido
-                                      ? "text-foreground"
-                                      : "text-muted-foreground"
-                                  }`}
+                                  className={`font-semibold ${evento.concluido
+                                    ? "text-foreground"
+                                    : "text-muted-foreground"
+                                    }`}
                                 >
                                   {evento.descricao}
                                 </h4>
@@ -1820,7 +1840,11 @@ export default function ContainersView() {
       </AnimatePresence>
 
       {/* Dialog de Edição */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) resetForm();
+      }
+      }>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Container</DialogTitle>

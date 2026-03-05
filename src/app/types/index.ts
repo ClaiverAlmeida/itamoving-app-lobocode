@@ -74,20 +74,21 @@ export interface Container {
   type?: "C20FT" | "C40FT" | "C40FTHC" | "C45FTHC";
   origin?: string;
   destination?: string;
+  shipmentDate?: string;
   boardingDate?: string;
   estimatedArrival?: string;
   volume?: number;
   weightLimit: number;
   trackingLink?: string;
   status: "PREPARATION" | "SHIPPED" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
-  // boxes: {
-  //   clientId: string;
-  //   clientName: string;
-  //   boxNumber: string;
-  //   size: string;
-  //   weight: number;
-  // }[];
-  // totalWeight: number;
+  boxes?: {
+    clientId: string;
+    clientName: string;
+    boxNumber: string;
+    size: string;
+    weight: number;
+  }[];
+  totalWeight?: number;
 }
 
 export interface Transacao {
