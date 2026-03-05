@@ -545,7 +545,7 @@ export default function EstoqueView() {
                   Nova Movimentação
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Registrar Movimentação</DialogTitle>
                   <DialogDescription>
@@ -607,39 +607,49 @@ export default function EstoqueView() {
                     )}
 
                   {/* Adicionar item do estoque */}
-                  {selectedItem && (
-                    <div className="space-y-2">
-                      <Label>Item do Estoque *</Label>
-                      <select
-                        required
-                        disabled={
-                          !selectedItem ||
-                          !produtos.filter(
-                            (produto) =>
-                              produto.active === true &&
-                              produto.type ===
-                              ITEM_KEY_TO_PRODUCT_TYPE[selectedItem],
-                          ).length
-                        } // Tirar disabled caso precise
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-                        value={selectedProduto || ""}
-                        onChange={(e) => setSelectedProduto(e.target.value)}
-                      >
-                        <option value="">Selecione...</option>
-                        {produtos
-                          .filter(
-                            (produto) =>
-                              produto.type ===
-                              ITEM_KEY_TO_PRODUCT_TYPE[selectedItem] &&
-                              produto.active === true,
-                          )
-                          .map((produto) => (
-                            <option key={produto.id} value={produto.id}>
-                              {produto.name}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
+                  {selectedItem && produtos.filter(
+                    (produto) =>
+                      produto.active === true &&
+                      produto.type === ITEM_KEY_TO_PRODUCT_TYPE[selectedItem],
+                  ).length && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="space-y-2">
+                        <Label>Item do Estoque *</Label>
+                        <select
+                          required
+                          disabled={
+                            !selectedItem ||
+                            !produtos.filter(
+                              (produto) =>
+                                produto.active === true &&
+                                produto.type ===
+                                ITEM_KEY_TO_PRODUCT_TYPE[selectedItem],
+                            ).length
+                          } // Tirar disabled caso precise
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+                          value={selectedProduto || ""}
+                          onChange={(e) => setSelectedProduto(e.target.value)}
+                        >
+                          <option value="">Selecione...</option>
+                          {produtos
+                            .filter(
+                              (produto) =>
+                                produto.type ===
+                                ITEM_KEY_TO_PRODUCT_TYPE[selectedItem] &&
+                                produto.active === true,
+                            )
+                            .map((produto) => (
+                              <option key={produto.id} value={produto.id}>
+                                {produto.name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    </motion.div>
                   )}
 
                   <div className="space-y-2">
@@ -778,14 +788,14 @@ export default function EstoqueView() {
             >
               <Card
                 className={`hover:shadow-lg transition-all border-l-4 ${item.cor === "red"
-                    ? "border-red-500 bg-red-50"
-                    : item.cor === "green"
-                      ? "border-green-500 bg-green-50"
-                      : item.cor === "orange"
-                        ? "border-orange-500 bg-orange-50"
-                        : item.cor === "purple"
-                          ? "border-purple-500 bg-purple-50"
-                          : "border-blue-500 bg-blue-50"
+                  ? "border-red-500 bg-red-50"
+                  : item.cor === "green"
+                    ? "border-green-500 bg-green-50"
+                    : item.cor === "orange"
+                      ? "border-orange-500 bg-orange-50"
+                      : item.cor === "purple"
+                        ? "border-purple-500 bg-purple-50"
+                        : "border-blue-500 bg-blue-50"
                   }`}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -794,14 +804,14 @@ export default function EstoqueView() {
                   </CardTitle>
                   <Icon
                     className={`h-5 w-5 ${item.cor === "red"
-                        ? "text-red-600"
-                        : item.cor === "green"
-                          ? "text-green-600"
-                          : item.cor === "orange"
-                            ? "text-orange-600"
-                            : item.cor === "purple"
-                              ? "text-purple-600"
-                              : "text-blue-600"
+                      ? "text-red-600"
+                      : item.cor === "green"
+                        ? "text-green-600"
+                        : item.cor === "orange"
+                          ? "text-orange-600"
+                          : item.cor === "purple"
+                            ? "text-purple-600"
+                            : "text-blue-600"
                       }`}
                   />
                 </CardHeader>
@@ -835,14 +845,14 @@ export default function EstoqueView() {
                       <div className="w-full bg-slate-200 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full transition-all ${item.cor === "red"
-                              ? "bg-red-500"
-                              : item.cor === "green"
-                                ? "bg-green-500"
-                                : item.cor === "orange"
-                                  ? "bg-orange-500"
-                                  : item.cor === "purple"
-                                    ? "bg-purple-500"
-                                    : "bg-blue-500"
+                            ? "bg-red-500"
+                            : item.cor === "green"
+                              ? "bg-green-500"
+                              : item.cor === "orange"
+                                ? "bg-orange-500"
+                                : item.cor === "purple"
+                                  ? "bg-purple-500"
+                                  : "bg-blue-500"
                             }`}
                           style={{ width: `${Math.min(percentual, 100)}%` }}
                         />
@@ -1068,30 +1078,30 @@ export default function EstoqueView() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     className={`p-4 rounded-lg border-l-4 ${mov.type === "ENTRY"
-                        ? "bg-green-50 border-green-500"
-                        : "bg-orange-50 border-orange-500"
+                      ? "bg-green-50 border-green-500"
+                      : "bg-orange-50 border-orange-500"
                       }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3 flex-1">
                         <div
                           className={`p-2 rounded-full ${mov.type === "ENTRY"
-                              ? "bg-green-100"
-                              : "bg-orange-100"
+                            ? "bg-green-100"
+                            : "bg-orange-100"
                             }`}
                         >
                           {mov.type === "ENTRY" ? (
                             <ArrowUpRight
                               className={`w-4 h-4 ${mov.type === "ENTRY"
-                                  ? "text-green-600"
-                                  : "text-orange-600"
+                                ? "text-green-600"
+                                : "text-orange-600"
                                 }`}
                             />
                           ) : (
                             <ArrowDownRight
                               className={`w-4 h-4 ${mov.type === "EXIT"
-                                  ? "text-orange-600"
-                                  : "text-green-600"
+                                ? "text-orange-600"
+                                : "text-green-600"
                                 }`}
                             />
                           )}
@@ -1115,8 +1125,8 @@ export default function EstoqueView() {
                             </Badge>
                             <span
                               className={`font-bold ${mov.type === "ENTRY"
-                                  ? "text-green-600"
-                                  : "text-orange-600"
+                                ? "text-green-600"
+                                : "text-orange-600"
                                 }`}
                             >
                               {mov.type === "ENTRY" ? "+" : "-"}

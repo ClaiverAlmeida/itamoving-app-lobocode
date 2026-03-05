@@ -241,7 +241,6 @@ export default function AgendamentosView() {
     status: Agendamento["status"],
   ) => {
     const result = await appointmentsService.update(id, { status });
-    console.log(result);
     if (result.success && result.data) {
       updateAgendamento(id, { status });
       setSelectedAgendamento(result.data);
@@ -622,7 +621,7 @@ export default function AgendamentosView() {
                   Novo Agendamento
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Novo Agendamento</DialogTitle>
                   <DialogDescription>

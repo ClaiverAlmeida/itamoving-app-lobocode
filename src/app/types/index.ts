@@ -144,34 +144,34 @@ export interface PrecoProduto {
 
 export interface Funcionario {
   id: string;
-  nome: string;
+  name: string;
   email: string;
-  telefone: string;
+  phone: string;
   cpf: string;
-  dataNascimento: string;
-  dataAdmissao: string;
-  dataDemissao?: string;
-  cargo: string;
-  departamento: string;
-  salario: number;
-  tipoContrato: "CLT" | "PJ" | "Temporário" | "Estágio";
-  status: "ativo" | "férias" | "afastado" | "demitido";
-  endereco: {
-    rua: string;
-    numero: string;
-    cidade: string;
-    estado: string;
-    cep: string;
-    complemento?: string;
+  birthDate: string;
+  hireDate: string;
+  terminationDate?: string;
+  position: string;
+  department: string;
+  salary: number;
+  contractType: "CLT" | "PJ" | "TEMPORARY" | "INTERNSHIP";
+  status: "ACTIVE" | "ON_LEAVE" | "ABSENT" | "TERMINATED";
+  address: {
+    street: string;
+    number: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    complement?: string;
   };
-  documentos: {
+  documents: {
     rg?: string;
-    carteiraTrabalho?: string;
-    tituloEleitor?: string;
+    wordPassport?: string;
+    voterCard?: string;
   };
-  beneficios: string[];
+  benefits: string[];
   supervisor?: string;
-  foto?: string;
+  photo?: string;
 }
 
 export interface RegistroPonto {

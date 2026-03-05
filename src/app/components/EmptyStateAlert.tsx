@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { motion } from "motion/react";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { AlertCircle } from "lucide-react";
 import { cn } from "./ui/utils";
@@ -30,15 +31,21 @@ export function EmptyStateAlert({
   const Icon = icon ?? (variant === "destructive" ? <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /> : null);
 
   return (
-    <Alert
-      variant={variant}
-      className={cn("flex items-start gap-3", className)}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
     >
-      {Icon}
-      <div className="grid gap-1">
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{description}</AlertDescription>
-      </div>
-    </Alert>
+      <Alert
+        variant={variant}
+        className={cn("flex items-start gap-3", className)}
+      >
+        {Icon}
+        <div className="grid gap-1">
+          <AlertTitle>{title}</AlertTitle>
+          <AlertDescription>{description}</AlertDescription>
+        </div>
+      </Alert>
+    </motion.div>
   );
 }

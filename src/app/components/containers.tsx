@@ -279,7 +279,6 @@ export default function ContainersView() {
     };
 
     const patchPayload = getUpdatePayload();
-    console.log(patchPayload);
     if (Object.keys(patchPayload).length === 0) {
       toast.info("Nenhum campo alterado.");
       return;
