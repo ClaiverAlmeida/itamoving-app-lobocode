@@ -242,7 +242,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
           atividades.push({
             id: `container-${c.id}`,
             tipo: 'container',
-            descricao: `Container ${c.number} - ${c.status}`,
+            descricao: `Container ${c.number} - ${c.status === 'PREPARATION' ? 'Em Preparação' : c.status === 'IN_TRANSIT' ? 'Em Trânsito' : c.status === 'DELIVERED' ? 'Entregue' : c.status === 'CANCELLED' ? 'Cancelado' : ''}`,
             data: dataEmbarque,
             icone: Container,
             color: 'purple',
@@ -865,7 +865,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                               agendamento.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
                                 'bg-slate-100 text-slate-700'
                           }>
-                            {agendamento.status}
+                            {agendamento.status ===  'PENDING' ? 'Pendente' : agendamento.status === 'CONFIRMED' ? 'Confirmado' : agendamento.status === 'COLLECTED' ? 'Coletado' : 'Cancelado'}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">

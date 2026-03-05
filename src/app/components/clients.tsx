@@ -2145,6 +2145,8 @@ export default function ClientesView() {
                                         ? "Cadastrado"
                                         : atividade.tipo === "exclusao"
                                           ? "Excluído"
+                                          : atividade.tipo === "agendamento"
+                                            ? "Criado"
                                           : "Atualizado"}{" "}
                                     por: {atividade.owner.name}
                                   </p>
