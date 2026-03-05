@@ -426,7 +426,8 @@ export default function MotoristaApp() {
                     <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                     <span className="line-clamp-2">
                       <span className="font-semibold text-xs text-muted-foreground mr-1">ENTREGA:</span>
-                      {agendamento.address || "Endereço de entrega a definir"}
+                      {/* TODO: Adicionar endereço de entrega */}
+                      {"Endereço de entrega a definir"}
                     </span>
                   </div>
                 </CardContent>

@@ -154,7 +154,7 @@ function normalizeField(value: string) {
   );
 }
 
-const ESTOQUE_MINIMO = {
+export const ESTOQUE_MINIMO = {
   smallBoxes: 50,
   mediumBoxes: 50,
   largeBoxes: 50,
@@ -162,7 +162,7 @@ const ESTOQUE_MINIMO = {
   adhesiveTape: 20,
 };
 
-const ESTOQUE_IDEAL = {
+export const ESTOQUE_IDEAL = {
   smallBoxes: 100,
   mediumBoxes: 100,
   largeBoxes: 100,

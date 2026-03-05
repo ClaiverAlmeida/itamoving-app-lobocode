@@ -54,9 +54,8 @@ import {
 } from 'recharts';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
-import { clientsService, containersServices, stockService, appointmentsService } from '../services';
 import { Cliente as ClienteType, Container as ContainerType, Estoque as EstoqueType, Agendamento as AgendamentoType } from '../types';
-import { toast } from 'sonner';
+import { useDashboardData, type DashboardDataConfig } from '../hooks/useDashboardData';
 
 interface Alerta {
   id: string;
@@ -81,71 +80,16 @@ type View = 'dashboard' | 'clientes' | 'estoque' | 'agendamentos' | 'containers'
 
 interface DashboardViewProps {
   onNavigate?: (view: View) => void;
+  /** Quais dados carregar. Omitir = todos. Ex: { clientes: true, agendamentos: true } */
+  dataSources?: DashboardDataConfig;
 }
 
-export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
+export default function DashboardView({ onNavigate, dataSources }: DashboardViewProps = {}) {
   const { transacoes } = useData();
   const { user, hasPermission } = useAuth();
-  const [clientes, setClientes] = useState<ClienteType[]>([]);
-  const [containers, setContainers] = useState<ContainerType[]>([]);
-  const [agendamentos, setAgendamentos] = useState<AgendamentoType[]>([]);
-  const [estoque, setEstoque] = useState<EstoqueType>({
-    smallBoxes: 0,
-    mediumBoxes: 0,
-    largeBoxes: 0,
-    personalizedItems: 0,
-    adhesiveTape: 0,
-  });
   const [selectedPeriod, setSelectedPeriod] = useState<'dia' | 'semana' | 'mes'>('semana');
 
-  // Carregar dados do dashboard
-  useEffect(() => {
-    const carregarDados = async () => {
-      // Clientes
-      const result = await clientsService.getAll();
-      if (result.success && result.data?.data) {
-        setClientes(result.data.data);
-      } else if (result.error) {
-        toast.error(result.error);
-      }
-      {
-        // Containers
-        const result = await containersServices.getAll();
-        if (result.success && result.data) {
-          setContainers(result.data);
-        } else if (result.error) {
-          toast.error(result.error);
-        }
-      }
-      {
-        // Estoque: API retorna { data: { data: Estoque[] } }; usa o primeiro registro
-        const result = await stockService.getAll();
-        if (result.success && result.data?.data?.length) {
-          const first = result.data.data[0];
-          setEstoque({
-            smallBoxes: first.smallBoxes ?? 0,
-            mediumBoxes: first.mediumBoxes ?? 0,
-            largeBoxes: first.largeBoxes ?? 0,
-            personalizedItems: first.personalizedItems ?? 0,
-            adhesiveTape: first.adhesiveTape ?? 0,
-          });
-        } else if (result.error) {
-          toast.error(result.error);
-        }
-      }
-      {
-        // Agendamentos
-        const result = await appointmentsService.getAll();
-        if (result.success && result.data) {
-          setAgendamentos(result.data);
-        } else if (result.error) {
-          toast.error(result.error);
-        }
-      }
-    }
-
-    carregarDados();
-  }, []);
+  const { clientes, containers, agendamentos, estoque, isLoading, refetch } = useDashboardData(dataSources);
 
   // Cálculos
   const agendamentosHoje = agendamentos.filter(a => {
