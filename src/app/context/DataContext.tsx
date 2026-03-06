@@ -144,31 +144,6 @@ const folhasPagamentoIniciais: Folha[] = [
   },
 ];
 
-const feriasIniciais: Ferias[] = [
-  {
-    id: '1',
-    employeeId: '4',
-    employeeName: 'Mariana Ferreira',
-    accrualPeriod: '2023/2024',
-    startDate: '2024-12-20',
-    endDate: '2025-01-03',
-    daysTaken: 15,
-    status: 'IN_PROGRESS',
-    notes: 'Férias de fim de ano',
-  },
-  {
-    id: '2',
-    employeeId: '1',
-    employeeName: 'Roberto Costa',
-    accrualPeriod: '2024/2025',
-    startDate: '2025-07-01',
-    endDate: '2025-07-30',
-    daysTaken: 30,
-    status: 'REQUESTED',
-    notes: 'Viagem para o Brasil',
-  },
-];
-
 const ordensServicoMotoristaIniciais: OrdemServicoMotorista[] = [];
 
 export function DataProvider({ children }: { children: ReactNode }) {
@@ -191,7 +166,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [registrosPonto, setRegistrosPonto] = useState<RegistroPonto[]>([]);
   const [folhasPagamento, setFolhasPagamento] = useState<Folha[]>(folhasPagamentoIniciais);
-  const [ferias, setFerias] = useState<Ferias[]>(feriasIniciais);
+  const [ferias, setFerias] = useState<Ferias[]>([]);
   const [ordensServicoMotorista, setOrdensServicoMotorista] = useState<OrdemServicoMotorista[]>(ordensServicoMotoristaIniciais);
 
   const addCliente = (cliente: Cliente) => {

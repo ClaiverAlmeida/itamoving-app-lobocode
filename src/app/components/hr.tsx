@@ -55,6 +55,7 @@ import {
 import { employeesService, UpdateEmployeesDTO } from '../services/hr/employees.service';
 import { EmptyStateAlert } from "./EmptyStateAlert";
 import { timeClockRecordService, CreateTimeClockRecordDto } from '../services/hr/time-clock-record.service';
+import { CreateVacationDto, vacationService } from '../services/hr/vacation.service';
 
 export default function RHView() {
   const {
@@ -69,6 +70,7 @@ export default function RHView() {
     folhasPagamento,
     addFolhaPagamento,
     ferias,
+    setFerias,
     addFerias,
     updateFerias
   } = useData();
@@ -83,9 +85,6 @@ export default function RHView() {
   /**
    * Carrega os dados do backend conforme a aba ativa.
    * Assim só faz request quando o usuário entra na aba, evitando carregar tudo de uma vez.
-   * - funcionarios: lista de funcionários (necessária também no Ponto para o select)
-   * - ponto: registros de ponto (time-clock-record)
-   * - folha/ferias: quando existir payrollService e vacationService, chamar aqui
    */
   useEffect(() => {
     if (activeTab === 'funcionarios') {
@@ -95,13 +94,6 @@ export default function RHView() {
       return;
     }
     if (activeTab === 'ponto') {
-      // Funcionários são usados no formulário de ponto; garante que existam
-      if (funcionarios.length === 0) {
-        employeesService.getAll().then((r) => {
-          if (r.success && r.data) setFuncionarios(r.data);
-        });
-      }
-
       timeClockRecordService.getAll().then((result) => {
         if (result.success && result.data) setRegistrosPonto(result.data);
       });
@@ -109,13 +101,17 @@ export default function RHView() {
     }
 
     if (activeTab === 'folha') {
+      // TODO
       return;
     }
 
     if (activeTab === 'ferias') {
+      vacationService.getAll().then((result) => {
+        if (result.success && result.data) setFerias(result.data);
+      });
       return;
     }
-  }, [activeTab, setFuncionarios, setRegistrosPonto]);
+  }, [activeTab, setFuncionarios, setRegistrosPonto, setFerias,]);
 
   // Form states
   const [formFuncionario, setFormFuncionario] = useState({
@@ -495,7 +491,7 @@ export default function RHView() {
   };
 
   // Solicitar Férias
-  const handleSubmitFerias = (e: React.FormEvent) => {
+  const handleSubmitFerias = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const funcionario = funcionarios.find(f => f.id === formFerias.employeeId);
@@ -508,8 +504,7 @@ export default function RHView() {
     const fim = new Date(formFerias.endDate);
     const diasCorridos = Math.ceil((fim.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    const novasFerias: Ferias = {
-      id: Date.now().toString(),
+    const payload: CreateVacationDto = {
       employeeId: formFerias.employeeId,
       employeeName: funcionario.name,
       accrualPeriod: formFerias.accrualPeriod,
@@ -517,22 +512,38 @@ export default function RHView() {
       endDate: formFerias.endDate,
       daysTaken: diasCorridos,
       status: formFerias.status as Ferias['status'],
-      notes: formFerias.notes || undefined,
+      notes: formFerias.notes || '',
     };
 
-    addFerias(novasFerias);
-    toast.success('Férias solicitadas com sucesso!');
-    setFormFerias({
-      employeeId: '',
-      employeeName: '',
-      accrualPeriod: '',
-      startDate: '',
-      endDate: '',
-      daysTaken: 0,
-      status: 'REQUESTED' as Ferias['status'],
-      notes: '',
-    });
+    if (formFerias.startDate >= formFerias.endDate) {
+      toast.error('A data de início não pode ser maior ou igual à data de fim.');
+      return;
+    }
+
+    const result = await vacationService.create(payload);
+
+    if (result.success && result.data) {
+      addFerias(result.data);
+      toast.success('Férias solicitadas com sucesso!');
+      setFormFerias({
+        employeeId: '',
+        employeeName: '',
+        accrualPeriod: '',
+        startDate: '',
+        endDate: '',
+        daysTaken: 0,
+        status: 'REQUESTED' as Ferias['status'],
+        notes: '',
+      });
+    } else if (result.error) {
+      toast.error(result.error || 'Erro ao solicitar férias');
+    }
   };
+
+  // Editar Férias - Acões
+  const handleEditFerias = async (e: React.FormEvent) => {
+    e.preventDefault();
+  }
 
   // Filtros
   const funcionariosFiltrados = funcionarios.filter(f =>

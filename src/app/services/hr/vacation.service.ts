@@ -13,6 +13,8 @@ export interface CreateVacationDto {
     notes?: string;
 }
 
+export type UpdateVacationDto = Partial<CreateVacationDto>;
+
 export interface VacationBackend {
     id: string;
     employeeId: string;
@@ -42,8 +44,44 @@ function mapBackendToFrontend(vacation: VacationBackend): Ferias {
     }
 }
 
-export type UpdateVacationDto = Partial<CreateVacationDto>;
+export class VacationService {
+    async getAll(): Promise<{
+        success: boolean;
+        data?: Ferias[];
+        error?: string;
+    }> {
+        try {
+            const result = await api.get<
+                VacationBackend[] | { data: VacationBackend[] }
+            >("/hr/vacation");
 
-export class VacationService { }
+            if (result.success && result.data) {
+                const raw = (result.data as any)?.data ?? result.data;
+                const vacationBackend = raw as VacationBackend[];
+                const vacation = vacationBackend.map(mapBackendToFrontend);
+                return { success: true, data: vacation };
+            }
+            return { success: false, error: "Erro ao buscar as férias dos funcionários" };
+        }
+        catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
+
+    async create(data: Ferias): Promise<{ success: boolean; data?: Ferias; error?: string }> {
+        try {
+            const result = await api.post<Ferias | { data: Ferias }>("/hr/vacation", data);
+            if (result.success && result.data) {
+                const raw = (result.data as any)?.data ?? result.data;
+                const vacationBackend = raw as VacationBackend;
+                const vacation = mapBackendToFrontend(vacationBackend);
+                return { success: true, data: vacation };
+            }
+            return { success: false, error: "Erro ao criar férias do funcionário" };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
+}
 
 export const vacationService = new VacationService();
