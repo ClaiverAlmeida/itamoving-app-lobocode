@@ -96,158 +96,6 @@ const transacoesIniciais: Transacao[] = [
   },
 ];
 
-const funcionariosIniciais: Funcionario[] = [
-  {
-    id: '1',
-    name: 'Roberto Costa',
-    email: 'roberto.costa@itamoving.com',
-    phone: '+1 (305) 555-1234',
-    cpf: '123.456.789-01',
-    birthDate: '1985-05-15',
-    hireDate: '2020-03-01',
-    position: 'Motorista',
-    department: 'Operações',
-    salary: 3500.00,
-    contractType: 'CLT',
-    status: 'ACTIVE',
-    address: {
-      street: '789 Sunset Blvd',
-      number: '123',
-      city: 'Miami',
-      state: 'FL',
-      zipCode: '33125',
-    },
-    documents: {
-      rg: '12.345.678-9',
-      wordPassport: '1234567890',
-    },
-    benefits: ['Vale Transporte', 'Vale Refeição'],
-    supervisor: 'Ana Paula',
-  },
-  {
-    id: '2',
-    name: 'Ana Paula Oliveira',
-    email: 'ana.paula@itamoving.com',
-    phone: '+1 (305) 555-5678',
-    cpf: '987.654.321-02',
-    birthDate: '1990-08-22',
-    hireDate: '2019-01-15',
-    position: 'Gerente',
-    department: 'Comercial',
-    salary: 5500.00,
-    contractType: 'CLT',
-    status: 'ACTIVE',
-    address: {
-      street: '456 Ocean Drive',
-      number: '789',
-      city: 'Miami Beach',
-      state: 'FL',
-      zipCode: '33139',
-    },
-    documents: {
-      rg: '98.765.432-1',
-      wordPassport: '0987654321',
-    },
-    benefits: ['Vale Transporte', 'Vale Refeição', 'Plano de Saúde'],
-  },
-  {
-    id: '3',
-    name: 'Lucas Santos',
-    email: 'lucas.santos@itamoving.com',
-    phone: '+1 (305) 555-9012',
-    cpf: '456.789.123-03',
-    birthDate: '1995-12-10',
-    hireDate: '2021-06-01',
-    position: 'Atendente',
-    department: 'Comercial',
-    salary: 2800.00,
-    contractType: 'CLT',
-    status: 'ACTIVE',
-    address: {
-      street: '321 Collins Ave',
-      number: '456',
-      city: 'Miami',
-      state: 'FL',
-      zipCode: '33140',
-    },
-    documents: {
-      rg: '45.678.912-3',
-    },
-    benefits: ['Vale Transporte', 'Vale Refeição'],
-    supervisor: 'Ana Paula',
-  },
-  {
-    id: '4',
-    name: 'Mariana Ferreira',
-    email: 'mariana.ferreira@itamoving.com',
-    phone: '+1 (305) 555-3456',
-    cpf: '789.123.456-04',
-    birthDate: '1992-03-18',
-    hireDate: '2022-09-15',
-    position: 'Coordenador',
-    department: 'Logística',
-    salary: 4200.00,
-    contractType: 'CLT',
-    status: 'ON_LEAVE',
-    address: {
-      street: '654 Washington Ave',
-      number: '321',
-      city: 'Miami',
-      state: 'FL',
-      zipCode: '33139',
-    },
-    documents: {
-      rg: '78.912.345-6',
-      wordPassport: '4567891234',
-    },
-    benefits: ['Vale Transporte', 'Vale Refeição', 'Plano de Saúde'],
-    supervisor: 'Ana Paula',
-  },
-];
-
-const registrosPontoIniciais: RegistroPonto[] = [
-  {
-    id: '1',
-    funcionarioId: '1',
-    funcionarioNome: 'Roberto Costa',
-    data: new Date().toISOString().split('T')[0],
-    entrada: '08:00',
-    saidaAlmoco: '12:00',
-    voltaAlmoco: '13:00',
-    saida: '17:00',
-    horasTrabalhadas: 8.0,
-    horasExtras: 0,
-    tipo: 'normal',
-  },
-  {
-    id: '2',
-    funcionarioId: '2',
-    funcionarioNome: 'Ana Paula Oliveira',
-    data: new Date().toISOString().split('T')[0],
-    entrada: '08:30',
-    saidaAlmoco: '12:30',
-    voltaAlmoco: '13:30',
-    saida: '18:00',
-    horasTrabalhadas: 8.0,
-    horasExtras: 0,
-    tipo: 'normal',
-  },
-  {
-    id: '3',
-    funcionarioId: '3',
-    funcionarioNome: 'Lucas Santos',
-    data: new Date().toISOString().split('T')[0],
-    entrada: '09:00',
-    saidaAlmoco: '13:00',
-    voltaAlmoco: '14:00',
-    saida: '19:30',
-    horasTrabalhadas: 9.5,
-    horasExtras: 1.5,
-    tipo: 'normal',
-    observacoes: 'Hora extra para finalizar atendimento',
-  },
-];
-
 const folhasPagamentoIniciais: Folha[] = [
   {
     id: '1',
@@ -299,25 +147,25 @@ const folhasPagamentoIniciais: Folha[] = [
 const feriasIniciais: Ferias[] = [
   {
     id: '1',
-    funcionarioId: '4',
-    funcionarioNome: 'Mariana Ferreira',
-    periodoAquisitivo: '2023/2024',
-    dataInicio: '2024-12-20',
-    dataFim: '2025-01-03',
-    diasCorridos: 15,
-    status: 'em-andamento',
-    observacoes: 'Férias de fim de ano',
+    employeeId: '4',
+    employeeName: 'Mariana Ferreira',
+    accrualPeriod: '2023/2024',
+    startDate: '2024-12-20',
+    endDate: '2025-01-03',
+    daysTaken: 15,
+    status: 'IN_PROGRESS',
+    notes: 'Férias de fim de ano',
   },
   {
     id: '2',
-    funcionarioId: '1',
-    funcionarioNome: 'Roberto Costa',
-    periodoAquisitivo: '2024/2025',
-    dataInicio: '2025-07-01',
-    dataFim: '2025-07-30',
-    diasCorridos: 30,
-    status: 'solicitado',
-    observacoes: 'Viagem para o Brasil',
+    employeeId: '1',
+    employeeName: 'Roberto Costa',
+    accrualPeriod: '2024/2025',
+    startDate: '2025-07-01',
+    endDate: '2025-07-30',
+    daysTaken: 30,
+    status: 'REQUESTED',
+    notes: 'Viagem para o Brasil',
   },
 ];
 
@@ -340,8 +188,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [rotas, setRotas] = useState<Rota[]>([]);
   const [precosEntrega, setPrecosEntrega] = useState<PrecoEntrega[]>([]);
   const [precosProdutos, setPrecosProdutos] = useState<PrecoProduto[]>([]);
-  const [funcionarios, setFuncionarios] = useState<Funcionario[]>(funcionariosIniciais);
-  const [registrosPonto, setRegistrosPonto] = useState<RegistroPonto[]>(registrosPontoIniciais);
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const [registrosPonto, setRegistrosPonto] = useState<RegistroPonto[]>([]);
   const [folhasPagamento, setFolhasPagamento] = useState<Folha[]>(folhasPagamentoIniciais);
   const [ferias, setFerias] = useState<Ferias[]>(feriasIniciais);
   const [ordensServicoMotorista, setOrdensServicoMotorista] = useState<OrdemServicoMotorista[]>(ordensServicoMotoristaIniciais);
@@ -438,8 +286,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setFolhasPagamento([...folhasPagamento, folha]);
   };
 
-  const addFerias = (ferias: Ferias) => {
-    setFerias([...ferias, ferias]);
+  const addFerias = (novaFerias: Ferias) => {
+    setFerias(prev => [...prev, novaFerias]);
   };
 
   const updateFerias = (id: string, feriasUpdate: Partial<Ferias>) => {

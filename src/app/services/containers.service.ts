@@ -1,5 +1,6 @@
 import { api } from "./api.service";
 import { Container } from "../types";
+import { toDateOnly } from "../utils";
 
 export interface CreateContainersDTO {
   number: string;
@@ -34,14 +35,6 @@ export interface ContainersBackend {
   createdAt?: string;
   updatedAt?: string;
   deletedAt?: string | null;
-}
-
-function toDateOnly(v: string | undefined | null): string {
-  if (v == null) return "";
-  const s = String(v).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? s.slice(0, 10) : d.toISOString().slice(0, 10);
 }
 
 function mapBackendToFrontend(container: ContainersBackend): Container {

@@ -16,3 +16,9 @@ export { userService } from "./user.service";
 export { appointmentsService } from "./appointments.service";
 // Servico de Containers
 export { containersServices } from "./containers.service";
+// Serviço de Employees (RH)
+export { employeesService } from "./hr/employees.service";
+// Serviço de Time Clock Record (RH)
+export { timeClockRecordService } from "./hr/time-clock-record.service";
+// Serviço de Vacation (RH)
+export { vacationService } from "./hr/vacation.service";

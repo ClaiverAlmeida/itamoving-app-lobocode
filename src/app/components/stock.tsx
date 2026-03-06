@@ -607,11 +607,12 @@ export default function EstoqueView() {
                     )}
 
                   {/* Adicionar item do estoque */}
-                  {selectedItem && produtos.filter(
-                    (produto) =>
-                      produto.active === true &&
-                      produto.type === ITEM_KEY_TO_PRODUCT_TYPE[selectedItem],
-                  ).length && (
+                  {selectedItem &&
+                    produtos.filter(
+                      (produto) =>
+                        produto.active === true &&
+                        produto.type === ITEM_KEY_TO_PRODUCT_TYPE[selectedItem],
+                    ).length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}

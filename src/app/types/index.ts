@@ -127,11 +127,11 @@ export interface PrecoEntrega {
 export interface PrecoProduto {
   id: string;
   type:
-    | "SMALL_BOX"
-    | "MEDIUM_BOX"
-    | "LARGE_BOX"
-    | "PERSONALIZED_ITEM"
-    | "TAPE_ADHESIVE";
+  | "SMALL_BOX"
+  | "MEDIUM_BOX"
+  | "LARGE_BOX"
+  | "PERSONALIZED_ITEM"
+  | "TAPE_ADHESIVE";
   name: string;
   size?: string; // Para caixas: Pequena, Média, Grande
   dimensions?: string | null; // ex: "40x30x25cm"; null quando tipo Fita
@@ -143,7 +143,7 @@ export interface PrecoProduto {
 }
 
 export interface Funcionario {
-  id: string;
+  id?: string;
   name: string;
   email: string;
   phone: string;
@@ -169,24 +169,28 @@ export interface Funcionario {
     wordPassport?: string;
     voterCard?: string;
   };
-  benefits: string[];
+  benefits?: string[];
   supervisor?: string;
   photo?: string;
+  user?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface RegistroPonto {
-  id: string;
-  funcionarioId: string;
-  funcionarioNome: string;
-  data: string;
-  entrada: string;
-  saidaAlmoco?: string;
-  voltaAlmoco?: string;
-  saida?: string;
-  horasTrabalhadas: number;
-  horasExtras: number;
-  tipo: "normal" | "falta" | "atestado" | "folga";
-  observacoes?: string;
+  id?: string;
+  employeeId: string;
+  employeeName: string;
+  date: string;
+  clockIn: string;
+  lunchStart?: string;
+  lunchEnd?: string;
+  clockOut?: string;
+  workedHours: number;
+  overtimeHours: number;
+  type: "NORMAL" | "ABSENCE" | "SICK_NOTE" | "DAY_OFF";
+  notes?: string;
 }
 
 export interface Folha {
@@ -206,20 +210,20 @@ export interface Folha {
 }
 
 export interface Ferias {
-  id: string;
-  funcionarioId: string;
-  funcionarioNome: string;
-  periodoAquisitivo: string;
-  dataInicio: string;
-  dataFim: string;
-  diasCorridos: number;
+  id?: string;
+  employeeId: string;
+  employeeName: string;
+  accrualPeriod: string;
+  startDate: string;
+  endDate: string;
+  daysTaken: number;
   status:
-    | "solicitado"
-    | "aprovado"
-    | "em-andamento"
-    | "concluído"
-    | "cancelado";
-  observacoes?: string;
+  | "REQUESTED"
+  | "APPROVED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED";
+  notes?: string;
 }
 
 export interface Avaliacao {

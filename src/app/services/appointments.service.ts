@@ -1,5 +1,6 @@
 import { api } from "./api.service";
 import { Agendamento } from "../types";
+import { toDateOnly } from "../utils";
 
 export interface CreateAppointmentsDTO {
   clientId: string;
@@ -26,8 +27,6 @@ export interface AppointmentsBackend {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
-  createdBy?: string | null;
-  updatedBy?: string | null;
   /** Atendente (vindo do backend com include da relação user) */
   user?: {
     id: string;
@@ -38,15 +37,6 @@ export interface AppointmentsBackend {
     id: string;
     usaName: string;
   };
-}
-
-/** Garante collectionDate sempre como YYYY-MM-DD (evita mudança de dia por fuso). */
-function toDateOnly(value: string | undefined | null): string {
-  if (value == null) return "";
-  const s = String(value).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? s.slice(0, 10) : d.toISOString().slice(0, 10);
 }
 
 function mapBackendToFrontend(appointment: AppointmentsBackend): Agendamento {
