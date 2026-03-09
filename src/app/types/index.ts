@@ -142,7 +142,7 @@ export interface PrecoProduto {
   variablePrice?: boolean;
 }
 
-export interface Funcionario {
+export interface Usuario {
   id?: string;
   name: string;
   email: string;
@@ -151,8 +151,7 @@ export interface Funcionario {
   birthDate: string;
   hireDate: string;
   terminationDate?: string;
-  position: string;
-  department: string;
+  position: "ADMIN" | "COMERCIAL" | "LOGISTICS" | "DRIVER";
   salary: number;
   contractType: "CLT" | "PJ" | "TEMPORARY" | "INTERNSHIP";
   status: "ACTIVE" | "ON_LEAVE" | "ABSENT" | "TERMINATED";
@@ -170,60 +169,11 @@ export interface Funcionario {
     voterCard?: string;
   };
   benefits?: string[];
-  supervisor?: string;
   photo?: string;
   user?: {
     id: string;
     name: string;
   };
-}
-
-export interface RegistroPonto {
-  id?: string;
-  employeeId: string;
-  employeeName: string;
-  date: string;
-  clockIn: string;
-  lunchStart?: string;
-  lunchEnd?: string;
-  clockOut?: string;
-  workedHours: number;
-  overtimeHours: number;
-  type: "NORMAL" | "ABSENCE" | "SICK_NOTE" | "DAY_OFF";
-  notes?: string;
-}
-
-export interface Folha {
-  id: string;
-  mesReferencia: string; // MM/YYYY
-  funcionarioId: string;
-  funcionarioNome: string;
-  salarioBase: number;
-  horasExtras: number;
-  bonificacoes: number;
-  descontos: number;
-  inss: number;
-  fgts: number;
-  salarioLiquido: number;
-  dataPagamento: string;
-  status: "pendente" | "pago" | "atrasado";
-}
-
-export interface Ferias {
-  id?: string;
-  employeeId: string;
-  employeeName: string;
-  accrualPeriod: string;
-  startDate: string;
-  endDate: string;
-  daysTaken: number;
-  status:
-  | "REQUESTED"
-  | "APPROVED"
-  | "IN_PROGRESS"
-  | "COMPLETED"
-  | "CANCELLED";
-  notes?: string;
 }
 
 export interface Avaliacao {

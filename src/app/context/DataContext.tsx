@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
-import { Cliente, Estoque, Agendamento, Container, Transacao, Rota, PrecoEntrega, PrecoProduto, Funcionario, RegistroPonto, Folha, Ferias, OrdemServicoMotorista } from '../types';
+import { Cliente, Estoque, Agendamento, Container, Transacao, Rota, PrecoEntrega, PrecoProduto, Usuario, OrdemServicoMotorista } from '../types';
 
 interface DataContextType {
   clientes: Cliente[];
@@ -43,24 +43,11 @@ interface DataContextType {
   updatePrecoProduto: (id: string, produto: Partial<PrecoProduto>) => void;
   deletePrecoProduto: (id: string) => void;
   
-  funcionarios: Funcionario[];
-  setFuncionarios: (funcionarios: Funcionario[]) => void;
-  addFuncionario: (funcionario: Funcionario) => void;
-  updateFuncionario: (id: string, funcionario: Partial<Funcionario>) => void;
-  deleteFuncionario: (id: string) => void;
-  
-  registrosPonto: RegistroPonto[];
-  setRegistrosPonto: (registros: RegistroPonto[]) => void;
-  addRegistroPonto: (registro: RegistroPonto) => void;
-  
-  folhasPagamento: Folha[];
-  setFolhasPagamento: (folhas: Folha[]) => void;
-  addFolhaPagamento: (folha: Folha) => void;
-  
-  ferias: Ferias[];
-  setFerias: (ferias: Ferias[]) => void;
-  addFerias: (ferias: Ferias) => void;
-  updateFerias: (id: string, ferias: Partial<Ferias>) => void;
+  usuarios: Usuario[];
+  setUsuarios: (usuarios: Usuario[]) => void;
+  addUsuario: (usuarios: Usuario) => void;
+  updateUsuario: (id: string, usuario: Partial<Usuario>) => void;
+  deleteUsuario: (id: string) => void;
   
   ordensServicoMotorista: OrdemServicoMotorista[];
   setOrdensServicoMotorista: (ordens: OrdemServicoMotorista[]) => void;
@@ -96,54 +83,6 @@ const transacoesIniciais: Transacao[] = [
   },
 ];
 
-const folhasPagamentoIniciais: Folha[] = [
-  {
-    id: '1',
-    mesReferencia: '12/2024',
-    funcionarioId: '1',
-    funcionarioNome: 'Roberto Costa',
-    salarioBase: 3500.00,
-    horasExtras: 180.00,
-    bonificacoes: 200.00,
-    descontos: 150.00,
-    inss: 385.00,
-    fgts: 280.00,
-    salarioLiquido: 3345.00,
-    dataPagamento: '2024-12-05',
-    status: 'pago',
-  },
-  {
-    id: '2',
-    mesReferencia: '12/2024',
-    funcionarioId: '2',
-    funcionarioNome: 'Ana Paula Oliveira',
-    salarioBase: 5500.00,
-    horasExtras: 0,
-    bonificacoes: 500.00,
-    descontos: 200.00,
-    inss: 605.00,
-    fgts: 440.00,
-    salarioLiquido: 5195.00,
-    dataPagamento: '2024-12-05',
-    status: 'pago',
-  },
-  {
-    id: '3',
-    mesReferencia: '12/2024',
-    funcionarioId: '3',
-    funcionarioNome: 'Lucas Santos',
-    salarioBase: 2800.00,
-    horasExtras: 120.00,
-    bonificacoes: 150.00,
-    descontos: 100.00,
-    inss: 308.00,
-    fgts: 224.00,
-    salarioLiquido: 2662.00,
-    dataPagamento: '2024-12-05',
-    status: 'pago',
-  },
-];
-
 const ordensServicoMotoristaIniciais: OrdemServicoMotorista[] = [];
 
 export function DataProvider({ children }: { children: ReactNode }) {
@@ -163,10 +102,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [rotas, setRotas] = useState<Rota[]>([]);
   const [precosEntrega, setPrecosEntrega] = useState<PrecoEntrega[]>([]);
   const [precosProdutos, setPrecosProdutos] = useState<PrecoProduto[]>([]);
-  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
-  const [registrosPonto, setRegistrosPonto] = useState<RegistroPonto[]>([]);
-  const [folhasPagamento, setFolhasPagamento] = useState<Folha[]>(folhasPagamentoIniciais);
-  const [ferias, setFerias] = useState<Ferias[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [ordensServicoMotorista, setOrdensServicoMotorista] = useState<OrdemServicoMotorista[]>(ordensServicoMotoristaIniciais);
 
   const addCliente = (cliente: Cliente) => {
@@ -241,32 +177,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setPrecosProdutos(precosProdutos.filter(p => p.id !== id));
   };
 
-  const addFuncionario = (funcionario: Funcionario) => {
-    setFuncionarios([...funcionarios, funcionario]);
+  const addUsuario = (usuario: Usuario) => {
+    setUsuarios([...usuarios, usuario]);
   };
 
-  const updateFuncionario = (id: string, funcionarioUpdate: Partial<Funcionario>) => {
-    setFuncionarios(funcionarios.map(f => f.id === id ? { ...f, ...funcionarioUpdate } : f));
+  const updateUsuario = (id: string, usuarioUpdate: Partial<Usuario>) => {
+    setUsuarios(usuarios.map(f => f.id === id ? { ...f, ...usuarioUpdate } : f));
   };
 
-  const deleteFuncionario = (id: string) => {
-    setFuncionarios(funcionarios.filter(f => f.id !== id));
-  };
-
-  const addRegistroPonto = (registro: RegistroPonto) => {
-    setRegistrosPonto([...registrosPonto, registro]);
-  };
-
-  const addFolhaPagamento = (folha: Folha) => {
-    setFolhasPagamento([...folhasPagamento, folha]);
-  };
-
-  const addFerias = (novaFerias: Ferias) => {
-    setFerias(prev => [...prev, novaFerias]);
-  };
-
-  const updateFerias = (id: string, feriasUpdate: Partial<Ferias>) => {
-    setFerias(ferias.map(f => f.id === id ? { ...f, ...feriasUpdate } : f));
+  const deleteUsuario = (id: string) => {
+    setUsuarios(usuarios.filter(f => f.id !== id));
   };
 
   const addOrdemServicoMotorista = (ordem: OrdemServicoMotorista) => {
@@ -317,21 +237,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addPrecoProduto,
         updatePrecoProduto,
         deletePrecoProduto,
-        funcionarios,
-        setFuncionarios,
-        addFuncionario,
-        updateFuncionario,
-        deleteFuncionario,
-        registrosPonto,
-        setRegistrosPonto,
-        addRegistroPonto,
-        folhasPagamento,
-        setFolhasPagamento,
-        addFolhaPagamento,
-        ferias,
-        setFerias,
-        addFerias,
-        updateFerias,
+        usuarios,
+        setUsuarios,
+        addUsuario,
+        updateUsuario,
+        deleteUsuario,
         ordensServicoMotorista,
         setOrdensServicoMotorista,
         addOrdemServicoMotorista,

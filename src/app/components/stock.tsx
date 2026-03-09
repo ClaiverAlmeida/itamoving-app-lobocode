@@ -59,8 +59,9 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { stockService, productsService, userService } from "../services";
-import { User as UserTypeDriver } from "../services/user.service";
+import { stockService, productsService, usersService } from "../services";
+import { DriverUser } from "../services/hr/users.service";
+
 import {
   EstoqueAtualizado,
   CriarMovimentacao,
@@ -185,7 +186,7 @@ export default function EstoqueView() {
   const [showFilters, setShowFilters] = useState(false);
   const [movimentacoesPage, setMovimentacoesPage] = useState(1);
   const [produtos, setProdutos] = useState<PrecoProduto[]>([]);
-  const [motoristas, setMotoristas] = useState<UserTypeDriver[]>([]);
+  const [motoristas, setMotoristas] = useState<DriverUser[]>([]);
   const [selectedProduto, setSelectedProduto] = useState<string>("");
 
   const MOVIMENTACOES_PAGE_SIZE = 10;
@@ -293,7 +294,7 @@ export default function EstoqueView() {
   };
 
   const carregarMotoristas = async () => {
-    const result = await userService.buscarTodosMotoristas();
+    const result = await usersService.getAllDrivers();
     if (result.success && result.data) {
       setMotoristas(result.data.data);
     } else if (result.error) {
