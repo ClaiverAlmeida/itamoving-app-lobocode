@@ -146,16 +146,19 @@ export interface Usuario {
   id?: string;
   name: string;
   email: string;
-  phone: string;
-  cpf: string;
-  birthDate: string;
-  hireDate: string;
+  login?: string;
+  phone?: string;
+  cpf?: string;
+  birthDate?: string;
+  hireDate?: string;
   terminationDate?: string;
-  position: "ADMIN" | "COMERCIAL" | "LOGISTICS" | "DRIVER";
-  salary: number;
-  contractType: "CLT" | "PJ" | "TEMPORARY" | "INTERNSHIP";
-  status: "ACTIVE" | "ON_LEAVE" | "ABSENT" | "TERMINATED";
-  address: {
+  role: "ADMIN" | "COMERCIAL" | "LOGISTICS" | "DRIVER";
+  salary?: number;
+  contractType?: "CLT" | "PJ" | "TEMPORARY" | "INTERNSHIP";
+  status: "ACTIVE" | "INACTIVE" | "PENDING" | "ON_LEAVE" | "TERMINATED";
+  rg?: string;
+  profilePicture?: string;
+  address?: {
     street: string;
     number: string;
     city: string;
@@ -163,17 +166,8 @@ export interface Usuario {
     zipCode: string;
     complement?: string;
   };
-  documents: {
-    rg?: string;
-    wordPassport?: string;
-    voterCard?: string;
-  };
+  documents?: Record<string, unknown>;
   benefits?: string[];
-  photo?: string;
-  user?: {
-    id: string;
-    name: string;
-  };
 }
 
 export interface Avaliacao {

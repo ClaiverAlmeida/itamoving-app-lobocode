@@ -48,7 +48,7 @@ import {
   EUA_STATES,
   formatNumberTelephoneEUA,
 } from "../utils";
-import { usersService, UpdateUsersDTO } from '../services/hr/users.service';
+import { usersService, UpdateUsersDTO, CreateUsersDTO } from '../services/hr/users.service';
 
 export default function RHView() {
   const {
@@ -76,14 +76,16 @@ export default function RHView() {
   const [formUsuario, setFormUsuario] = useState({
     name: '',
     email: '',
+    login: '',
+    password: '',
     phone: '',
     cpf: '',
     birthDate: '',
     hireDate: new Date().toISOString().split('T')[0],
     terminationDate: '' as string | undefined,
-    position: '' as Usuario['position'],
+    role: '' as Usuario['role'],
     salary: 0,
-    contractType: 'CLT' as Usuario['contractType'],
+    contractType: 'CLT' as NonNullable<Usuario['contractType']>,
     status: 'ACTIVE' as Usuario['status'],
     street: '',
     number: '',
@@ -93,16 +95,24 @@ export default function RHView() {
     complement: '',
   });
 
-  const positions = ["ADMIN", "COMERCIAL", "LOGISTICS", "DRIVER"];
+  const roles = ["ADMIN", "COMERCIAL", "LOGISTICS", "DRIVER"];
 
-  const positionsLabels: Record<Usuario['position'], string> = {
+  const rolesLabels: Record<Usuario['role'], string> = {
     "ADMIN": "Administrador",
     "COMERCIAL": "Comercial",
     "LOGISTICS": "Logística",
     "DRIVER": "Motorista",
   }
 
-  const contractTypesLabels: Record<Usuario['contractType'], string> = {
+  const statusLabels: Record<Usuario['status'], string> = {
+    ACTIVE: 'Ativo',
+    INACTIVE: 'Inativo',
+    PENDING: 'Pendente',
+    ON_LEAVE: 'Férias',
+    TERMINATED: 'Demitido',
+  };
+
+  const contractTypesLabels: Record<NonNullable<Usuario['contractType']>, string> = {
     "CLT": "CLT",
     "PJ": "PJ",
     "TEMPORARY": "Temporário",
@@ -123,12 +133,14 @@ export default function RHView() {
     setFormUsuario({
       name: '',
       email: '',
+      login: '',
+      password: '',
       phone: '',
       cpf: '',
       birthDate: '',
       hireDate: new Date().toISOString().split('T')[0],
       terminationDate: '',
-      position: '' as Usuario['position'],
+      role: '' as Usuario['role'],
       salary: 0,
       contractType: 'CLT',
       status: 'ACTIVE',
@@ -141,14 +153,18 @@ export default function RHView() {
     });
   };
 
-  /** Retorna o nome do primeiro campo obrigatório vazio, ou null se todos preenchidos. */
-  const getFirstMissingRequired = (): string | null => {
+  /** Retorna o nome do primeiro campo obrigatório vazio, ou null se todos preenchidos. isEdit=true não exige login/senha. */
+  const getFirstMissingRequired = (isEdit?: boolean): string | null => {
     if (!formUsuario.name?.trim()) return 'Nome Completo';
     if (!formUsuario.email?.trim()) return 'Email';
+    if (!isEdit) {
+      if (!formUsuario.login?.trim()) return 'Login';
+      if (!formUsuario.password?.trim()) return 'Senha';
+    }
     if (!formUsuario.phone?.trim()) return 'Telefone';
     if (!formUsuario.birthDate) return 'Data de Nascimento';
     if (!formUsuario.hireDate) return 'Data de Admissão';
-    if (!formUsuario.position?.trim()) return 'Cargo';
+    if (!formUsuario.role?.trim()) return 'Cargo';
     if (formUsuario.salary === undefined || formUsuario.salary === null) return 'Salário';
     if (!formUsuario.contractType) return 'Tipo de Contrato';
     if (!formUsuario.status) return 'Status';
@@ -163,7 +179,7 @@ export default function RHView() {
   // CRUD Funcionários
   const handleSubmitUsuario = async (e: React.FormEvent) => {
     e.preventDefault();
-    const missing = getFirstMissingRequired();
+    const missing = getFirstMissingRequired(false);
     if (missing) {
       toast.error(`Preencha o campo obrigatório: ${missing}`);
       return;
@@ -177,18 +193,20 @@ export default function RHView() {
       return;
     }
 
-    const payload: Usuario = {
+    const payload: CreateUsersDTO = {
       name: formUsuario.name,
       email: formUsuario.email,
+      login: formUsuario.login,
+      password: formUsuario.password,
+      role: formUsuario.role,
+      status: formUsuario.status,
       phone: formUsuario.phone,
       cpf: formUsuario.cpf,
       birthDate: formUsuario.birthDate,
       hireDate: formUsuario.hireDate,
       terminationDate: formUsuario.terminationDate || undefined,
-      position: formUsuario.position,
       salary: Number(formUsuario.salary),
       contractType: formUsuario.contractType,
-      status: formUsuario.status,
       address: {
         street: formUsuario.street,
         number: formUsuario.number,
@@ -217,7 +235,7 @@ export default function RHView() {
   const handleEditUsuario = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUsuario) return;
-    const missing = getFirstMissingRequired();
+    const missing = getFirstMissingRequired(true);
     if (missing) {
       toast.error(`Preencha o campo obrigatório: ${missing}`);
       return;
@@ -246,12 +264,13 @@ export default function RHView() {
       const current = {
         name: formUsuario.name,
         email: formUsuario.email,
+        login: formUsuario.login,
         phone: formUsuario.phone,
         cpf: formUsuario.cpf,
         birthDate: formUsuario.birthDate,
         hireDate: formUsuario.hireDate,
         terminationDate: formUsuario.terminationDate === "" ? undefined : formUsuario.terminationDate,
-        position: formUsuario.position,
+        role: formUsuario.role,
         salary: Number(formUsuario.salary),
         contractType: formUsuario.contractType,
         status: formUsuario.status,
@@ -272,22 +291,25 @@ export default function RHView() {
 
       if (current.name !== original.name) patch.name = current.name;
       if (current.email !== original.email) patch.email = current.email;
+      if (current.login !== undefined && current.login !== original.login) patch.login = current.login;
       if (current.phone !== original.phone) patch.phone = current.phone;
       if (current.cpf !== original.cpf) patch.cpf = current.cpf;
       if (current.birthDate !== original.birthDate) patch.birthDate = current.birthDate;
       if (current.hireDate !== original.hireDate) patch.hireDate = current.hireDate;
       if (optChanged(current.terminationDate, original.terminationDate)) patch.terminationDate = current.terminationDate;
-      if (current.position !== original.position) patch.position = current.position;
+      if (current.role !== original.role) patch.role = current.role;
       if (current.salary !== original.salary) patch.salary = current.salary;
       if (current.contractType !== original.contractType) patch.contractType = current.contractType;
       if (current.status !== original.status) patch.status = current.status;
+      const origAddr = original.address;
       const addressChanged =
-        current.address.street !== original.address.street ||
-        current.address.number !== original.address.number ||
-        current.address.city !== original.address.city ||
-        current.address.state !== original.address.state ||
-        current.address.zipCode !== original.address.zipCode ||
-        optChanged(current.address.complement, original.address?.complement);
+        !origAddr ||
+        current.address.street !== origAddr.street ||
+        current.address.number !== origAddr.number ||
+        current.address.city !== origAddr.city ||
+        current.address.state !== origAddr.state ||
+        current.address.zipCode !== origAddr.zipCode ||
+        optChanged(current.address.complement, origAddr.complement);
       if (addressChanged) {
         patch.address = {
           street: current.address.street,
@@ -341,7 +363,7 @@ export default function RHView() {
   // Filtros
   const usuariosFiltrados = usuarios.filter(f =>
     f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    positionsLabels[f.position].toLowerCase().includes(searchTerm.toLowerCase())
+    rolesLabels[f.role].toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Estatísticas
@@ -471,6 +493,26 @@ export default function RHView() {
                         />
                       </div>
                       <div className="space-y-2">
+                        <Label htmlFor="login">Login *</Label>
+                        <Input
+                          id="login"
+                          value={formUsuario.login}
+                          onChange={(e) => setFormUsuario({ ...formUsuario, login: e.target.value })}
+                          placeholder="Ex: usuario@empresa.com"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Senha *</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={formUsuario.password}
+                          onChange={(e) => setFormUsuario({ ...formUsuario, password: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <Label htmlFor="phone">Telefone *</Label>
                         <Input
                           id="phone"
@@ -514,18 +556,18 @@ export default function RHView() {
                         <Label className="text-base font-semibold">Dados Profissionais</Label>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="position">Cargo *</Label>
+                        <Label htmlFor="role">Cargo *</Label>
                         <Select
-                          value={formUsuario.position}
-                          onValueChange={(value: Usuario['position']) => setFormUsuario({ ...formUsuario, position: value })}
+                          value={formUsuario.role}
+                          onValueChange={(value: Usuario['role']) => setFormUsuario({ ...formUsuario, role: value })}
                           required
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                           <SelectContent>
-                            {positions.map(position => (
-                              <SelectItem key={position} value={position}>{positionsLabels[position]}</SelectItem>
+                            {roles.map(role => (
+                              <SelectItem key={role} value={role}>{rolesLabels[role]}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -546,7 +588,7 @@ export default function RHView() {
                         <Label htmlFor="contractType">Tipo de Contrato *</Label>
                         <Select
                           value={formUsuario.contractType}
-                          onValueChange={(value: Usuario['contractType']) => setFormUsuario({ ...formUsuario, contractType: value })}
+                          onValueChange={(value: NonNullable<Usuario['contractType']>) => setFormUsuario({ ...formUsuario, contractType: value })}
                           required
                         >
                           <SelectTrigger>
@@ -572,8 +614,9 @@ export default function RHView() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="ACTIVE">Ativo</SelectItem>
+                            <SelectItem value="INACTIVE">Inativo</SelectItem>
+                            <SelectItem value="PENDING">Pendente</SelectItem>
                             <SelectItem value="ON_LEAVE">Férias</SelectItem>
-                            <SelectItem value="ABSENT">Afastado</SelectItem>
                             <SelectItem value="TERMINATED">Demitido</SelectItem>
                           </SelectContent>
                         </Select>
@@ -727,31 +770,30 @@ export default function RHView() {
                         <TableCell className="text-center">
                           <div className="flex items-center gap-2 justify-center">
                             <Briefcase className="w-4 h-4 text-muted-foreground" />
-                            {positionsLabels[func.position]}
+                            {rolesLabels[func.role]}
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="outline">{contractTypesLabels[func.contractType]}</Badge>
+                          <Badge variant="outline">{func.contractType ? contractTypesLabels[func.contractType] : '-'}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
                           <span className="font-semibold text-green-700">
-                            ${func.salary.toFixed(2)}
+                            {func.salary != null ? `R$ ${Number(func.salary).toFixed(2)}` : '-'}
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
-                          {format(new Date(func.hireDate), "dd/MM/yyyy")}
+                          {func.hireDate ? format(new Date(func.hireDate), "dd/MM/yyyy") : '-'}
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge
                             variant={
                               func.status === 'ACTIVE' ? 'default' :
                                 func.status === 'ON_LEAVE' ? 'secondary' :
-                                  func.status === 'ABSENT' ? 'outline' :
-                                    'destructive'
+                                  func.status === 'TERMINATED' ? 'destructive' : 'outline'
                             }
                           >
-                            {func.status === 'ACTIVE' ? <UserCheck className="w-3 h-3 mr-1" /> : func.status === 'ON_LEAVE' ? <Sun className="w-3 h-3 mr-1" /> : func.status === 'ABSENT' ? <UserX className="w-3 h-3 mr-1" /> : <UserMinus className="w-3 h-3 mr-1" />}
-                            {func.status === 'ACTIVE' ? 'Ativo' : func.status === 'ON_LEAVE' ? 'Férias' : func.status === 'ABSENT' ? 'Afastado' : 'Demitido'}
+                            {func.status === 'ACTIVE' ? <UserCheck className="w-3 h-3 mr-1" /> : func.status === 'ON_LEAVE' ? <Sun className="w-3 h-3 mr-1" /> : func.status === 'TERMINATED' ? <UserMinus className="w-3 h-3 mr-1" /> : <UserX className="w-3 h-3 mr-1" />}
+                            {statusLabels[func.status]}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
@@ -774,21 +816,23 @@ export default function RHView() {
                                 setFormUsuario({
                                   name: func.name,
                                   email: func.email,
-                                  phone: func.phone,
-                                  cpf: func.cpf,
-                                  birthDate: func.birthDate,
-                                  hireDate: func.hireDate,
+                                  login: func.login ?? '',
+                                  password: '',
+                                  phone: func.phone ?? '',
+                                  cpf: func.cpf ?? '',
+                                  birthDate: func.birthDate ?? '',
+                                  hireDate: func.hireDate ?? '',
                                   terminationDate: func.terminationDate ?? '',
-                                  position: func.position,
-                                  salary: func.salary,
-                                  contractType: func.contractType,
+                                  role: func.role,
+                                  salary: func.salary ?? 0,
+                                  contractType: func.contractType ?? 'CLT',
                                   status: func.status,
-                                  street: func.address.street,
-                                  number: func.address.number,
-                                  city: func.address.city,
-                                  state: func.address.state ?? '',
-                                  zipCode: func.address.zipCode,
-                                  complement: func.address.complement || '',
+                                  street: func.address?.street ?? '',
+                                  number: func.address?.number ?? '',
+                                  city: func.address?.city ?? '',
+                                  state: func.address?.state ?? '',
+                                  zipCode: func.address?.zipCode ?? '',
+                                  complement: func.address?.complement || '',
                                 });
                                 setIsEditDialogOpen(true);
                               }}
@@ -831,9 +875,9 @@ export default function RHView() {
                 </Avatar>
                 <div className="min-w-0 flex-1 space-y-1">
                   <h3 className="truncate text-lg font-semibold leading-tight">{selectedUsuario.name}</h3>
-                  <p className="text-sm text-muted-foreground">{positionsLabels[selectedUsuario.position]}</p>
-                  <Badge className="mt-1.5 text-xs" variant={selectedUsuario.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                    {selectedUsuario.status === 'ACTIVE' ? 'Ativo' : selectedUsuario.status === 'ON_LEAVE' ? 'Férias' : selectedUsuario.status === 'ABSENT' ? 'Afastado' : 'Demitido'}
+                  <p className="text-sm text-muted-foreground">{rolesLabels[selectedUsuario.role]}</p>
+                          <Badge className="mt-1.5 text-xs" variant={selectedUsuario.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                    {statusLabels[selectedUsuario.status]}
                   </Badge>
                 </div>
               </div>
@@ -851,31 +895,31 @@ export default function RHView() {
                   <Label className="text-xs font-medium text-muted-foreground">Telefone</Label>
                   <p className="flex items-center gap-2 text-sm">
                     <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    {selectedUsuario.phone}
+                    {selectedUsuario.phone ?? '-'}
                   </p>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">CPF/Documento</Label>
-                  <p className="text-sm">{selectedUsuario.cpf}</p>
+                  <p className="text-sm">{selectedUsuario.cpf ?? '-'}</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">Data de Nascimento</Label>
-                  <p className="text-sm">{format(new Date(selectedUsuario.birthDate), "dd/MM/yyyy")}</p>
+                  <p className="text-sm">{selectedUsuario.birthDate ? format(new Date(selectedUsuario.birthDate), "dd/MM/yyyy") : '-'}</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">Data de Admissão</Label>
-                  <p className="text-sm">{format(new Date(selectedUsuario.hireDate), "dd/MM/yyyy")}</p>
+                  <p className="text-sm">{selectedUsuario.hireDate ? format(new Date(selectedUsuario.hireDate), "dd/MM/yyyy") : '-'}</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">Tipo de Contrato</Label>
                   <p className="text-sm">
-                    <Badge className="font-normal" variant="outline">{contractTypesLabels[selectedUsuario.contractType]}</Badge>
+                    <Badge className="font-normal" variant="outline">{selectedUsuario.contractType ? contractTypesLabels[selectedUsuario.contractType] : '-'}</Badge>
                   </p>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">Salário</Label>
                   <p className="text-sm font-semibold text-green-700">
-                    ${selectedUsuario.salary.toFixed(2)}
+                    {selectedUsuario.salary != null ? `R$ ${Number(selectedUsuario.salary).toFixed(2)}` : '-'}
                   </p>
                 </div>
                 <div className="col-span-2 space-y-1.5">
@@ -883,10 +927,9 @@ export default function RHView() {
                   <p className="flex items-start gap-2 text-sm leading-relaxed">
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                     <span>
-                      {selectedUsuario.address.street}, {selectedUsuario.address.number}
-                      {selectedUsuario.address.complement && ` — ${selectedUsuario.address.complement}`}
-                      {" - "}
-                      {selectedUsuario.address.city}, {selectedUsuario.address.state} {" - "} {selectedUsuario.address.zipCode}
+                      {selectedUsuario.address
+                        ? `${selectedUsuario.address.street}, ${selectedUsuario.address.number}${selectedUsuario.address.complement ? ` — ${selectedUsuario.address.complement}` : ''} - ${selectedUsuario.address.city}, ${selectedUsuario.address.state} - ${selectedUsuario.address.zipCode}`
+                        : '-'}
                     </span>
                   </p>
                 </div>
@@ -936,6 +979,15 @@ export default function RHView() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="loginEdit">Login</Label>
+                <Input
+                  id="loginEdit"
+                  value={formUsuario.login}
+                  onChange={(e) => setFormUsuario({ ...formUsuario, login: e.target.value })}
+                  placeholder="Ex: usuario@empresa.com"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="telefoneEdit">Telefone *</Label>
                 <Input
                   id="phoneEdit"
@@ -979,18 +1031,18 @@ export default function RHView() {
                 <Label className="text-base font-semibold">Dados Profissionais</Label>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="positionEdit">Cargo *</Label>
+                <Label htmlFor="roleEdit">Cargo *</Label>
                 <Select
-                  value={formUsuario.position}
-                  onValueChange={(value: Usuario['position']) => setFormUsuario({ ...formUsuario, position: value })}
+                  value={formUsuario.role}
+                  onValueChange={(value: Usuario['role']) => setFormUsuario({ ...formUsuario, role: value })}
                   required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    {positions.map(position => (
-                      <SelectItem key={position} value={position}>{positionsLabels[position]}</SelectItem>
+                    {roles.map(role => (
+                      <SelectItem key={role} value={role}>{rolesLabels[role]}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1011,7 +1063,7 @@ export default function RHView() {
                 <Label htmlFor="contractTypeEdit">Tipo de Contrato *</Label>
                 <Select
                   value={formUsuario.contractType}
-                  onValueChange={(value: any) => setFormUsuario({ ...formUsuario, contractType: value })}
+                  onValueChange={(value: NonNullable<Usuario['contractType']>) => setFormUsuario({ ...formUsuario, contractType: value })}
                   required
                 >
                   <SelectTrigger>
@@ -1037,8 +1089,9 @@ export default function RHView() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ACTIVE">Ativo</SelectItem>
+                    <SelectItem value="INACTIVE">Inativo</SelectItem>
+                    <SelectItem value="PENDING">Pendente</SelectItem>
                     <SelectItem value="ON_LEAVE">Férias</SelectItem>
-                    <SelectItem value="ABSENT">Afastado</SelectItem>
                     <SelectItem value="TERMINATED">Demitido</SelectItem>
                   </SelectContent>
                 </Select>

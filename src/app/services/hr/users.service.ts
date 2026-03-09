@@ -5,17 +5,20 @@ import { toDateOnly } from "../../utils";
 export interface CreateUsersDTO {
     name: string;
     email: string;
-    phone: string;
-    cpf: string;
-    birthDate: string;
-    hireDate: string;
+    login: string;
+    password: string;
+    role: "ADMIN" | "COMERCIAL" | "LOGISTICS" | "DRIVER";
+    status: "ACTIVE" | "INACTIVE" | "PENDING" | "ON_LEAVE" | "TERMINATED";
+    phone?: string;
+    cpf?: string;
+    rg?: string;
+    profilePicture?: string;
+    birthDate?: string;
+    hireDate?: string;
     terminationDate?: string;
-    position: "ADMIN" | "COMERCIAL" | "LOGISTICS" | "DRIVER";
-    salary: number;
-    contractType: "CLT" | "PJ" | "TEMPORARY" | "INTERNSHIP";
-    status: "ACTIVE" | "ON_LEAVE" | "ABSENT" | "TERMINATED";
-    photo?: string;
-    address: {
+    salary?: number;
+    contractType?: "CLT" | "PJ" | "TEMPORARY" | "INTERNSHIP";
+    address?: {
         street: string;
         number: string;
         city: string;
@@ -23,7 +26,7 @@ export interface CreateUsersDTO {
         zipCode: string;
         complement?: string;
     };
-    documents?: Record<string, string>;
+    documents?: Record<string, unknown>;
     benefits?: string[];
 }
 
@@ -33,30 +36,21 @@ export interface UsersBackend {
     id: string;
     name: string;
     email: string;
-    cpf: string;
-    birthDate: string;
-    hireDate: string;
-    terminationDate?: string;
-    position: "ADMIN" | "COMERCIAL" | "LOGISTICS" | "DRIVER";
-    salary: number;
-    phone: string;
-    contractType: "CLT" | "PJ" | "TEMPORARY" | "INTERNSHIP";
-    status: "ACTIVE" | "ON_LEAVE" | "ABSENT" | "TERMINATED";
-    photo?: string;
-    address: {
-        street: string;
-        number: string;
-        city: string;
-        state: string;
-        zipCode: string;
-        complement?: string;
-    };
-    user?: {
-        id: string;
-        name: string;
-    };
-    documents?: Record<string, unknown>;
-    benefits?: string[];
+    login: string;
+    cpf?: string | null;
+    rg?: string | null;
+    phone?: string | null;
+    birthDate?: string | null;
+    hireDate?: string | null;
+    terminationDate?: string | null;
+    salary?: number | null;
+    contractType?: "CLT" | "PJ" | "TEMPORARY" | "INTERNSHIP" | null;
+    role: "ADMIN" | "COMERCIAL" | "LOGISTICS" | "DRIVER";
+    status: "ACTIVE" | "INACTIVE" | "PENDING" | "ON_LEAVE" | "TERMINATED";
+    profilePicture?: string | null;
+    address?: Record<string, unknown> | null;
+    documents?: Record<string, unknown> | null;
+    benefits?: string[] | null;
     createdAt: string;
     updatedAt: string;
     deletedAt?: string | null;
@@ -67,24 +61,22 @@ function mapBackendToFrontend(user: UsersBackend): Usuario {
         id: user.id,
         name: user.name,
         email: user.email,
-        phone: user.phone,
-        cpf: user.cpf,
-        birthDate: toDateOnly(user.birthDate),
-        hireDate: toDateOnly(user.hireDate),
-        terminationDate: toDateOnly(user.terminationDate),
-        position: user.position,
-        salary: user.salary,
-        contractType: user.contractType,
+        login: user.login,
+        phone: user.phone ?? undefined,
+        cpf: user.cpf ?? undefined,
+        birthDate: user.birthDate ? toDateOnly(user.birthDate) : undefined,
+        hireDate: user.hireDate ? toDateOnly(user.hireDate) : undefined,
+        terminationDate: user.terminationDate ? toDateOnly(user.terminationDate) : undefined,
+        salary: user.salary ?? undefined,
+        contractType: user.contractType ?? undefined,
         status: user.status,
-        address: user.address,
-        documents: user.documents as { rg?: string | undefined; wordPassport?: string | undefined; voterCard?: string | undefined; },
-        benefits: user.benefits,
-        photo: user.photo,
-        user: user.user ? {
-            id: user.user.id,
-            name: user.user.name,
-        } : undefined,
-    }
+        rg: user.rg ?? undefined,
+        profilePicture: user.profilePicture ?? undefined,
+        address: user.address as Usuario["address"] ?? undefined,
+        documents: user.documents ?? undefined,
+        benefits: user.benefits ?? undefined,
+        role: user.role,
+    };
 }
 
 // Interface para o usuário motorista
@@ -165,7 +157,7 @@ export class UsersService {
         }
     }
 
-    async create(data: Usuario): Promise<{ success: boolean; data?: Usuario; error?: string }> {
+    async create(data: CreateUsersDTO): Promise<{ success: boolean; data?: Usuario; error?: string }> {
         try {
             const result = await api.post<Usuario | { data: Usuario }>("/hr/users", data);
             if (result.success && result.data) {
