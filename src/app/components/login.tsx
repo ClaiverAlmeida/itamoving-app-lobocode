@@ -204,7 +204,7 @@ export default function Login() {
               <CardContent className="space-y-2.5 lg:space-y-3 p-5 lg:p-6 pt-0">
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Button
-                    onClick={() => quickLogin('admin@itamoving.com', 'admin123')}
+                    onClick={() => quickLogin('admin@itamoving.com', 'Admin123@Senha')}
                     className="w-full justify-start bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white h-auto py-3 px-4"
                     disabled={loading}
                   >
@@ -219,7 +219,7 @@ export default function Login() {
 
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Button
-                    onClick={() => quickLogin('comercial@itamoving.com', 'comercial123')}
+                    onClick={() => quickLogin('comercial@itamoving.com', 'Comercial123@Senha')}
                     className="w-full justify-start bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white h-auto py-3 px-4"
                     disabled={loading}
                   >
@@ -249,7 +249,7 @@ export default function Login() {
 
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Button
-                    onClick={() => quickLogin('motorista@itamoving.com', 'motorista123')}
+                    onClick={() => quickLogin('motorista@itamoving.com', 'Motorista123@Senha')}
                     className="w-full justify-start bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-3 px-4"
                     disabled={loading}
                   >
@@ -268,10 +268,10 @@ export default function Login() {
                     <div className="text-sm text-blue-900 min-w-0">
                       <p className="font-semibold mb-1 text-xs lg:text-sm">Credenciais de Demonstração:</p>
                       <ul className="text-xs space-y-0.5 lg:space-y-1 opacity-90">
-                        <li className="truncate">• Admin: admin@itamoving.com / admin123</li>
-                        <li className="truncate">• Comercial: comercial@itamoving.com / comercial123</li>
+                        <li className="truncate">• Admin: admin@itamoving.com / Admin123@Senha</li>
+                        <li className="truncate">• Comercial: comercial@itamoving.com / Comercial123@Senha</li>
                         <li className="truncate">• Logístico: raquel@itamoving.com / raquel123</li>
-                        <li className="truncate">• Motorista: motorista@itamoving.com / motorista123</li>
+                        <li className="truncate">• Motorista: motorista@itamoving.com / Motorista123@Senha</li>
                       </ul>
                     </div>
                   </div>

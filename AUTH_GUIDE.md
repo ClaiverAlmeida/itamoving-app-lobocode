@@ -28,7 +28,7 @@ O sistema ITAMOVING implementa um robusto sistema de autenticação e autorizaç
 **Credenciais Demo:**
 ```
 Email: admin@itamoving.com
-Senha: admin123
+Senha: Admin123@Senha
 ```
 
 ---
@@ -55,7 +55,7 @@ Senha: admin123
 **Credenciais Demo:**
 ```
 Email: comercial@itamoving.com
-Senha: comercial123
+Senha: Comercial123@Senha
 ```
 
 ---
@@ -112,7 +112,7 @@ Senha: raquel123
 **Credenciais Demo:**
 ```
 Email: motorista@itamoving.com
-Senha: motorista123
+Senha: Motorista123@Senha
 ```
 
 ---

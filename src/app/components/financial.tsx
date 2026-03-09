@@ -126,7 +126,7 @@ export default function FinanceiroView() {
     const novaTransacao: Transacao = {
       id: Date.now().toString(),
       clienteId: formData.clienteId,
-      clienteNome: cliente?.nome || 'N/A',
+      clienteNome: cliente?.usaNome || 'N/A',
       tipo: formData.tipo,
       categoria: formData.categoria,
       valor: parseFloat(formData.valor),
@@ -343,7 +343,7 @@ export default function FinanceiroView() {
                         <SelectContent>
                           {clientes.map(cliente => (
                             <SelectItem key={cliente.id} value={cliente.id}>
-                              {cliente.nome}
+                              {cliente.usaNome}
                             </SelectItem>
                           ))}
                         </SelectContent>

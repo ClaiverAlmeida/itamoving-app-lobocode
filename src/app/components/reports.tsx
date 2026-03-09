@@ -4,12 +4,12 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { useData } from '../context/DataContext';
-import { 
-  Search, 
-  Download, 
-  FileText, 
-  Users, 
-  Package, 
+import {
+  Search,
+  Download,
+  FileText,
+  Users,
+  Package,
   DollarSign,
   Calendar,
   TrendingUp,
@@ -63,11 +63,19 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
+import { useDashboardData, type DashboardDataConfig } from '../hooks/useDashboardData';
+import { ESTOQUE_MINIMO, ESTOQUE_IDEAL } from './stock';
 
 type ReportType = 'visao-geral' | 'clientes' | 'financeiro' | 'operacional' | 'atendimento';
 
-export default function RelatoriosView() {
-  const { clientes, transacoes, agendamentos, containers, estoque } = useData();
+interface DashboardViewProps {
+  onNavigate?: (view: ReportType) => void;
+  /** Quais dados carregar. Omitir = todos. Ex: { clientes: true, agendamentos: true } */
+  dataSources?: DashboardDataConfig;
+}
+
+export default function RelatoriosView({ onNavigate, dataSources }: DashboardViewProps = {}) {
+  const { transacoes } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReport, setSelectedReport] = useState<ReportType>('visao-geral');
   const [showFilters, setShowFilters] = useState(false);
@@ -75,14 +83,22 @@ export default function RelatoriosView() {
     inicio: '',
     fim: ''
   });
+  const { clientes, containers, agendamentos, estoque, isLoading, refetch } = useDashboardData(dataSources);
 
-  // Garantir que estoque seja sempre um array
-  const estoqueArray = Array.isArray(estoque) ? estoque : [];
+  // Estoque
+  const itensEstoque = Object.keys(estoque);
+  const itensEstoqueValores = Object.values(estoque);
+  
+  const quantidadeItensEstoque = itensEstoque.length;
+  const estoqueTotal = itensEstoqueValores.reduce((sum, value) => sum + value, 0);
 
+  const estoqueBaixo = itensEstoque.filter(item => (estoque[item] < ESTOQUE_MINIMO[item])).length;
+  const estoqueIdeal = itensEstoque.filter(item => (estoque[item] >= ESTOQUE_IDEAL[item])).length;
+  
   const filteredClientes = clientes.filter(cliente =>
-    cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cliente.cpf.includes(searchTerm) ||
-    cliente.telefoneUSA.includes(searchTerm)
+    cliente.usaNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cliente.usaCpf.includes(searchTerm) ||
+    cliente.usaPhone.includes(searchTerm)
   );
 
   const gerarRelatorioPDF = (tipo: string) => {
@@ -99,23 +115,23 @@ export default function RelatoriosView() {
     const despesas = transacoes.filter(t => t.tipo === 'despesa').reduce((sum, t) => sum + t.valor, 0);
     const lucro = receitas - despesas;
     const margemLucro = receitas > 0 ? ((lucro / receitas) * 100).toFixed(1) : 0;
-    
+
     // Containers por status
-    const containersPreparacao = containers.filter(c => c.status === 'preparacao').length;
-    const containersTransito = containers.filter(c => c.status === 'transito').length;
-    const containersEntregue = containers.filter(c => c.status === 'entregue').length;
-    
+    const containersPreparacao = containers.filter(c => c.status === 'PREPARATION').length;
+    const containersTransito = containers.filter(c => c.status === 'IN_TRANSIT').length;
+    const containersEntregue = containers.filter(c => c.status === 'DELIVERED').length;
+
     // Agendamentos por status
-    const agendamentosConfirmados = agendamentos.filter(a => a.status === 'confirmado').length;
-    const agendamentosPendentes = agendamentos.filter(a => a.status === 'pendente').length;
-    const agendamentosConcluidos = agendamentos.filter(a => a.status === 'concluido').length;
-    
+    const agendamentosConfirmados = agendamentos.filter(a => a.status === 'CONFIRMED').length;
+    const agendamentosPendentes = agendamentos.filter(a => a.status === 'PENDING').length;
+    const agendamentosConcluidos = agendamentos.filter(a => a.status === 'COLLECTED').length;
+
     // Ticket médio
     const ticketMedio = totalClientes > 0 ? receitas / totalClientes : 0;
-    
+
     // Crescimento mensal (simulado)
     const crescimentoMensal = 12.5;
-    
+
     return {
       totalClientes,
       totalAgendamentos,
@@ -140,7 +156,7 @@ export default function RelatoriosView() {
   const clientesPorEstado = useMemo(() => {
     const estados: Record<string, number> = {};
     clientes.forEach(c => {
-      const estado = c.enderecoUSA.estado;
+      const estado = c.usaAddress.estado as string;
       estados[estado] = (estados[estado] || 0) + 1;
     });
     return Object.entries(estados)
@@ -167,22 +183,22 @@ export default function RelatoriosView() {
   // Performance de atendentes
   const performanceAtendentes = useMemo(() => {
     const atendentes: Record<string, { clientes: number; receitas: number }> = {};
-    
+
     clientes.forEach(c => {
-      if (!atendentes[c.atendente]) {
-        atendentes[c.atendente] = { clientes: 0, receitas: 0 };
+      const key = c.user?.id ?? "";
+      if (!key) return;
+      if (!atendentes[key]) {
+        atendentes[key] = { clientes: 0, receitas: 0 };
       }
-      atendentes[c.atendente].clientes += 1;
-      
-      // Somar receitas do cliente
+      atendentes[key].clientes += 1;
       const receitasCliente = transacoes
         .filter(t => t.clienteId === c.id && t.tipo === 'receita')
         .reduce((sum, t) => sum + t.valor, 0);
-      atendentes[c.atendente].receitas += receitasCliente;
+      atendentes[key].receitas += receitasCliente;
     });
-    
-    return Object.entries(atendentes).map(([nome, dados]) => ({
-      nome,
+    const userNames = new Map(clientes.map(c => [c.user?.id ?? "", c.user?.name ?? c.user?.id ?? "—"]));
+    return Object.entries(atendentes).map(([userId, dados]) => ({
+      nome: userNames.get(userId) ?? userId,
       clientes: dados.clientes,
       receitas: dados.receitas,
       ticketMedio: dados.clientes > 0 ? dados.receitas / dados.clientes : 0
@@ -203,8 +219,8 @@ export default function RelatoriosView() {
   }, [transacoes]);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
       currency: 'USD'
     }).format(value);
   };
@@ -346,8 +362,8 @@ export default function RelatoriosView() {
                   <AreaChart data={receitasMensais}>
                     <defs>
                       <linearGradient id="colorReceitas" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
@@ -443,18 +459,24 @@ export default function RelatoriosView() {
               <CardContent className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Total de Itens</span>
-                  <Badge className="bg-green-100 text-green-800">{estoqueArray.length}</Badge>
+                  <Badge className="bg-green-100 text-green-800">{quantidadeItensEstoque}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Em Estoque</span>
                   <Badge className="bg-blue-100 text-blue-800">
-                    {estoqueArray.filter(i => i.quantidade > 0).length}
+                    {estoqueTotal}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Baixo Estoque</span>
                   <Badge className="bg-orange-100 text-orange-800">
-                    {estoqueArray.filter(i => i.quantidade < i.minimo).length}
+                    {estoqueBaixo}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Estoque Ideal</span>
+                  <Badge className="bg-gray-100 text-gray-600">
+                    {estoqueIdeal}
                   </Badge>
                 </div>
               </CardContent>
@@ -540,15 +562,15 @@ export default function RelatoriosView() {
                   {filteredClientes.map(cliente => (
                     <Card key={cliente.id} className="bg-slate-50">
                       <CardContent className="p-3">
-                        <h3 className="font-semibold mb-2">{cliente.nome}</h3>
+                        <h3 className="font-semibold mb-2">{cliente.usaNome}</h3>
                         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                           <div>
-                            <p>CPF: {cliente.cpf}</p>
-                            <p>Tel: {cliente.telefoneUSA}</p>
+                            <p>CPF: {cliente.usaCpf}</p>
+                            <p>Tel: {cliente.usaPhone}</p>
                           </div>
                           <div>
-                            <p>{cliente.enderecoUSA.cidade}, {cliente.enderecoUSA.estado}</p>
-                            <p>→ {cliente.destinoBrasil.cidade}, {cliente.destinoBrasil.estado}</p>
+                            <p>{cliente.usaAddress.cidade as string}, {cliente.usaAddress.estado as string} {cliente.usaAddress.cep as string}</p>
+                            <p>→ {cliente.brazilAddress.cidade as string}, {cliente.brazilAddress.estado as string} {cliente.brazilAddress.cep as string}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -561,11 +583,11 @@ export default function RelatoriosView() {
                     </div>
                   )}
 
-                  {!searchTerm && (
+                  {/* {!searchTerm && (
                     <div className="text-center py-8 text-muted-foreground">
                       Digite algo para buscar
                     </div>
-                  )}
+                  )} */}
                 </div>
               </CardContent>
             </Card>
@@ -760,7 +782,7 @@ export default function RelatoriosView() {
                 <CardTitle className="text-lg">Itens de Estoque</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold text-orange-900">{estoqueArray.length}</p>
+                <p className="text-4xl font-bold text-orange-900">{quantidadeItensEstoque}</p>
                 <Button
                   variant="outline"
                   size="sm"
@@ -779,9 +801,21 @@ export default function RelatoriosView() {
               </CardHeader>
               <CardContent>
                 <p className="text-4xl font-bold text-pink-900">
-                  {estoqueArray.filter(i => i.quantidade < i.minimo).length}
+                  {estoqueBaixo}
                 </p>
                 <p className="text-sm text-pink-700 mt-2">Necessitam reposição</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-to-br from-gray-50 to-green-100 border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-lg">Estoque Ideal</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-4xl font-bold text-gray-600">
+                  {estoqueIdeal}
+                </p>
+                <p className="text-sm text-gray-600 mt-2">Dentro do estoque ideal</p>
               </CardContent>
             </Card>
           </div>
@@ -807,12 +841,11 @@ export default function RelatoriosView() {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 flex-1">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
-                            index === 0 ? 'bg-yellow-500' :
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${index === 0 ? 'bg-yellow-500' :
                             index === 1 ? 'bg-gray-400' :
-                            index === 2 ? 'bg-orange-600' :
-                            'bg-blue-500'
-                          }`}>
+                              index === 2 ? 'bg-orange-600' :
+                                'bg-blue-500'
+                            }`}>
                             {index + 1}
                           </div>
                           <div className="flex-1">

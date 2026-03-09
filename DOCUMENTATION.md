@@ -848,7 +848,7 @@ Sistema de autenticação **simulado** para fins de demonstração.
 
 **Credenciais padrão:**
 - Email: `admin@itamoving.com`
-- Senha: `admin123`
+- Senha: `Admin123@Senha`
 
 **Arquivo:** `components/auth.tsx`
 

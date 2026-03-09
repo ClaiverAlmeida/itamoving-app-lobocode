@@ -1,17 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { 
-  Users, 
-  Package, 
-  Calendar, 
-  TrendingUp, 
-  DollarSign, 
-  Container, 
-  ArrowUpRight, 
+import {
+  Users,
+  Package,
+  Calendar,
+  TrendingUp,
+  DollarSign,
+  Container,
+  ArrowUpRight,
   ArrowDownRight,
   AlertTriangle,
   Clock,
@@ -35,25 +35,27 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  PieChart, 
-  Pie, 
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
   Cell,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
   ResponsiveContainer,
   LineChart,
   Line
 } from 'recharts';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
+import { Cliente as ClienteType, Container as ContainerType, Estoque as EstoqueType, Agendamento as AgendamentoType } from '../types';
+import { useDashboardData, type DashboardDataConfig } from '../hooks/useDashboardData';
 
 interface Alerta {
   id: string;
@@ -78,25 +80,29 @@ type View = 'dashboard' | 'clientes' | 'estoque' | 'agendamentos' | 'containers'
 
 interface DashboardViewProps {
   onNavigate?: (view: View) => void;
+  /** Quais dados carregar. Omitir = todos. Ex: { clientes: true, agendamentos: true } */
+  dataSources?: DashboardDataConfig;
 }
 
-export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
-  const { clientes, estoque, agendamentos, containers, transacoes } = useData();
+export default function DashboardView({ onNavigate, dataSources }: DashboardViewProps = {}) {
+  const { transacoes } = useData();
   const { user, hasPermission } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState<'dia' | 'semana' | 'mes'>('semana');
+
+  const { clientes, containers, agendamentos, estoque, isLoading, refetch } = useDashboardData(dataSources);
 
   // Cálculos
   const agendamentosHoje = agendamentos.filter(a => {
     const hoje = new Date().toISOString().split('T')[0];
-    return a.dataColeta === hoje;
+    return a.collectionDate === hoje;
   }).length;
 
   const agendamentosAmanha = agendamentos.filter(a => {
     const amanha = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    return a.dataColeta === amanha;
+    return a.collectionDate === amanha;
   }).length;
 
-  const agendamentosPendentes = agendamentos.filter(a => a.status === 'pendente').length;
+  const agendamentosPendentes = agendamentos.filter(a => a.status === 'PENDING').length;
 
   const receitaTotal = transacoes
     .filter(t => t.tipo === 'receita')
@@ -109,19 +115,20 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
   const lucro = receitaTotal - despesaTotal;
   const margemLucro = receitaTotal > 0 ? ((lucro / receitaTotal) * 100).toFixed(1) : 0;
 
-  const estoqueTotal = estoque.caixasPequenas + estoque.caixasMedias + estoque.caixasGrandes;
+  const estoqueTotal = estoque.smallBoxes + estoque.mediumBoxes + estoque.largeBoxes + estoque.adhesiveTape + estoque.personalizedItems;
   const estoqueBaixo = [
-    { tipo: 'Caixas Pequenas', qtd: estoque.caixasPequenas, minimo: 50 },
-    { tipo: 'Caixas Médias', qtd: estoque.caixasMedias, minimo: 30 },
-    { tipo: 'Caixas Grandes', qtd: estoque.caixasGrandes, minimo: 20 },
-    { tipo: 'Fitas', qtd: estoque.fitas, minimo: 40 },
+    { tipo: 'Caixas Pequenas', qtd: estoque.smallBoxes, minimo: 50 },
+    { tipo: 'Caixas Médias', qtd: estoque.mediumBoxes, minimo: 30 },
+    { tipo: 'Caixas Grandes', qtd: estoque.largeBoxes, minimo: 20 },
+    { tipo: 'Itens Personalizados', qtd: estoque.personalizedItems, minimo: 10 },
+    { tipo: 'Fitas', qtd: estoque.adhesiveTape, minimo: 40 },
   ].filter(item => item.qtd < item.minimo);
 
-  const containersAtivos = containers.filter(c => 
-    c.status === 'preparacao' || c.status === 'transito'
+  const containersAtivos = containers.filter(c =>
+    c.status === 'PREPARATION' || c.status === 'IN_TRANSIT' || c.status === 'SHIPPED' || c.status === 'DELIVERED' || c.status === 'CANCELLED'
   ).length;
 
-  const containersEmTransito = containers.filter(c => c.status === 'transito').length;
+  const containersEmTransito = containers.filter(c => c.status === 'IN_TRANSIT').length;
 
   const clientesNovosUltimaSemana = clientes.filter(c => {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -134,10 +141,10 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
 
     // Agendamentos atrasados
     const atrasados = agendamentos.filter(a => {
-      const dataAgendamento = new Date(a.dataColeta + 'T00:00:00');
-      return isPast(dataAgendamento) && a.status === 'pendente' && !isToday(dataAgendamento);
+      const dataAgendamento = new Date(a.collectionDate + 'T00:00:00');
+      return isPast(dataAgendamento) && a.status === 'PENDING' && !isToday(dataAgendamento);
     });
-    
+
     if (atrasados.length > 0) {
       alerts.push({
         id: 'agendamentos-atrasados',
@@ -203,7 +210,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
           atividades.push({
             id: `cliente-${c.id}`,
             tipo: 'cliente',
-            descricao: `Novo cliente cadastrado: ${c.nome}`,
+            descricao: `Novo cliente cadastrado: ${c.usaNome}`,
             data: dataCadastro,
             icone: Users,
             color: 'blue',
@@ -218,7 +225,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
         atividades.push({
           id: `agendamento-${a.id}`,
           tipo: 'agendamento',
-          descricao: `Agendamento criado para ${a.clienteNome}`,
+          descricao: `Agendamento criado para ${a.client.name}`,
           data: new Date(),
           icone: Calendar,
           color: 'green',
@@ -229,13 +236,13 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
     containers
       .slice(0, 2)
       .forEach(c => {
-        const dataEmbarque = new Date(c.dataEmbarque);
+        const dataEmbarque = new Date(c.boardingDate || '');
         // Só adiciona se a data for válida
         if (!isNaN(dataEmbarque.getTime())) {
           atividades.push({
             id: `container-${c.id}`,
             tipo: 'container',
-            descricao: `Container ${c.numero} - ${c.status}`,
+            descricao: `Container ${c.number} - ${c.status === 'PREPARATION' ? 'Em Preparação' : c.status === 'IN_TRANSIT' ? 'Em Trânsito' : c.status === 'DELIVERED' ? 'Entregue' : c.status === 'CANCELLED' ? 'Cancelado' : ''}`,
             data: dataEmbarque,
             icone: Container,
             color: 'purple',
@@ -258,18 +265,19 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
 
   // Dados para gráfico de status de containers
   const containersStatusData = [
-    { name: 'Em Preparação', value: containers.filter(c => c.status === 'preparacao').length, color: '#F5A623' },
-    { name: 'Em Trânsito', value: containers.filter(c => c.status === 'transito').length, color: '#5DADE2' },
-    { name: 'Entregue', value: containers.filter(c => c.status === 'entregue').length, color: '#10B981' },
-    { name: 'Cancelado', value: containers.filter(c => c.status === 'cancelado').length, color: '#EF4444' },
+    { name: 'Em Preparação', value: containers.filter(c => c.status === 'PREPARATION').length, color: '#F5A623' },
+    { name: 'Em Trânsito', value: containers.filter(c => c.status === 'IN_TRANSIT').length, color: '#5DADE2' },
+    { name: 'Entregue', value: containers.filter(c => c.status === 'DELIVERED').length, color: '#10B981' },
+    { name: 'Cancelado', value: containers.filter(c => c.status === 'CANCELLED').length, color: '#EF4444' },
   ];
 
   // Dados para gráfico de estoque
   const estoqueData = [
-    { tipo: 'Pequenas', quantidade: estoque.caixasPequenas, fill: '#5DADE2' },
-    { tipo: 'Médias', quantidade: estoque.caixasMedias, fill: '#F5A623' },
-    { tipo: 'Grandes', quantidade: estoque.caixasGrandes, fill: '#1E3A5F' },
-    { tipo: 'Fitas', quantidade: estoque.fitas, fill: '#94A3B8' },
+    { tipo: 'Pequenas', quantidade: estoque.smallBoxes, fill: '#5DADE2' },
+    { tipo: 'Médias', quantidade: estoque.mediumBoxes, fill: '#F5A623' },
+    { tipo: 'Grandes', quantidade: estoque.largeBoxes, fill: '#1E3A5F' },
+    { tipo: 'Itens Personalizados', quantidade: estoque.personalizedItems, fill: '#94A3B8' },
+    { tipo: 'Fitas', quantidade: estoque.adhesiveTape, fill: '#94A3B8' },
   ];
 
   // Dados de performance semanal
@@ -284,8 +292,8 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
   ];
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
       currency: 'USD',
       notation: 'compact',
       maximumFractionDigits: 1
@@ -314,8 +322,8 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
         </div>
         <div className="flex gap-2 flex-wrap">
           {hasPermission('relatorios', 'read') && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => onNavigate?.('relatorios')}
               className="flex-1 sm:flex-none"
@@ -338,7 +346,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
             {alertas.map((alerta) => {
               const Icon = alerta.icone;
               const colors = getAlertaColor(alerta.tipo);
-              
+
               return (
                 <motion.div
                   key={alerta.id}
@@ -485,25 +493,21 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <Card className={`bg-gradient-to-br border-2 hover:shadow-xl transition-all cursor-pointer group ${
-            estoqueBaixo.length > 0 
-              ? 'from-orange-50 to-orange-100 border-orange-300' 
-              : 'from-slate-50 to-slate-100 border-slate-200'
-          }`}>
+          <Card className={`bg-gradient-to-br border-2 hover:shadow-xl transition-all cursor-pointer group ${estoqueBaixo.length > 0
+            ? 'from-orange-50 to-orange-100 border-orange-300'
+            : 'from-slate-50 to-slate-100 border-slate-200'
+            }`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={`text-sm font-medium ${
-                estoqueBaixo.length > 0 ? 'text-orange-900' : 'text-slate-900'
-              }`}>
+              <CardTitle className={`text-sm font-medium ${estoqueBaixo.length > 0 ? 'text-orange-900' : 'text-slate-900'
+                }`}>
                 Estoque Total
               </CardTitle>
-              <Package className={`h-5 w-5 group-hover:scale-110 transition-transform ${
-                estoqueBaixo.length > 0 ? 'text-orange-600' : 'text-slate-600'
-              }`} />
+              <Package className={`h-5 w-5 group-hover:scale-110 transition-transform ${estoqueBaixo.length > 0 ? 'text-orange-600' : 'text-slate-600'
+                }`} />
             </CardHeader>
             <CardContent>
-              <div className={`text-3xl font-bold ${
-                estoqueBaixo.length > 0 ? 'text-orange-900' : 'text-slate-900'
-              }`}>
+              <div className={`text-3xl font-bold ${estoqueBaixo.length > 0 ? 'text-orange-900' : 'text-slate-900'
+                }`}>
                 {estoqueTotal}
               </div>
               {estoqueBaixo.length > 0 ? (
@@ -521,10 +525,9 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                   </Badge>
                 </div>
               )}
-              <p className={`text-xs mt-1 ${
-                estoqueBaixo.length > 0 ? 'text-orange-700' : 'text-slate-700'
-              }`}>
-                P: {estoque.caixasPequenas} | M: {estoque.caixasMedias} | G: {estoque.caixasGrandes}
+              <p className={`text-xs mt-1 ${estoqueBaixo.length > 0 ? 'text-orange-700' : 'text-slate-700'
+                }`}>
+                P: {estoque.smallBoxes} | M: {estoque.mediumBoxes} | G: {estoque.largeBoxes} | Itens Personalizados: {estoque.personalizedItems} | Fitas: {estoque.adhesiveTape}
               </p>
             </CardContent>
           </Card>
@@ -597,52 +600,52 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                 <LineChart data={financeiroData}>
                   <defs>
                     <linearGradient id="colorReceitas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorDespesas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#EF4444" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorLucro" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                   <XAxis dataKey="mes" stroke="#64748B" />
                   <YAxis stroke="#64748B" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'white', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
                       border: '1px solid #E2E8F0',
                       borderRadius: '8px',
                       boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                     }}
                   />
                   <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="receitas" 
-                    stroke="#10B981" 
+                  <Line
+                    type="monotone"
+                    dataKey="receitas"
+                    stroke="#10B981"
                     strokeWidth={3}
                     fill="url(#colorReceitas)"
                     dot={{ r: 4 }}
                     activeDot={{ r: 6 }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="despesas" 
-                    stroke="#EF4444" 
+                  <Line
+                    type="monotone"
+                    dataKey="despesas"
+                    stroke="#EF4444"
                     strokeWidth={3}
                     fill="url(#colorDespesas)"
                     dot={{ r: 4 }}
                     activeDot={{ r: 6 }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="lucro" 
-                    stroke="#8B5CF6" 
+                  <Line
+                    type="monotone"
+                    dataKey="lucro"
+                    stroke="#8B5CF6"
                     strokeWidth={3}
                     fill="url(#colorLucro)"
                     dot={{ r: 4 }}
@@ -685,9 +688,9 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
                     border: '1px solid #E2E8F0',
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
@@ -715,16 +718,16 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                 <XAxis dataKey="tipo" stroke="#64748B" />
                 <YAxis stroke="#64748B" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
                     border: '1px solid #E2E8F0',
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                   }}
                 />
-                <Bar 
-                  dataKey="quantidade" 
+                <Bar
+                  dataKey="quantidade"
                   radius={[8, 8, 0, 0]}
                   animationDuration={1500}
                 >
@@ -751,9 +754,9 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                 <XAxis dataKey="dia" stroke="#64748B" />
                 <YAxis stroke="#64748B" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
                     border: '1px solid #E2E8F0',
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
@@ -783,7 +786,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
             <div className="space-y-4 max-h-[250px] overflow-y-auto">
               {atividadesRecentes.map((atividade) => {
                 const Icon = atividade.icone;
-                
+
                 return (
                   <motion.div
                     key={atividade.id}
@@ -791,18 +794,16 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                     animate={{ opacity: 1, x: 0 }}
                     className="flex items-start gap-3"
                   >
-                    <div className={`p-2 rounded-full ${
-                      atividade.color === 'blue' ? 'bg-blue-100' :
+                    <div className={`p-2 rounded-full ${atividade.color === 'blue' ? 'bg-blue-100' :
                       atividade.color === 'green' ? 'bg-green-100' :
-                      atividade.color === 'purple' ? 'bg-purple-100' :
-                      'bg-orange-100'
-                    }`}>
-                      <Icon className={`w-4 h-4 ${
-                        atividade.color === 'blue' ? 'text-blue-600' :
+                        atividade.color === 'purple' ? 'bg-purple-100' :
+                          'bg-orange-100'
+                      }`}>
+                      <Icon className={`w-4 h-4 ${atividade.color === 'blue' ? 'text-blue-600' :
                         atividade.color === 'green' ? 'text-green-600' :
-                        atividade.color === 'purple' ? 'text-purple-600' :
-                        'text-orange-600'
-                      }`} />
+                          atividade.color === 'purple' ? 'text-purple-600' :
+                            'text-orange-600'
+                        }`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{atividade.descricao}</p>
@@ -839,10 +840,10 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {agendamentos.slice(0, 6).map((agendamento) => {
-              const dataAgendamento = new Date(agendamento.dataColeta + 'T00:00:00');
+              const dataAgendamento = new Date(agendamento.collectionDate + 'T00:00:00');
               const ehHoje = isToday(dataAgendamento);
               const ehAmanha = isTomorrow(dataAgendamento);
-              
+
               return (
                 <motion.div
                   key={agendamento.id}
@@ -851,21 +852,20 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <Card className={`hover:shadow-lg transition-all border-l-4 ${
-                    ehHoje ? 'border-green-500 bg-green-50' :
+                  <Card className={`hover:shadow-lg transition-all border-l-4 ${ehHoje ? 'border-green-500 bg-green-50' :
                     ehAmanha ? 'border-blue-500 bg-blue-50' :
-                    'border-slate-300'
-                  }`}>
+                      'border-slate-300'
+                    }`}>
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="flex items-start justify-between">
-                          <h4 className="font-semibold text-sm">{agendamento.clienteNome}</h4>
+                          <h4 className="font-semibold text-sm">{agendamento.client?.name}</h4>
                           <Badge className={
-                            agendamento.status === 'confirmado' ? 'bg-green-100 text-green-700' :
-                            agendamento.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-slate-100 text-slate-700'
+                            agendamento.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
+                              agendamento.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-slate-100 text-slate-700'
                           }>
-                            {agendamento.status}
+                            {agendamento.status ===  'PENDING' ? 'Pendente' : agendamento.status === 'CONFIRMED' ? 'Confirmado' : agendamento.status === 'COLLECTED' ? 'Coletado' : 'Cancelado'}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -876,11 +876,11 @@ export default function DashboardView({ onNavigate }: DashboardViewProps = {}) {
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3" />
-                          <span>{agendamento.horaColeta}</span>
+                          <span>{agendamento.collectionTime}</span>
                         </div>
                         <div className="flex items-start gap-2 text-xs text-muted-foreground">
                           <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                          <span className="line-clamp-2">{agendamento.endereco}</span>
+                          <span className="line-clamp-2">{agendamento.address}</span>
                         </div>
                       </div>
                     </CardContent>

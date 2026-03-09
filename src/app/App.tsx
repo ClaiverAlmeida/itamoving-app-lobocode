@@ -1,26 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { BrowserRouter, useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
 import DashboardView from './components/dashboard';
-import ClientesView from './components/clientes';
-import EstoqueView from './components/estoque';
-import AgendamentosView from './components/agendamentos';
+import ClientesView from './components/clients';
+import EstoqueView from './components/stock';
+import AgendamentosView from './components/appointments';
 import ContainersView from './components/containers';
-import FinanceiroView from './components/financeiro';
-import RelatoriosView from './components/relatorios';
-import AtendimentosView from './components/atendimentos';
-import PrecosView from './components/precos';
-import RHView from './components/rh';
+import FinanceiroView from './components/financial';
+import RelatoriosView from './components/reports';
+import AtendimentosView from './components/services';
+import PrecosView from './components/prices';
+import RHView from './components/hr';
 import Login from './components/login';
-import MotoristaApp from './components/motorista-app';
+import MotoristaApp from './components/driver-app';
 import { DataProvider } from './context/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Package, 
-  Calendar, 
-  Container, 
-  DollarSign, 
+import {
+  LayoutDashboard,
+  Users,
+  Package,
+  Calendar,
+  Container,
+  DollarSign,
   FileText,
   Menu,
   X,
@@ -30,19 +31,99 @@ import {
   UserCog,
   Truck,
   Shield,
-  Lock
+  Lock,
 } from 'lucide-react';
 import { Badge } from './components/ui/badge';
 import { Card, CardContent } from './components/ui/card';
 import logo from '../assets/2ac2fb95a59823c3119ddd194998db2f41de4a80.png';
 
-type View = 'dashboard' | 'clientes' | 'estoque' | 'agendamentos' | 'containers' | 'financeiro' | 'relatorios' | 'atendimentos' | 'precos' | 'rh' | 'motorista';
+const STORAGE_KEY = 'itamoving_last_route';
+
+type View =
+  | 'dashboard'
+  | 'clientes'
+  | 'estoque'
+  | 'agendamentos'
+  | 'containers'
+  | 'financeiro'
+  | 'relatorios'
+  | 'atendimentos'
+  | 'precos'
+  | 'rh'
+  | 'motorista';
+
+/** Rotas em português (URL) -> view interno */
+const PATH_TO_VIEW: Record<string, View> = {
+  dashboard: 'dashboard',
+  clientes: 'clientes',
+  precos: 'precos',
+  estoque: 'estoque',
+  agendamentos: 'agendamentos',
+  containers: 'containers',
+  financeiro: 'financeiro',
+  relatorios: 'relatorios',
+  atendimentos: 'atendimentos',
+  rh: 'rh',
+  motorista: 'motorista',
+};
+
+const VIEW_TO_PATH: Record<View, string> = {
+  dashboard: 'dashboard',
+  clientes: 'clientes',
+  precos: 'precos',
+  estoque: 'estoque',
+  agendamentos: 'agendamentos',
+  containers: 'containers',
+  financeiro: 'financeiro',
+  relatorios: 'relatorios',
+  atendimentos: 'atendimentos',
+  rh: 'rh',
+  motorista: 'motorista',
+};
+
+function pathToView(pathname: string): View {
+  const segment = pathname.replace(/^\//, '').toLowerCase() || 'dashboard';
+  return PATH_TO_VIEW[segment] ?? 'dashboard';
+}
 
 function MainApp() {
   const { user, logout, hasPermission } = useAuth();
-  const [activeView, setActiveView] = useState<View>('dashboard');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const activeView = pathToView(location.pathname);
+
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Restaurar última rota ao abrir na raiz (só quando path é / ou vazio)
+  useEffect(() => {
+    const path = location.pathname || '/';
+    if (path === '/') {
+      try {
+        const last = localStorage.getItem(STORAGE_KEY);
+        const target = last && last.startsWith('/') && last.length > 1 ? last : '/dashboard';
+        navigate(target, { replace: true });
+      } catch (_) {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [location.pathname]);
+
+  // Persistir rota atual no localStorage (em inglês)
+  useEffect(() => {
+    const view = pathToView(location.pathname);
+    const path = VIEW_TO_PATH[view];
+    if (location.pathname !== '/' && location.pathname !== '') {
+      try {
+        localStorage.setItem(STORAGE_KEY, `/${path}`);
+      } catch (_) {}
+    }
+  }, [location.pathname]);
+
+  const setActiveView = (view: View) => {
+    navigate(`/${VIEW_TO_PATH[view]}`);
+    setMobileMenuOpen(false);
+  };
 
   // Definir menu baseado no papel do usuário
   const getMenuItems = () => {
@@ -51,13 +132,13 @@ function MainApp() {
     const allMenuItems = [
       { id: 'dashboard' as View, label: 'Dashboard', icon: LayoutDashboard, module: 'clientes' as const },
       { id: 'clientes' as View, label: 'Clientes', icon: Users, module: 'clientes' as const },
+      { id: 'precos' as View, label: 'Precificação', icon: Tag, module: 'financeiro' as const },
       { id: 'estoque' as View, label: 'Estoque', icon: Package, module: 'estoque' as const },
       { id: 'agendamentos' as View, label: 'Agendamentos', icon: Calendar, module: 'agendamentos' as const },
       { id: 'containers' as View, label: 'Containers', icon: Container, module: 'containers' as const },
       { id: 'financeiro' as View, label: 'Financeiro', icon: DollarSign, module: 'financeiro' as const },
       { id: 'relatorios' as View, label: 'Relatórios', icon: FileText, module: 'relatorios' as const },
       { id: 'atendimentos' as View, label: 'Atendimentos', icon: Headset, module: 'atendimentos' as const },
-      { id: 'precos' as View, label: 'Preços', icon: Tag, module: 'financeiro' as const },
       { id: 'rh' as View, label: 'RH', icon: UserCog, module: 'rh' as const },
       { id: 'motorista' as View, label: 'Motorista', icon: Truck, module: 'motorista' as const },
     ];
@@ -85,13 +166,13 @@ function MainApp() {
     switch (activeView) {
       case 'dashboard': return <DashboardView onNavigate={setActiveView} />;
       case 'clientes': return hasPermission('clientes', 'read') ? <ClientesView /> : <AcessoNegado />;
+      case 'precos': return hasPermission('financeiro', 'read') ? <PrecosView /> : <AcessoNegado />;
       case 'estoque': return hasPermission('estoque', 'read') ? <EstoqueView /> : <AcessoNegado />;
       case 'agendamentos': return hasPermission('agendamentos', 'read') ? <AgendamentosView /> : <AcessoNegado />;
       case 'containers': return hasPermission('containers', 'read') ? <ContainersView /> : <AcessoNegado />;
       case 'financeiro': return hasPermission('financeiro', 'read') ? <FinanceiroView /> : <AcessoNegado />;
       case 'relatorios': return hasPermission('relatorios', 'read') ? <RelatoriosView /> : <AcessoNegado />;
       case 'atendimentos': return hasPermission('atendimentos', 'read') ? <AtendimentosView /> : <AcessoNegado />;
-      case 'precos': return hasPermission('financeiro', 'read') ? <PrecosView /> : <AcessoNegado />;
       case 'rh': return hasPermission('rh', 'read') ? <RHView /> : <AcessoNegado />;
       case 'motorista': return hasPermission('motorista', 'read') ? <MotoristaApp /> : <AcessoNegado />;
       default: return <DashboardView onNavigate={setActiveView} />;
@@ -153,7 +234,7 @@ function MainApp() {
             {/* Close button for mobile */}
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="lg:hidden p-2 hover:bg-blue-100 rounded-lg"
+              className="lg:hidden p-2 hover:bg-blue-100 rounded-lg cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -190,11 +271,8 @@ function MainApp() {
               return (
                 <li key={item.id}>
                   <button
-                    onClick={() => {
-                      setActiveView(item.id);
-                      setMobileMenuOpen(false); // Close mobile menu on navigation
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                    onClick={() => setActiveView(item.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-pointer ${
                       isActive 
                         ? 'bg-accent text-white shadow-lg scale-105' 
                         : 'hover:bg-blue-100 text-slate-600 hover:text-slate-800'
@@ -215,14 +293,14 @@ function MainApp() {
         <div className="p-4 border-t border-blue-200 space-y-2">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hidden lg:flex w-full items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-100 hover:bg-accent hover:text-white transition-all duration-200"
+            className="hidden lg:flex w-full items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-100 hover:bg-accent hover:text-white transition-all duration-200 cursor-pointer"
           >
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             {sidebarOpen && <span className="text-sm">Recolher</span>}
           </button>
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all duration-200"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all duration-200 cursor-pointer"
           >
             <LogOut className="w-5 h-5" />
             {sidebarOpen && <span className="text-sm">Sair</span>}
@@ -238,7 +316,7 @@ function MainApp() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 hover:bg-accent/10 rounded-lg mr-3"
+              className="lg:hidden p-2 hover:bg-accent/10 rounded-lg mr-3 cursor-pointer"
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -302,22 +380,46 @@ function AcessoNegado() {
   );
 }
 
-function AppContent() {
+function LoginPage() {
   const { user } = useAuth();
-
-  if (!user) {
-    return <Login />;
+  if (user) {
+    try {
+      const last = localStorage.getItem(STORAGE_KEY);
+      const target = last && last.startsWith('/') && last.length > 1 ? last : '/dashboard';
+      return <Navigate to={target} replace />;
+    } catch (_) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
+  return <Login />;
+}
 
-  return <MainApp />;
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  return <>{children}</>;
+}
+
+function AppContent() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="*" element={<RequireAuth><MainApp /></RequireAuth>} />
+    </Routes>
+  );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <DataProvider>
-        <AppContent />
-      </DataProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <DataProvider>
+          <AppContent />
+        </DataProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
