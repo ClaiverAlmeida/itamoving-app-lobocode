@@ -166,7 +166,7 @@ export class UsersService {
                 const users = mapBackendToFrontend(usersBackend);
                 return { success: true, data: users };
             }
-            return { success: false, error: "Erro ao criar funcionário" };
+            return { success: false, error: result.error || "Erro ao criar funcionário" };
         } catch (error) {
             return { success: false, error: error.message };
         }
@@ -181,7 +181,7 @@ export class UsersService {
                 const users = mapBackendToFrontend(usersBackend);
                 return { success: true, data: users };
             }
-            return { success: false, error: "Erro ao atualizar funcionário" };
+            return { success: false, error: result.error || "Erro ao atualizar funcionário" };
         } catch (error) {
             return { success: false, error: error.message };
         }
@@ -193,7 +193,7 @@ export class UsersService {
             if (result.success && result.data) {
                 return { success: true };
             }
-            return { success: false, error: "Erro ao deletar funcionário" };
+            return { success: false, error: result.error || "Erro ao deletar funcionário" };
         }
         catch (error) {
             return { success: false, error: error.message };
