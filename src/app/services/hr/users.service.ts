@@ -126,7 +126,7 @@ export class UsersService {
         error?: string;
     }> {
         try {
-            const result = await api.get<DriverUser[]>("/hr/users/all-drivers");
+            const result = await api.get<DriverUser[]>("/hr/users/drivers");
             if (result.success && result.data) {
                 let dataArray: DriverUser[] = [];
 

@@ -460,7 +460,7 @@ export default function RHView() {
                     Novo Funcionário
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-[90vw] sm:max-w-[90vw] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-[95vw] sm:max-w-[60vw] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Cadastrar Novo Funcionário</DialogTitle>
                     <DialogDescription>
@@ -468,9 +468,9 @@ export default function RHView() {
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleSubmitUsuario} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                       {/* Dados Pessoais */}
-                      <div className="col-span-2">
+                      <div className="col-span-1 sm:col-span-4">
                         <Label className="text-base font-semibold">Dados Pessoais</Label>
                       </div>
                       <div className="space-y-2">
@@ -498,7 +498,6 @@ export default function RHView() {
                           id="login"
                           value={formUsuario.login}
                           onChange={(e) => setFormUsuario({ ...formUsuario, login: e.target.value })}
-                          placeholder="Ex: usuario@empresa.com"
                           required
                         />
                       </div>
@@ -552,7 +551,7 @@ export default function RHView() {
                       </div>
 
                       {/* Dados Profissionais */}
-                      <div className="col-span-2 pt-4 border-t">
+                      <div className="col-span-1 sm:col-span-4 pt-4 border-t">
                         <Label className="text-base font-semibold">Dados Profissionais</Label>
                       </div>
                       <div className="space-y-2">
@@ -623,7 +622,7 @@ export default function RHView() {
                       </div>
 
                       {/* Endereço */}
-                      <div className="col-span-2 pt-4 border-t">
+                      <div className="col-span-1 sm:col-span-4 pt-4 border-t">
                         <Label className="text-base font-semibold">Endereço</Label>
                       </div>
                       <div className="space-y-2">
@@ -749,20 +748,20 @@ export default function RHView() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    usuariosFiltrados.map((func) => (
-                      <TableRow key={func.id} className="hover:bg-muted/30">
+                    usuariosFiltrados.map((user) => (
+                      <TableRow key={user.id} className="hover:bg-muted/30">
                         <TableCell className="text-center">
                           <div className="flex items-center gap-3 justify-center">
                             <Avatar>
                               <AvatarFallback className="bg-gradient-to-br from-[#1E3A5F] to-[#5DADE2] text-white">
-                                {func.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                {user.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="text-left">
-                              <div className="font-medium">{func.name}</div>
+                              <div className="font-medium">{user.name}</div>
                               <div className="text-sm text-muted-foreground flex items-center gap-1">
                                 <Mail className="w-3 h-3" />
-                                {func.email}
+                                {user.email}
                               </div>
                             </div>
                           </div>
@@ -770,30 +769,30 @@ export default function RHView() {
                         <TableCell className="text-center">
                           <div className="flex items-center gap-2 justify-center">
                             <Briefcase className="w-4 h-4 text-muted-foreground" />
-                            {rolesLabels[func.role]}
+                            {rolesLabels[user.role]}
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="outline">{func.contractType ? contractTypesLabels[func.contractType] : '-'}</Badge>
+                          <Badge variant="outline">{user.contractType ? contractTypesLabels[user.contractType] : '-'}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
                           <span className="font-semibold text-green-700">
-                            {func.salary != null ? `R$ ${Number(func.salary).toFixed(2)}` : '-'}
+                            {user.salary != null ? `R$ ${Number(user.salary).toFixed(2)}` : '-'}
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
-                          {func.hireDate ? format(new Date(func.hireDate), "dd/MM/yyyy") : '-'}
+                          {user.hireDate ? format(new Date(user.hireDate), "dd/MM/yyyy") : '-'}
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge
                             variant={
-                              func.status === 'ACTIVE' ? 'default' :
-                                func.status === 'ON_LEAVE' ? 'secondary' :
-                                  func.status === 'TERMINATED' ? 'destructive' : 'outline'
+                              user.status === 'ACTIVE' ? 'default' :
+                              user.status === 'ON_LEAVE' ? 'secondary' :
+                              user.status === 'TERMINATED' ? 'destructive' : 'outline'
                             }
                           >
-                            {func.status === 'ACTIVE' ? <UserCheck className="w-3 h-3 mr-1" /> : func.status === 'ON_LEAVE' ? <Sun className="w-3 h-3 mr-1" /> : func.status === 'TERMINATED' ? <UserMinus className="w-3 h-3 mr-1" /> : <UserX className="w-3 h-3 mr-1" />}
-                            {statusLabels[func.status]}
+                            {user.status === 'ACTIVE' ? <UserCheck className="w-3 h-3 mr-1" /> : user.status === 'ON_LEAVE' ? <Sun className="w-3 h-3 mr-1" /> : user.status === 'TERMINATED' ? <UserMinus className="w-3 h-3 mr-1" /> : <UserX className="w-3 h-3 mr-1" />}
+                            {statusLabels[user.status]}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
@@ -802,7 +801,7 @@ export default function RHView() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setSelectedUsuario(func);
+                                setSelectedUsuario(user);
                                 setIsViewDialogOpen(true);
                               }}
                             >
@@ -812,27 +811,27 @@ export default function RHView() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setSelectedUsuario(func);
+                                setSelectedUsuario(user);
                                 setFormUsuario({
-                                  name: func.name,
-                                  email: func.email,
-                                  login: func.login ?? '',
+                                  name: user.name,
+                                  email: user.email,
+                                  login: user.login ?? '',
                                   password: '',
-                                  phone: func.phone ?? '',
-                                  cpf: func.cpf ?? '',
-                                  birthDate: func.birthDate ?? '',
-                                  hireDate: func.hireDate ?? '',
-                                  terminationDate: func.terminationDate ?? '',
-                                  role: func.role,
-                                  salary: func.salary ?? 0,
-                                  contractType: func.contractType ?? 'CLT',
-                                  status: func.status,
-                                  street: func.address?.street ?? '',
-                                  number: func.address?.number ?? '',
-                                  city: func.address?.city ?? '',
-                                  state: func.address?.state ?? '',
-                                  zipCode: func.address?.zipCode ?? '',
-                                  complement: func.address?.complement || '',
+                                  phone: user.phone ?? '',
+                                  cpf: user.cpf ?? '',
+                                  birthDate: user.birthDate ?? '',
+                                  hireDate: user.hireDate ?? '',
+                                  terminationDate: user.terminationDate ?? '',
+                                  role: user.role,
+                                  salary: user.salary ?? 0,
+                                  contractType: user.contractType ?? 'CLT',
+                                  status: user.status,
+                                  street: user.address?.street ?? '',
+                                  number: user.address?.number ?? '',
+                                  city: user.address?.city ?? '',
+                                  state: user.address?.state ?? '',
+                                  zipCode: user.address?.zipCode ?? '',
+                                  complement: user.address?.complement || '',
                                 });
                                 setIsEditDialogOpen(true);
                               }}
@@ -842,7 +841,7 @@ export default function RHView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDeleteUsuario(func.id!)}
+                              onClick={() => handleDeleteUsuario(user.id!)}
                             >
                               <Trash2 className="w-4 h-4 text-red-600" />
                             </Button>
@@ -876,7 +875,7 @@ export default function RHView() {
                 <div className="min-w-0 flex-1 space-y-1">
                   <h3 className="truncate text-lg font-semibold leading-tight">{selectedUsuario.name}</h3>
                   <p className="text-sm text-muted-foreground">{rolesLabels[selectedUsuario.role]}</p>
-                          <Badge className="mt-1.5 text-xs" variant={selectedUsuario.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                  <Badge className="mt-1.5 text-xs" variant={selectedUsuario.status === 'ACTIVE' ? 'default' : 'secondary'}>
                     {statusLabels[selectedUsuario.status]}
                   </Badge>
                 </div>
@@ -945,7 +944,7 @@ export default function RHView() {
         if (!open) resetFormUsuario();
       }
       }>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-[60vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Funcionário</DialogTitle>
             <DialogDescription>
@@ -954,9 +953,9 @@ export default function RHView() {
           </DialogHeader>
           <form onSubmit={handleEditUsuario} className="space-y-4">
             {/* Mesmo conteúdo do formulário de cadastro */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               {/* Dados Pessoais */}
-              <div className="col-span-2">
+              <div className="col-span-1 sm:col-span-4">
                 <Label className="text-base font-semibold">Dados Pessoais</Label>
               </div>
               <div className="space-y-2">
@@ -979,12 +978,12 @@ export default function RHView() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="loginEdit">Login</Label>
+                <Label htmlFor="loginEdit">Login *</Label>
                 <Input
                   id="loginEdit"
                   value={formUsuario.login}
                   onChange={(e) => setFormUsuario({ ...formUsuario, login: e.target.value })}
-                  placeholder="Ex: usuario@empresa.com"
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -1027,7 +1026,7 @@ export default function RHView() {
               </div>
 
               {/* Dados Profissionais */}
-              <div className="col-span-2 pt-4 border-t">
+              <div className="col-span-1 sm:col-span-4 pt-4 border-t">
                 <Label className="text-base font-semibold">Dados Profissionais</Label>
               </div>
               <div className="space-y-2">
@@ -1098,7 +1097,7 @@ export default function RHView() {
               </div>
 
               {/* Endereço */}
-              <div className="col-span-2 pt-4 border-t">
+              <div className="col-span-1 sm:col-span-4 pt-4 border-t">
                 <Label className="text-base font-semibold">Endereço</Label>
               </div>
               <div className="space-y-2">
