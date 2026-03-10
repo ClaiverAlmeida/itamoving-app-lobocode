@@ -394,7 +394,7 @@ export default function RHView() {
             Recursos Humanos
           </h1>
           <p className="text-muted-foreground mt-2">
-            Gestão completa de pessoal e departamento pessoal
+            Gestão de funcionários e departamento pessoal
           </p>
         </div>
       </motion.div>

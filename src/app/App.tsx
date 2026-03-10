@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
 import DashboardView from './components/dashboard';
@@ -32,10 +32,18 @@ import {
   Truck,
   Shield,
   Lock,
+  Bell,
+  BellRing,
 } from 'lucide-react';
 import { Badge } from './components/ui/badge';
 import { Card, CardContent } from './components/ui/card';
 import logo from '../assets/2ac2fb95a59823c3119ddd194998db2f41de4a80.png';
+import { Button } from './components/ui/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from './components/ui/popover';
 
 const STORAGE_KEY = 'itamoving_last_route';
 
@@ -116,7 +124,7 @@ function MainApp() {
     if (location.pathname !== '/' && location.pathname !== '') {
       try {
         localStorage.setItem(STORAGE_KEY, `/${path}`);
-      } catch (_) {}
+      } catch (_) { }
     }
   }, [location.pathname]);
 
@@ -203,14 +211,14 @@ function MainApp() {
     <div className="min-h-screen bg-background flex">
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar - Desktop & Mobile Drawer */}
-      <aside 
+      <aside
         className={`bg-[#EBF5FB] text-slate-700 transition-all duration-300 flex flex-col shadow-xl
           fixed lg:relative inset-y-0 left-0 z-50
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -272,11 +280,10 @@ function MainApp() {
                 <li key={item.id}>
                   <button
                     onClick={() => setActiveView(item.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-pointer ${
-                      isActive 
-                        ? 'bg-accent text-white shadow-lg scale-105' 
-                        : 'hover:bg-blue-100 text-slate-600 hover:text-slate-800'
-                    }`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-pointer ${isActive
+                      ? 'bg-accent text-white shadow-lg scale-105'
+                      : 'hover:bg-blue-100 text-slate-600 hover:text-slate-800'
+                      }`}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
                     {sidebarOpen && (
@@ -329,7 +336,7 @@ function MainApp() {
                 Sistema de Gestão de Mudanças - USA → Brasil
               </p>
             </div>
-            
+
             <div className="flex items-center gap-2 lg:gap-4">
               <div className="text-right hidden md:block">
                 <p className="text-sm font-medium text-foreground">Bem-vindo, {user?.nome}!</p>
@@ -338,6 +345,35 @@ function MainApp() {
                   {getRoleLabel(user?.role || '')}
                 </Badge>
               </div>
+
+              {/* Notificações */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="w-5 h-5 stroke-2 fill-none outline-none" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 sm:w-96 p-0" align="end" sideOffset={8}>
+                  <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/30">
+                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <BellRing className="w-4 h-4 text-muted-foreground" />
+                      Notificações
+                    </h3>
+                  </div>
+                  <div className="max-h-[320px] overflow-y-auto">
+                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                        <Bell className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground">Nenhuma notificação</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Você será avisado quando houver novidades.
+                      </p>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
               {user?.avatar ? (
                 <img src={user.avatar} alt={user.nome} className="w-8 h-8 lg:w-10 lg:h-10 rounded-full shadow-lg" />
               ) : (

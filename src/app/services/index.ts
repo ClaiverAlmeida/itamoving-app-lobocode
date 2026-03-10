@@ -1,5 +1,3 @@
-import { containersServices } from "./containers.service";
-
 export { api } from "./api.service";
 
 // Serviço de Clients
