@@ -198,9 +198,9 @@ export class ClientsService {
         return { success: true, data: cliente };
       }
 
-      return { success: false, error: "Erro ao criar cliente" };
+      return { success: false, error: result.error || "Erro ao criar cliente" };
     } catch (error) {
-      return { success: false, error: "Erro ao criar cliente" };
+      return { success: false, error: error.message || "Erro ao criar cliente" };
     }
   }
 
@@ -223,9 +223,9 @@ export class ClientsService {
         return { success: true, data: cliente };
       }
 
-      return { success: false, error: "Erro ao atualizar cliente" };
+      return { success: false, error: result.error || "Erro ao atualizar cliente" };
     } catch (error) {
-      return { success: false, error: "Erro ao atualizar cliente" };
+      return { success: false, error: error.message || "Erro ao atualizar cliente" };
     }
   }
 
@@ -237,9 +237,9 @@ export class ClientsService {
         return { success: true };
       }
 
-      return { success: false, error: "Erro ao deletar cliente" };
+      return { success: false, error: result.error || "Erro ao deletar cliente" };
     } catch (error) {
-      return { success: false, error: "Erro ao deletar cliente" };
+      return { success: false, error: error.message || "Erro ao deletar cliente" };
     }
   }
 
@@ -248,7 +248,7 @@ export class ClientsService {
       const result = await api.get<string>("/clients/export");
       return { success: true, data: result.data };
     } catch (error) {
-      return { success: false, error: "Erro ao exportar clientes" };
+      return { success: false, error: error.message || "Erro ao exportar clientes" };
     }
   }
 
@@ -269,7 +269,7 @@ export class ClientsService {
       );
       return { success: true, data: result.data };
     } catch (error) {
-      return { success: false, error: "Erro ao buscar histórico de clientes" };
+      return { success: false, error: error.message || "Erro ao buscar histórico de clientes" };
     }
   }
 }

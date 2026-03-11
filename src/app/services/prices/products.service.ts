@@ -111,10 +111,10 @@ export class ProductsService {
         const productPrice = mapBackendToFrontend(productPriceBackend);
         return { success: true, data: productPrice };
       } else {
-        return { success: false, error: "Erro ao criar produto" };
+        return { success: false, error: result.error || "Erro ao criar produto" };
       }
     } catch (error) {
-      return { success: false, error: "Erro ao criar produto" };
+      return { success: false, error: error.message || "Erro ao criar produto" };
     }
   }
 
@@ -134,9 +134,9 @@ export class ProductsService {
         return { success: true, data: productPrice };
       }
 
-      return { success: false, error: "Erro ao atualizar produto" };
+      return { success: false, error: result.error || "Erro ao atualizar produto" };
     } catch (error) {
-      return { success: false, error: "Erro ao atualizar produto" };
+      return { success: false, error: error.message || "Erro ao atualizar produto" };
     }
   }
 
@@ -150,9 +150,9 @@ export class ProductsService {
         return { success: true };
       }
 
-      return { success: false, error: "Erro ao deletar produto" };
+      return { success: false, error: result.error || "Erro ao deletar produto" };
     } catch (error) {
-      return { success: false, error: "Erro ao deletar produto" };
+      return { success: false, error: error.message || "Erro ao deletar produto" };
     }
   }
 
@@ -171,7 +171,7 @@ export class ProductsService {
         return { success: false, error: result.error };
       }
     } catch (error) {
-      return { success: false, error: "Erro ao exportar produtos" };
+      return { success: false, error: error.message || "Erro ao exportar produtos" };
     }
   }
 }

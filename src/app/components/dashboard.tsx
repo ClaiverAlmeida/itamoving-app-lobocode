@@ -54,7 +54,6 @@ import {
 } from 'recharts';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
-import { Cliente as ClienteType, Container as ContainerType, Estoque as EstoqueType, Agendamento as AgendamentoType } from '../types';
 import { useDashboardData, type DashboardDataConfig } from '../hooks/useDashboardData';
 
 interface Alerta {

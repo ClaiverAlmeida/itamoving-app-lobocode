@@ -111,7 +111,7 @@ export class StockService {
       console.error("Erro ao buscar estoque:", error);
       return {
         success: false,
-        error: "Erro ao buscar estoque",
+        error: error.message || "Erro ao buscar estoque",
       };
     }
   }
@@ -133,9 +133,9 @@ export class StockService {
       if (result.success && result.data) {
         return { success: true, data: result.data as Estoque };
       }
-      return { success: false, error: "Erro ao atualizar estoque" };
+      return { success: false, error: result.error || "Erro ao atualizar estoque" };
     } catch (error) {
-      return { success: false, error: "Erro ao atualizar estoque" };
+      return { success: false, error: error.message || "Erro ao atualizar estoque" };
     }
   }
 }

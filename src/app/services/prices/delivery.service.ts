@@ -111,10 +111,10 @@ export class DeliveryPricesService {
         const deliveryPrice = mapBackendToFrontend(deliveryPriceBackend);
         return { success: true, data: deliveryPrice };
       } else {
-        return { success: false, error: "Erro ao criar preço de entrega" };
+        return { success: false, error: result.error || "Erro ao criar preço de entrega" };
       }
     } catch (error) {
-      return { success: false, error: "Erro ao criar preço de entrega" };
+      return { success: false, error: error.message || "Erro ao criar preço de entrega" };
     }
   }
 
@@ -134,9 +134,9 @@ export class DeliveryPricesService {
         return { success: true, data: deliveryPrice };
       }
 
-      return { success: false, error: "Erro ao atualizar preço de entrega" };
+      return { success: false, error: result.error || "Erro ao atualizar preço de entrega" };
     } catch (error) {
-      return { success: false, error: "Erro ao atualizar preço de entrega" };
+      return { success: false, error: error.message || "Erro ao atualizar preço de entrega" };
     }
   }
 
@@ -150,9 +150,9 @@ export class DeliveryPricesService {
         return { success: true };
       }
 
-      return { success: false, error: "Erro ao deletar preço de entrega" };
+      return { success: false, error: result.error || "Erro ao deletar preço de entrega" };
     } catch (error) {
-      return { success: false, error: "Erro ao deletar preço de entrega" };
+      return { success: false, error: error.message || "Erro ao deletar preço de entrega" };
     }
   }
 
@@ -177,7 +177,7 @@ export class DeliveryPricesService {
         return { success: false, error: result.error };
       }
     } catch (error) {
-      return { success: false, error: "Erro ao exportar entregas" };
+      return { success: false, error: error.message || "Erro ao exportar entregas" };
     }
   }
 }

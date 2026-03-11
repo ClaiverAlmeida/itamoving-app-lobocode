@@ -75,9 +75,9 @@ export class AppointmentsService {
         const appointments = appointmentsBackend.map(mapBackendToFrontend);
         return { success: true, data: appointments };
       }
-      return { success: false, error: "Erro ao buscar agendamentos" };
+      return { success: false, error: result.error || "Erro ao buscar agendamentos" };
     } catch (error) {
-      return { success: false, error: "Erro ao buscar agendamentos" };
+      return { success: false, error: error.message || "Erro ao buscar agendamentos" };
     }
   }
 
@@ -98,12 +98,12 @@ export class AppointmentsService {
       }
       return {
         success: false,
-        error: "Erro ao buscar quantidade de caixas por dia",
+        error: result.error || "Erro ao buscar quantidade de caixas por dia",
       };
     } catch (error) {
       return {
         success: false,
-        error: "Erro ao buscar quantidade de caixas por dia",
+        error: error.message || "Erro ao buscar quantidade de caixas por dia",
       };
     }
   }
@@ -123,9 +123,9 @@ export class AppointmentsService {
         return { success: true, data: appointment };
       }
 
-      return { success: false, error: "Erro ao criar agendamento" };
+      return { success: false, error: result.error || "Erro ao criar agendamento" };
     } catch (error) {
-      return { success: false, error: "Erro ao criar agendamento" };
+      return { success: false, error: error.message || "Erro ao criar agendamento" };
     }
   }
 
@@ -143,9 +143,9 @@ export class AppointmentsService {
         const appointment = mapBackendToFrontend(appointmentsBackend);
         return { success: true, data: appointment };
       }
-      return { success: false, error: "Erro ao atualizar agendamento" };
+      return { success: false, error: result.error || "Erro ao atualizar agendamento" };
     } catch (error) {
-      return { success: false, error: "Erro ao atualizar agendamento" };
+      return { success: false, error: error.message || "Erro ao atualizar agendamento" };
     }
   }
 
@@ -157,9 +157,9 @@ export class AppointmentsService {
       if (result.success && result.data) {
         return { success: true };
       }
-      return { success: false, error: "Erro ao excluir agendamento" };
+      return { success: false, error: result.error || "Erro ao excluir agendamento" };
     } catch (error) {
-      return { success: false, error: "Erro ao excluir agendamento" };
+      return { success: false, error: error.message || "Erro ao excluir agendamento" };
     }
   }
 }

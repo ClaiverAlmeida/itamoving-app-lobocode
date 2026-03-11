@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { authService, type AuthUser, type UserRole } from '../services/auth.service';
+import { connectSocket, disconnectSocket } from '../services/socket.service';
 
 export type { UserRole };
 
@@ -100,6 +102,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      connectSocket();
+    } else {
+      disconnectSocket();
+    }
+  }, [user]);
 
   const login = async (email: string, senha: string): Promise<boolean> => {
     const result = await authService.login(email, senha);

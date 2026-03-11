@@ -88,9 +88,9 @@ export class ContainersService {
         return { success: true, data: container };
       }
 
-      return { success: false, error: `Erro ao cadastrar container: ${result.error}` };
+      return { success: false, error: result.error || "Erro ao cadastrar container" };
     } catch (error) {
-      return { success: false, error: `Erro ao cadastrar container: ${error}` };
+      return { success: false, error: error.message || "Erro ao cadastrar container" };
     }
   }
 
@@ -108,9 +108,9 @@ export class ContainersService {
         const container = mapBackendToFrontend(containersBackend);
         return { success: true, data: container };
       }
-      return { success: false, error: "Erro ao atualizar container" };
+      return { success: false, error: result.error || "Erro ao atualizar container" };
     } catch (error) {
-      return { success: false, error: "Erro ao atualizar container" };
+      return { success: false, error: error.message || "Erro ao atualizar container" };
     }
   }
 
@@ -122,9 +122,9 @@ export class ContainersService {
       if (result.success && result.data) {
         return { success: true };
       }
-      return { success: false, error: "Erro ao excluir container" };
+      return { success: false, error: result.error || "Erro ao excluir container" };
     } catch (error) {
-      return { success: false, error: "Erro ao excluir container" };
+      return { success: false, error: error.message || "Erro ao excluir container" };
     }
   }
 }
