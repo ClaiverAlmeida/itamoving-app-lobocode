@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { authService, type AuthUser, type UserRole } from '../services/auth.service';
 import { connectSocket, disconnectSocket } from '../services/socket.service';
+import { pushService } from '../services/push.service';
 
 export type { UserRole };
 
@@ -103,13 +104,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, []);
 
+  // WebSocket: sempre conecta quando logado (notificações em tempo real).
+  // Depende de user?.id para não re-executar a cada render.
   useEffect(() => {
-    if (user) {
-      connectSocket();
-    } else {
+    if (!user?.id) {
       disconnectSocket();
+      return;
     }
-  }, [user]);
+    connectSocket();
+
+    if (!pushService.isSupported()) return;
+    if (pushService.getPermission() === 'granted') {
+      void pushService.registerAndSubscribe();
+      return;
+    }
+    if (pushService.getPermission() === 'denied') return;
+
+    void (async () => {
+      const permission = await pushService.requestPermission();
+      if (permission === 'granted') void pushService.registerAndSubscribe();
+    })();
+  }, [user?.id]);
 
   const login = async (email: string, senha: string): Promise<boolean> => {
     const result = await authService.login(email, senha);

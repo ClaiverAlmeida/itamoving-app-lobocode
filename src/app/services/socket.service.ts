@@ -18,6 +18,7 @@ const PING_LOG_PREFIX = '[WebSocket]';
 
 let socket: Socket | null = null;
 let pingIntervalId: ReturnType<typeof setInterval> | null = null;
+const onConnectCallbacks = new Set<() => void>();
 
 function getToken(): string | null {
   if (typeof localStorage === 'undefined') return null;
@@ -54,7 +55,7 @@ function stopPingPong() {
 
 /**
  * Conecta ao Gateway WebSocket do backend (notificações).
- * Usa o token em localStorage (auth_token). Ping/pong é logado no console para testes.
+ * Reutiliza a mesma instância se já existir (evita múltiplas conexões ao recarregar/Strict Mode).
  */
 export function connectSocket(): Socket | null {
   const token = getToken();
@@ -63,35 +64,45 @@ export function connectSocket(): Socket | null {
     return null;
   }
 
-  if (socket?.connected) {
-    console.log(`${PING_LOG_PREFIX} Já conectado.`);
+  if (socket) {
+    if (socket.connected) {
+      console.log(`${PING_LOG_PREFIX} Já conectado - id:`, socket.id);
+    }
     return socket;
   }
 
-  socket = io(API_BASE_URL, {
+  const sock = io(API_BASE_URL, {
     path: '/socket.io',
     auth: { authorization: `Bearer ${token}` },
     query: { token },
     extraHeaders: { Authorization: `Bearer ${token}` },
     transports: ['websocket', 'polling'],
   });
+  socket = sock;
 
-  socket.on('connect', () => {
-    console.log(`${PING_LOG_PREFIX} ✅ Conectado - id:`, socket?.id);
-    startPingPong(socket!);
+  sock.on('connect', () => {
+    console.log(`${PING_LOG_PREFIX} ✅ Conectado - id:`, sock.id);
+    startPingPong(sock);
+    onConnectCallbacks.forEach((cb) => {
+      try {
+        cb();
+      } catch (e) {
+        console.warn(`${PING_LOG_PREFIX} onConnect callback error:`, e);
+      }
+    });
   });
 
-  socket.on('disconnect', (reason) => {
+  sock.on('disconnect', (reason) => {
     console.log(`${PING_LOG_PREFIX} ❌ Desconectado:`, reason);
     stopPingPong();
   });
 
-  socket.on('connect_error', (err) => {
+  sock.on('connect_error', (err) => {
     console.error(`${PING_LOG_PREFIX} Erro de conexão:`, err.message);
     stopPingPong();
   });
 
-  return socket;
+  return sock;
 }
 
 /**
@@ -99,6 +110,7 @@ export function connectSocket(): Socket | null {
  */
 export function disconnectSocket() {
   stopPingPong();
+  onConnectCallbacks.clear();
   if (socket) {
     socket.removeAllListeners();
     socket.disconnect();
@@ -108,8 +120,29 @@ export function disconnectSocket() {
 }
 
 /**
- * Retorna a instância do socket se estiver conectado (para escutar eventos como new_notification).
+ * Chama o callback quando o socket estiver conectado (ou imediatamente se já estiver).
+ * Útil para refresh de notificações/contador após conexão (evita id null → valor).
+ * Retorna função para cancelar a inscrição.
+ */
+export function onceConnected(callback: () => void): () => void {
+  if (socket?.connected) {
+    try {
+      callback();
+    } catch (e) {
+      console.warn(`${PING_LOG_PREFIX} onceConnected callback error:`, e);
+    }
+    return () => {};
+  }
+  onConnectCallbacks.add(callback);
+  return () => {
+    onConnectCallbacks.delete(callback);
+  };
+}
+
+/**
+ * Retorna a instância do socket (conectado ou ainda conectando).
+ * Use para inscrever em eventos; os listeners receberão dados quando o socket estiver conectado.
  */
 export function getSocket(): Socket | null {
-  return socket?.connected ? socket : null;
+  return socket ?? null;
 }

@@ -44,6 +44,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from './components/ui/popover';
+import { useNotifications } from './hooks/useNotifications';
 
 const STORAGE_KEY = 'itamoving_last_route';
 
@@ -99,6 +100,7 @@ function MainApp() {
   const navigate = useNavigate();
   const location = useLocation();
   const activeView = pathToView(location.pathname);
+  const { notifications, unreadCount, loading, refreshNotifications } = useNotifications();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -351,6 +353,11 @@ function MainApp() {
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="icon" className="relative">
                     <Bell className="w-5 h-5 stroke-2 fill-none outline-none" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 sm:w-96 p-0" align="end" sideOffset={8}>
@@ -361,15 +368,37 @@ function MainApp() {
                     </h3>
                   </div>
                   <div className="max-h-[320px] overflow-y-auto">
-                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                        <Bell className="w-6 h-6 text-muted-foreground" />
+                    {loading ? (
+                      <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                        Carregando...
                       </div>
-                      <p className="text-sm font-medium text-foreground">Nenhuma notificação</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Você será avisado quando houver novidades.
-                      </p>
-                    </div>
+                    ) : notifications.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                          <Bell className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-medium text-foreground">Nenhuma notificação</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Você será avisado quando houver novidades.
+                        </p>
+                      </div>
+                    ) : (
+                      <ul className="divide-y divide-border">
+                        {notifications.map((n) => (
+                          <li
+                          key={n.id}
+                          className={`cursor-pointer px-4 py-3 text-left hover:bg-muted/50 ${!n.isRead ? 'bg-muted/30' : ''}`}
+                          >
+                          {/* <Button className="relative top-0 bg-transparent hover:bg-transparent border-none p-0 m-0 float-right cursor-pointer  "> <X className="w-4 h-4 text-muted-foreground" /></Button> */}
+                            <p className="text-sm font-medium text-foreground">{n.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              {n.createdAt ? new Date(n.createdAt).toLocaleString('pt-BR') : ''}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </PopoverContent>
               </Popover>

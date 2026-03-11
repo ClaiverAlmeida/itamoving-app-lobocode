@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -74,6 +74,7 @@ import { AuthProvider, useAuth } from "../context/AuthContext";
 import { AtendenteSelect } from "./forms";
 import { clientsService } from "../services/clients.service";
 import { appointmentsService } from "../services/appointments.service";
+import { connectSocket, getSocket } from "../services/socket.service";
 
 type ViewMode = "calendar" | "list" | "timeline";
 
@@ -103,15 +104,33 @@ export default function AgendamentosView() {
     [clientes]
   );
 
-  useEffect(() => {
-    const carregarAgendamentos = async () => {
-      const result = await appointmentsService.getAll();
-      if (result.success && result.data) {
-        setAgendamentos(result.data);
-      }
-    };
-    carregarAgendamentos();
+  const carregarAgendamentos = useCallback(async () => {
+    const result = await appointmentsService.getAll();
+    if (result.success && result.data) {
+      setAgendamentos(result.data);
+    }
   }, [setAgendamentos]);
+
+  useEffect(() => {
+    carregarAgendamentos();
+  }, [carregarAgendamentos]);
+
+  // Receber notificações de agendamentos via WebSocket e atualizar a lista
+  useEffect(() => {
+    const socket = connectSocket() ?? getSocket();
+    if (!socket) return;
+    const onNotification = (payload: { entityType?: string; title?: string; message?: string }) => {
+      if (payload.entityType !== "APPOINTMENT") return;
+      toast.success(payload.title ?? "Agendamentos", {
+        description: payload.message,
+      });
+      carregarAgendamentos();
+    };
+    socket.on("new_notification", onNotification);
+    return () => {  
+      socket.off("new_notification", onNotification);
+    };
+  }, [carregarAgendamentos]);
 
   const carregarQtdCaixasPorDia = async (date: string) => {
     const dateISO = new Date(date).toISOString();

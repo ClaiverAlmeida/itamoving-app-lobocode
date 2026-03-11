@@ -179,3 +179,9 @@
     line-height: 1.5;
   }
 }
+
+/* Descrição do toast (Sonner) mais visível, menos apagada */
+[data-sonner-toast] [data-description] {
+  color: var(--foreground) !important;
+  opacity: 0.9 !important;
+}
