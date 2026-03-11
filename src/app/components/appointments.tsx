@@ -53,6 +53,7 @@ import {
   X,
   MessageCircle,
   Box,
+  Edit,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -87,6 +88,7 @@ export default function AgendamentosView() {
     deleteAgendamento,
   } = useData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("calendar");
   const [searchTerm, setSearchTerm] = useState("");
@@ -127,7 +129,7 @@ export default function AgendamentosView() {
       carregarAgendamentos();
     };
     socket.on("new_notification", onNotification);
-    return () => {  
+    return () => {
       socket.off("new_notification", onNotification);
     };
   }, [carregarAgendamentos]);
@@ -145,8 +147,8 @@ export default function AgendamentosView() {
               ? raw.data
               : [raw.data]
             : typeof raw === "object" &&
-                raw !== null &&
-                ("qtyBoxes" in raw || "collectionDate" in raw)
+              raw !== null &&
+              ("qtyBoxes" in raw || "collectionDate" in raw)
               ? [raw]
               : [];
       setQtdCaixasPorDia(list);
@@ -184,6 +186,18 @@ export default function AgendamentosView() {
     setQtdCaixasPorDia([]);
   };
 
+  const resetEditForm = () => {
+    setFormData({
+      clientId: selectedAgendamento?.client.id ?? "",
+      collectionDate: selectedAgendamento?.collectionDate ?? "",
+      collectionTime: selectedAgendamento?.collectionTime ?? "",
+      qtyBoxes: selectedAgendamento?.qtyBoxes ?? 0,
+      observations: selectedAgendamento?.observations ?? "",
+      userId: selectedAgendamento?.user.id ?? "",
+      status: selectedAgendamento?.status ?? "",
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -212,12 +226,12 @@ export default function AgendamentosView() {
     const collectionDateStr = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
       ? rawDate
       : (() => {
-          const d = new Date(rawDate);
-          if (Number.isNaN(d.getTime())) {
-            return null;
-          }
-          return d.toISOString().split("T")[0];
-        })();
+        const d = new Date(rawDate);
+        if (Number.isNaN(d.getTime())) {
+          return null;
+        }
+        return d.toISOString().split("T")[0];
+      })();
     if (!collectionDateStr) {
       toast.error("Data de coleta inválida.");
       return;
@@ -253,6 +267,12 @@ export default function AgendamentosView() {
     toast.success("Agendamento criado com sucesso!");
     resetForm();
     setIsDialogOpen(false);
+  };
+
+  const handleEditAgendamento = async (agendamento: Agendamento) => {
+    console.log(agendamento);
+    // setSelectedAgendamento(agendamento);
+    // setIsDialogOpen(true);
   };
 
   const handleStatusChange = async (
@@ -622,6 +642,8 @@ export default function AgendamentosView() {
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
+
+            {/* Diálogo de Criação de Agendamento */}
             <Dialog
               open={isDialogOpen}
               onOpenChange={(open) => {
@@ -673,7 +695,7 @@ export default function AgendamentosView() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   {!clientesAtivos.length && (
                     <EmptyStateAlert
                       title="Nenhum cliente ativo"
@@ -726,9 +748,9 @@ export default function AgendamentosView() {
                         list.length === 1
                           ? list[0]
                           : list.find(
-                              (q) =>
-                                q.collectionDate === formData.collectionDate,
-                            );
+                            (q) =>
+                              q.collectionDate === formData.collectionDate,
+                          );
                       const qty =
                         item != null && typeof item.qtyBoxes === "number"
                           ? item.qtyBoxes
@@ -1019,11 +1041,10 @@ export default function AgendamentosView() {
                           <Badge
                             key={periodo}
                             onClick={() => setFilters({ ...filters, periodo })}
-                            className={`cursor-pointer px-4 py-2 transition-all ${
-                              filters.periodo === periodo
-                                ? "bg-blue-600 text-white hover:bg-blue-700"
-                                : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-100"
-                            }`}
+                            className={`cursor-pointer px-4 py-2 transition-all ${filters.periodo === periodo
+                              ? "bg-blue-600 text-white hover:bg-blue-700"
+                              : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-100"
+                              }`}
                           >
                             {periodo === "todos" && "Todos"}
                             {periodo === "hoje" && "Hoje"}
@@ -1064,11 +1085,10 @@ export default function AgendamentosView() {
                                   : [...filters.status, s],
                               });
                             }}
-                            className={`cursor-pointer px-4 py-2 transition-all flex items-center gap-2 ${
-                              isSelected
-                                ? `${config.color} text-white`
-                                : `bg-white ${config.textColor} border border-slate-300 hover:bg-slate-100`
-                            }`}
+                            className={`cursor-pointer px-4 py-2 transition-all flex items-center gap-2 ${isSelected
+                              ? `${config.color} text-white`
+                              : `bg-white ${config.textColor} border border-slate-300 hover:bg-slate-100`
+                              }`}
                           >
                             {isSelected && <CheckCircle2 className="w-3 h-3" />}
                             {config.label}
@@ -1315,17 +1335,16 @@ export default function AgendamentosView() {
                       className="group"
                     >
                       <Card
-                        className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${
-                          isAtrasado
-                            ? "bg-red-50 border-red-500"
-                            : config.bgLight
-                        }`}
+                        className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${isAtrasado
+                          ? "bg-red-50 border-red-500"
+                          : config.bgLight
+                          }`}
                         style={{
                           borderLeftColor: isAtrasado
                             ? "#EF4444"
                             : config.color
-                                .replace("bg-", "#")
-                                .replace("500", "600"),
+                              .replace("bg-", "#")
+                              .replace("500", "600"),
                         }}
                         onClick={() => setSelectedAgendamento(agendamento)}
                       >
@@ -1491,7 +1510,46 @@ export default function AgendamentosView() {
                   <span>{selectedAgendamento.collectionTime}</span>
                 </div>
               </div>
+
             </div>
+
+            {/* Editar Agendamento */}
+            {/* <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 gap-3">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => handleEditAgendamento(selectedAgendamento)}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Editar
+                </Button>
+              </div>
+            </div> */}
+
+            {/* Diálogo de Edição de Agendamento */}
+            {/* <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsEditDialogOpen(open);
+              if (!open) resetEditForm();
+            }}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-fit"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Editar
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Editar Agendamento</DialogTitle>
+                </DialogHeader>
+                <DialogDescription>
+                  Edite os dados do agendamento no sistema
+                </DialogDescription>
+              </DialogContent>
+            </Dialog> */}
 
             {/* Content */}
             <div className="p-6 space-y-6">
@@ -1596,6 +1654,6 @@ export default function AgendamentosView() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </div >
   );
 }
