@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { Toaster } from './components/ui/sonner';
+import { toast } from 'sonner';
 import DashboardView from './components/dashboard';
 import ClientesView from './components/clients';
 import EstoqueView from './components/stock';
@@ -34,6 +36,8 @@ import {
   Lock,
   Bell,
   BellRing,
+  Trash,
+  Eye,
 } from 'lucide-react';
 import { Badge } from './components/ui/badge';
 import { Card, CardContent } from './components/ui/card';
@@ -45,6 +49,7 @@ import {
   PopoverTrigger,
 } from './components/ui/popover';
 import { useNotifications } from './hooks/useNotifications';
+import { notificationsService } from './services/notifications.service';
 
 const STORAGE_KEY = 'itamoving_last_route';
 
@@ -104,6 +109,8 @@ function MainApp() {
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [removingNotificationId, setRemovingNotificationId] = useState<string | null>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Restaurar última rota ao abrir na raiz (só quando path é / ou vazio)
   useEffect(() => {
@@ -349,7 +356,10 @@ function MainApp() {
               </div>
 
               {/* Notificações */}
-              <Popover>
+              <Popover open={notificationsOpen} onOpenChange={(open) => {
+                setNotificationsOpen(open);
+                if (open) refreshNotifications();
+              }}>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="icon" className="relative">
                     <Bell className="w-5 h-5 stroke-2 fill-none outline-none" />
@@ -366,39 +376,108 @@ function MainApp() {
                       <BellRing className="w-4 h-4 text-muted-foreground" />
                       Notificações
                     </h3>
+                    <Button variant="ghost" className="relative text-xs w-fit hover:bg-transparent hover:text-foreground" onClick={async () => {
+                      const result = await notificationsService.markAllAsRead();
+                      if (result.success) refreshNotifications();
+                      else toast.error(result.error);
+                    }}>Marcar todas como lidas</Button>
                   </div>
                   <div className="max-h-[320px] overflow-y-auto">
-                    {loading ? (
-                      <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-                        Carregando...
-                      </div>
-                    ) : notifications.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                          <Bell className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                        <p className="text-sm font-medium text-foreground">Nenhuma notificação</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Você será avisado quando houver novidades.
-                        </p>
-                      </div>
-                    ) : (
-                      <ul className="divide-y divide-border">
-                        {notifications.map((n) => (
-                          <li
-                          key={n.id}
-                          className={`cursor-pointer px-4 py-3 text-left hover:bg-muted/50 ${!n.isRead ? 'bg-muted/30' : ''}`}
+                    <AnimatePresence mode="wait">
+                      {loading ? (
+                        <motion.div
+                          key="loading"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="flex items-center justify-center py-8"
+                        >
+                          <motion.div
+                            animate={{ opacity: [0.5, 1, 0.5] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                            className="text-sm text-muted-foreground"
                           >
-                          {/* <Button className="relative top-0 bg-transparent hover:bg-transparent border-none p-0 m-0 float-right cursor-pointer  "> <X className="w-4 h-4 text-muted-foreground" /></Button> */}
-                            <p className="text-sm font-medium text-foreground">{n.title}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                              {n.createdAt ? new Date(n.createdAt).toLocaleString('pt-BR') : ''}
-                            </p>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                            Carregando...
+                          </motion.div>
+                        </motion.div>
+                      ) : notifications.length === 0 ? (
+                        <motion.div
+                          key="empty"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.25 }}
+                          className="flex flex-col items-center justify-center py-12 px-4 text-center"
+                        >
+                          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                            <Bell className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                          <p className="text-sm font-medium text-foreground">Nenhuma notificação</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Você será avisado quando houver novidades.
+                          </p>
+                        </motion.div>
+                      ) : (
+                        <motion.ul
+                          key="list"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="divide-y divide-border"
+                        >
+                          <AnimatePresence mode="popLayout">
+                            {(removingNotificationId ? notifications.filter((n) => n.id !== removingNotificationId) : notifications).map((n, index) => (
+                              <motion.li
+                                key={n.id}
+                                layout
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, x: -8, transition: { duration: 0.2 } }}
+                                transition={{ duration: 0.25, delay: index * 0.03 }}
+                                className={`${!n.isRead ? 'cursor-pointer pointer-events-auto' : 'cursor-auto pointer-events-none'} px-4 py-3 text-left transition-colors duration-200 hover:bg-muted/50 ${!n.isRead ? 'bg-muted/30' : 'bg-transparent'}`}
+                                onClick={async (e) => {
+                                  if ((e.target as HTMLElement).closest('button')) return;
+                                  const result = await notificationsService.markAsRead(n.isRead, n.id);
+                                  if (result.success) refreshNotifications();
+                                  else toast.error(result.error);
+                                }}
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <Badge variant={!n.isRead ? 'destructive' : 'default'} className="text-xs cursor-auto transition-colors duration-200">{!n.isRead ? 'Nova' : 'Lida'}</Badge>
+                                </div>
+                                <div className="flex justify-end items-center gap-2 float-right">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="relative top-0 bg-transparent hover:bg-transparent border-none p-0 m-0 float-right cursor-pointer"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      const id = n.id;
+                                      setRemovingNotificationId(id);
+                                      setTimeout(async () => {
+                                        const res = await notificationsService.delete(id);
+                                        if (res.success) await refreshNotifications();
+                                        else toast.error(res.error ?? 'Erro ao excluir');
+                                        setRemovingNotificationId(null);
+                                      }, 220);
+                                    }}
+                                  >
+                                    <Trash className="w-4 h-4 text-red-500" />
+                                  </Button>
+                                </div>
+                                <p className="text-sm font-medium text-foreground">{n.title}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  {n.createdAt ? new Date(n.createdAt).toLocaleString('pt-BR') : ''}
+                                </p>
+                              </motion.li>
+                            ))}
+                          </AnimatePresence>
+                        </motion.ul>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </PopoverContent>
               </Popover>

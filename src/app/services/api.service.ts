@@ -148,6 +148,20 @@ class ApiService {
     }
   }
 
+  async put<T = unknown>(endpoint: string, body: unknown = {}, options: ApiOptions = {}): Promise<ApiResponse<T>> {
+    const key = `PUT:${endpoint}`;
+    if (options.showLoader !== false) this.loadingStates.set(key, true);
+    try {
+      const response = await this.axiosInstance.put<T>(endpoint, body, { headers: options.headers });
+      this.invalidateCache(endpoint);
+      return { success: true, data: response.data };
+    } catch (err: unknown) {
+      return this.handleError(err);
+    } finally {
+      if (options.showLoader !== false) this.loadingStates.delete(key);
+    }
+  }
+
   async delete<T = unknown>(endpoint: string, options: ApiOptions = {}): Promise<ApiResponse<T>> {
     const key = `DELETE:${endpoint}`;
     if (options.showLoader !== false) this.loadingStates.set(key, true);

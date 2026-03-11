@@ -22,7 +22,7 @@ export function useNotifications() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const refreshNotifications = useCallback(async () => {
     setLoading(true);
@@ -49,12 +49,8 @@ export function useNotifications() {
     }
   }, []);
 
-  useEffect(() => {
-    refreshNotifications();
-  }, [refreshNotifications]);
-
+  // Não fazer request no mount; só ao abrir o popover (App) ou quando o socket conectar (onceConnected).
   // Inscrever em eventos do socket quando o usuário estiver logado.
-  // onceConnected garante refresh quando o socket conecta (evita id null → valor sem atualizar contador).
   useEffect(() => {
     const userId = user?.id;
     if (!userId) return;

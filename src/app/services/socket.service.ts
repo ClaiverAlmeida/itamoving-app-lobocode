@@ -38,12 +38,12 @@ function startPingPong(sock: Socket) {
     );
   });
 
-  pingIntervalId = setInterval(() => {
-    if (sock.connected) {
-      console.log(`${PING_LOG_PREFIX} 🏓 PING enviado`);
-      sock.emit('ping');
-    }
-  }, PING_INTERVAL_MS);
+  // pingIntervalId = setInterval(() => {
+  //   if (sock.connected) {
+  //     console.log(`${PING_LOG_PREFIX} 🏓 PING enviado`);
+  //     sock.emit('ping');
+  //   }
+  // }, PING_INTERVAL_MS);
 }
 
 function stopPingPong() {
