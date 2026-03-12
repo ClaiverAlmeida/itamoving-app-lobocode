@@ -71,7 +71,8 @@ export interface ItemEnvio {
 export interface Container {
   id?: string;
   number: string;
-  type?: "C20FT" | "C40FT" | "C40FTHC" | "C45FTHC";
+  type?: string;
+  seal?: string;
   origin?: string;
   destination?: string;
   shipmentDate?: string;
@@ -155,7 +156,6 @@ export interface Usuario {
   terminationDate?: string;
   role: "ADMIN" | "COMERCIAL" | "LOGISTICS" | "DRIVER";
   salary?: number;
-  contractType?: "CLT" | "PJ" | "TEMPORARY" | "INTERNSHIP";
   status: "ACTIVE" | "INACTIVE" | "PENDING" | "ON_LEAVE" | "TERMINATED";
   rg?: string;
   profilePicture?: string;

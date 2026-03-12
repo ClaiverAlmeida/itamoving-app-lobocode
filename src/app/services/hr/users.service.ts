@@ -17,7 +17,6 @@ export interface CreateUsersDTO {
     hireDate?: string;
     terminationDate?: string;
     salary?: number;
-    contractType?: "CLT" | "PJ" | "TEMPORARY" | "INTERNSHIP";
     address?: {
         street: string;
         number: string;
@@ -44,7 +43,6 @@ export interface UsersBackend {
     hireDate?: string | null;
     terminationDate?: string | null;
     salary?: number | null;
-    contractType?: "CLT" | "PJ" | "TEMPORARY" | "INTERNSHIP" | null;
     role: "ADMIN" | "COMERCIAL" | "LOGISTICS" | "DRIVER";
     status: "ACTIVE" | "INACTIVE" | "PENDING" | "ON_LEAVE" | "TERMINATED";
     profilePicture?: string | null;
@@ -68,7 +66,6 @@ function mapBackendToFrontend(user: UsersBackend): Usuario {
         hireDate: user.hireDate ? toDateOnly(user.hireDate) : undefined,
         terminationDate: user.terminationDate ? toDateOnly(user.terminationDate) : undefined,
         salary: user.salary ?? undefined,
-        contractType: user.contractType ?? undefined,
         status: user.status,
         rg: user.rg ?? undefined,
         profilePicture: user.profilePicture ?? undefined,

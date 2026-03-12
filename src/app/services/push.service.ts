@@ -75,41 +75,63 @@ export const pushService = {
   /**
    * Registra o Service Worker e inscreve no Push; envia a subscription ao backend.
    * Só chamar após permissão 'granted'.
+   * Inclui retry: "push service error" costuma ser intermitente (FCM/navegador).
    */
   async registerAndSubscribe(): Promise<boolean> {
     if (!this.isSupported() || Notification.permission !== 'granted') {
       return false;
     }
-    try {
-      const reg = await navigator.serviceWorker.register(SW_PATH, { scope: '/' });
-      await reg.update();
-      const vapidKey = await this.getVapidPublicKey();
-      if (!vapidKey) {
-        console.warn('[Push] VAPID public key não disponível no backend.');
+    const maxAttempts = 3;
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const reg = await navigator.serviceWorker.register(SW_PATH, { scope: '/' });
+        await reg.update();
+        const vapidKey = await this.getVapidPublicKey();
+        if (!vapidKey) {
+          console.warn('[Push] VAPID public key não disponível no backend.');
+          return false;
+        }
+        const applicationServerKey = this.urlBase64ToUint8Array(vapidKey);
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey,
+        });
+        const p256dh = sub.getKey('p256dh');
+        const auth = sub.getKey('auth');
+        if (!p256dh || !auth) {
+          console.warn('[Push] Subscription sem chaves.');
+          return false;
+        }
+        const payload = {
+          endpoint: sub.endpoint,
+          keys: {
+            p256dh: this.arrayBufferToBase64Url(p256dh),
+            auth: this.arrayBufferToBase64Url(auth),
+          },
+        };
+        await api.post('/notifications/push/subscribe', payload);
+        return true;
+      } catch (e) {
+        lastError = e;
+        const isPushServiceError =
+          e instanceof Error &&
+          (e.name === 'AbortError' || e.message?.includes('push service') || e.message?.includes('Registration failed'));
+        if (isPushServiceError && attempt < maxAttempts) {
+          console.warn(`[Push] Tentativa ${attempt}/${maxAttempts} falhou (push service). Nova tentativa em 1.5s...`, e);
+          await new Promise((r) => setTimeout(r, 1500));
+          continue;
+        }
+        console.error('[Push] Erro ao registrar/subscribir:', e);
+        if (isPushServiceError) {
+          console.warn(
+            '[Push] Dica: esse erro costuma ser intermitente (navegador/serviço). Tente recarregar a página ou desativar extensões que bloqueiam notificações.'
+          );
+        }
         return false;
       }
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(vapidKey),
-      });
-      const p256dh = sub.getKey('p256dh');
-      const auth = sub.getKey('auth');
-      if (!p256dh || !auth) {
-        console.warn('[Push] Subscription sem chaves.');
-        return false;
-      }
-      const payload = {
-        endpoint: sub.endpoint,
-        keys: {
-          p256dh: this.arrayBufferToBase64Url(p256dh),
-          auth: this.arrayBufferToBase64Url(auth),
-        },
-      };
-      await api.post('/notifications/push/subscribe', payload);
-      return true;
-    } catch (e) {
-      console.error('[Push] Erro ao registrar/subscribir:', e);
-      return false;
     }
+    console.error('[Push] Erro ao registrar/subscribir após', maxAttempts, 'tentativas:', lastError);
+    return false;
   },
 };

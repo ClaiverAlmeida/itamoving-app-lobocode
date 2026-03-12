@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { cn } from "./ui/utils";
 import { Textarea } from "./ui/textarea";
 import {
   Dialog,
@@ -1823,14 +1824,50 @@ export default function AgendamentosView() {
                     });
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger
+                    className={cn(
+                      "border-l-4 font-medium transition-colors",
+                      selectedAgendamento.status === "PENDING" &&
+                        "border-l-[var(--accent)] bg-[var(--accent)]/10 dark:bg-[var(--accent)]/20",
+                      selectedAgendamento.status === "CONFIRMED" &&
+                        "border-l-green-600 bg-green-50 dark:bg-green-950/30 dark:border-l-green-500",
+                      selectedAgendamento.status === "COLLECTED" &&
+                        "border-l-[var(--secondary)] bg-[var(--secondary)]/10 dark:bg-[var(--secondary)]/20",
+                      selectedAgendamento.status === "CANCELLED" &&
+                        "border-l-[var(--destructive)] bg-[var(--destructive)]/10 dark:bg-[var(--destructive)]/20"
+                    )}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PENDING">Pendente</SelectItem>
-                    <SelectItem value="CONFIRMED">Confirmado</SelectItem>
-                    <SelectItem value="COLLECTED">Coletado</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                    <SelectItem
+                      value="PENDING"
+                      className="focus:bg-[var(--accent)]/15 focus:text-[var(--accent)] data-[highlighted]:bg-[var(--accent)]/15 text-[var(--accent)] dark:focus:bg-[var(--accent)]/25 dark:data-[highlighted]:bg-[var(--accent)]/25"
+                    >
+                      <span className="mr-2 inline-block size-2 rounded-full bg-[var(--accent)]" />
+                      Pendente
+                    </SelectItem>
+                    <SelectItem
+                      value="CONFIRMED"
+                      className="focus:bg-green-50 focus:text-green-700 data-[highlighted]:bg-green-50 text-green-700 dark:focus:bg-green-950/50 dark:data-[highlighted]:bg-green-950/50 dark:text-green-400"
+                    >
+                      <span className="mr-2 inline-block size-2 rounded-full bg-green-500" />
+                      Confirmado
+                    </SelectItem>
+                    <SelectItem
+                      value="COLLECTED"
+                      className="focus:bg-[var(--secondary)]/15 focus:text-[var(--secondary)] data-[highlighted]:bg-[var(--secondary)]/15 text-[var(--secondary)] dark:focus:bg-[var(--secondary)]/25 dark:data-[highlighted]:bg-[var(--secondary)]/25"
+                    >
+                      <span className="mr-2 inline-block size-2 rounded-full bg-[var(--secondary)]" />
+                      Coletado
+                    </SelectItem>
+                    <SelectItem
+                      value="CANCELLED"
+                      className="focus:bg-[var(--destructive)]/15 focus:text-[var(--destructive)] data-[highlighted]:bg-[var(--destructive)]/15 text-[var(--destructive)] dark:focus:bg-[var(--destructive)]/25 dark:data-[highlighted]:bg-[var(--destructive)]/25"
+                    >
+                      <span className="mr-2 inline-block size-2 rounded-full bg-[var(--destructive)]" />
+                      Cancelado
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

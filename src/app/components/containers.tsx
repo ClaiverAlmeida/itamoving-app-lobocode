@@ -125,6 +125,7 @@ export default function ContainersView() {
   const [formData, setFormData] = useState({
     number: "",
     type: "",
+    seal: "",
     origin: "Miami, FL - USA",
     destination: "Santos, SP - Brasil",
     boardingDate: "",
@@ -143,6 +144,7 @@ export default function ContainersView() {
     setFormData({
       number: "",
       type: "",
+      seal: "",
       origin: "Miami, FL - USA",
       destination: "Santos, SP - Brasil",
       boardingDate: "",
@@ -171,15 +173,6 @@ export default function ContainersView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validar tipo e valor do volume
-    const tipoValido = ["C20FT", "C40FT", "C40FTHC", "C45FTHC"].includes(
-      formData.type,
-    );
-    if (!formData.type || !tipoValido) {
-      toast.error("Selecione o tipo de container");
-      return;
-    }
-
     // Validar se a data do embarque vem depois da data de chegada estimada
     const boardingDate = new Date(formData.boardingDate).getTime();
     const estimatedArrival = new Date(formData.estimatedArrival).getTime();
@@ -193,7 +186,8 @@ export default function ContainersView() {
 
     const payload = {
       number: formData.number,
-      type: formData.type as "C20FT" | "C40FT" | "C40FTHC" | "C45FTHC",
+      type: formData.type,
+      seal: formData.seal,
       origin: formData.origin,
       destination: formData.destination,
       boardingDate: formData.boardingDate,
@@ -230,18 +224,11 @@ export default function ContainersView() {
       return;
     }
 
-    const tipoValido = ["C20FT", "C40FT", "C40FTHC", "C45FTHC"].includes(
-      formData.type,
-    );
-    if (!formData.type || !tipoValido) {
-      toast.error("Selecione o tipo de container");
-      return;
-    }
-
     const getUpdatePayload = (): UpdateContainersDTO => {
       const current = {
         number: formData.number,
-        type: formData.type as "C20FT" | "C40FT" | "C40FTHC" | "C45FTHC",
+        type: formData.type,
+        seal: formData.seal,
         origin: formData.origin,
         destination: formData.destination,
         boardingDate: formData.boardingDate,
@@ -261,6 +248,7 @@ export default function ContainersView() {
 
       if (current.number !== original.number) patch.number = current.number;
       if (current.type !== original.type) patch.type = current.type;
+      if (current.seal !== original.seal) patch.seal = current.seal;
       if (current.origin !== original.origin) patch.origin = current.origin;
       if (current.destination !== original.destination)
         patch.destination = current.destination;
@@ -625,7 +613,7 @@ export default function ContainersView() {
                   Novo Container
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-auto sm:max-w-[40vw] max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
                 <DialogHeader>
                   <DialogTitle>Cadastrar Novo Container</DialogTitle>
                   <DialogDescription>
@@ -635,7 +623,7 @@ export default function ContainersView() {
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="number">Número do Container *</Label>
                       <Input
@@ -650,28 +638,28 @@ export default function ContainersView() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="type">Tipo de Container *</Label>
-                      <Select
-                        value={formData.type}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, type: value as any })
+                      <Label htmlFor="seal">Lacre do Container *</Label>
+                      <Input
+                        id="seal"
+                        value={formData.seal}
+                        onChange={(e) =>
+                          setFormData({ ...formData, seal: e.target.value })
                         }
                         required
-                      >
-                        <SelectTrigger id="type" required aria-required>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="C20FT">20ft Standard</SelectItem>
-                          <SelectItem value="C40FT">40ft Standard</SelectItem>
-                          <SelectItem value="C40FTHC">
-                            40ft High Cube
-                          </SelectItem>
-                          <SelectItem value="C45FTHC">
-                            45ft High Cube
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="type">Tipo de Container *</Label>
+                      <Input
+                        id="type"
+                        placeholder="Ex: C20FT"
+                        value={formData.type}
+                        onChange={(e) =>
+                          setFormData({ ...formData, type: e.target.value })
+                        }
+                        required
+                      />
                     </div>
 
                     <div className="space-y-2">
@@ -774,49 +762,52 @@ export default function ContainersView() {
                       />
                     </div>
 
-                    <div className="space-y-2 col-span-2">
-                      <Label htmlFor="trackingLink">Link de Rastreamento</Label>
-                      <Input
-                        id="trackingLink"
-                        type="url"
-                        placeholder="Ex: https://tracking.example.com/CNT123456"
-                        value={formData.trackingLink}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            trackingLink: e.target.value,
-                          })
-                        }
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        URL completa do sistema de rastreamento do container
-                      </p>
+                    <div className="col-span-1 sm:col-span-3 grid grid-cols-[1fr_1fr] gap-4 w-full">
+                      <div className="space-y-2 min-w-0">
+                        <Label htmlFor="trackingLink">Link de Rastreamento</Label>
+                        <Input
+                          id="trackingLink"
+                          type="url"
+                          placeholder="Ex: https://tracking.example.com/CNT123456"
+                          className="w-full max-w-full"
+                          value={formData.trackingLink}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              trackingLink: e.target.value,
+                            })
+                          }
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          URL completa do sistema de rastreamento do container
+                        </p>
+                      </div>
+                      <div className="space-y-2 min-w-0">
+                        <Label htmlFor="status">Status Inicial *</Label>
+                        <Select
+                          value={formData.status}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, status: value as any })
+                          }
+                          required
+                        >
+                          <SelectTrigger className="w-full max-w-full">
+                            <SelectValue placeholder="Selecione o status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PREPARATION">
+                              Em Preparação
+                            </SelectItem>
+                            <SelectItem value="IN_TRANSIT">
+                              Em Trânsito
+                            </SelectItem>
+                            <SelectItem value="DELIVERED">Entregue</SelectItem>
+                            <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
-                    <div className="space-y-2 col-span-2">
-                      <Label htmlFor="status">Status Inicial *</Label>
-                      <Select
-                        value={formData.status}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, status: value as any })
-                        }
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="PREPARATION">
-                            Em Preparação
-                          </SelectItem>
-                          <SelectItem value="IN_TRANSIT">
-                            Em Trânsito
-                          </SelectItem>
-                          <SelectItem value="DELIVERED">Entregue</SelectItem>
-                          <SelectItem value="CANCELLED">Cancelado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
 
                   <div className="flex justify-end gap-2 pt-4 border-t">
@@ -1121,7 +1112,7 @@ export default function ContainersView() {
                           </div>
                           <div>
                             <CardTitle className="text-lg">
-                              {container.number}
+                              {container.number} - Lacre: {container.seal || "N/A"}
                             </CardTitle>
                             <Badge className={colors.badge}>
                               {getStatusLabel(container.status)}
@@ -1506,6 +1497,11 @@ export default function ContainersView() {
                       <h2 className="text-lg lg:text-2xl font-bold text-foreground mb-2 truncate">
                         {selectedContainer.number}
                       </h2>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="default" className="text-xs">
+                          Lacre: {selectedContainer.seal || "N/A"}
+                        </Badge>
+                      </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge
                           className={
@@ -1542,11 +1538,8 @@ export default function ContainersView() {
                       setFormData({
                         ...formData,
                         number: selectedContainer.number || "",
-                        type: selectedContainer.type as
-                          | "C20FT"
-                          | "C40FT"
-                          | "C40FTHC"
-                          | "C45FTHC",
+                        type: selectedContainer.type || "",
+                        seal: selectedContainer.seal || "",
                         origin: selectedContainer.origin || "",
                         destination: selectedContainer.destination || "",
                         boardingDate: toDateOnlyForInput(
@@ -1844,7 +1837,7 @@ export default function ContainersView() {
         if (!open) resetForm();
       }
       }>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:w-auto sm:max-w-[40vw] max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
           <DialogHeader>
             <DialogTitle>Editar Container</DialogTitle>
             <DialogDescription>
@@ -1853,7 +1846,7 @@ export default function ContainersView() {
           </DialogHeader>
 
           <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="number">Número do Container *</Label>
                 <Input
@@ -1868,25 +1861,30 @@ export default function ContainersView() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="type">Tipo de Container *</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, type: value as any })
+                <Label htmlFor="seal">Lacre do Container *</Label>
+                <Input
+                  id="seal"
+                  value={formData.seal}
+                  onChange={(e) =>
+                    setFormData({ ...formData, seal: e.target.value })
                   }
                   required
-                >
-                  <SelectTrigger id="type" required aria-required>
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="C20FT">20ft Standard</SelectItem>
-                    <SelectItem value="C40FT">40ft Standard</SelectItem>
-                    <SelectItem value="C40FTHC">40ft High Cube</SelectItem>
-                    <SelectItem value="C45FTHC">45ft High Cube</SelectItem>
-                  </SelectContent>
-                </Select>
+                />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="type">Tipo de Container *</Label>
+                <Input
+                  id="type"
+                  placeholder="Ex: C20FT"
+                  value={formData.type}
+                  onChange={(e) =>
+                    setFormData({ ...formData, type: e.target.value })
+                  }
+                  required
+                />
+              </div>
+
 
               <div className="space-y-2">
                 <Label htmlFor="origin">Porto de Origem *</Label>
@@ -1977,45 +1975,52 @@ export default function ContainersView() {
                 />
               </div>
 
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="trackingLinkEdit">Link de Rastreamento</Label>
-                <Input
-                  id="trackingLinkEdit"
-                  type="url"
-                  placeholder="Ex: https://tracking.example.com/CNT123456"
-                  value={formData.trackingLink}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      trackingLink: e.target.value,
-                    })
-                  }
-                />
-                <p className="text-xs text-muted-foreground">
-                  URL completa do sistema de rastreamento do container
-                </p>
+              <div className="col-span-1 sm:col-span-3 grid grid-cols-[1fr_1fr] gap-4 w-full">
+                <div className="space-y-2 min-w-0">
+                  <Label htmlFor="trackingLink">Link de Rastreamento</Label>
+                  <Input
+                    id="trackingLink"
+                    type="url"
+                    placeholder="Ex: https://tracking.example.com/CNT123456"
+                    className="w-full max-w-full"
+                    value={formData.trackingLink}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        trackingLink: e.target.value,
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    URL completa do sistema de rastreamento do container
+                  </p>
+                </div>
+                <div className="space-y-2 min-w-0">
+                  <Label htmlFor="status">Status Inicial *</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, status: value as any })
+                    }
+                    required
+                  >
+                    <SelectTrigger className="w-full max-w-full">
+                      <SelectValue placeholder="Selecione o status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PREPARATION">
+                        Em Preparação
+                      </SelectItem>
+                      <SelectItem value="IN_TRANSIT">
+                        Em Trânsito
+                      </SelectItem>
+                      <SelectItem value="DELIVERED">Entregue</SelectItem>
+                      <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="status">Status Inicial *</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, status: value as any })
-                  }
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PREPARATION">Em Preparação</SelectItem>
-                    <SelectItem value="IN_TRANSIT">Em Trânsito</SelectItem>
-                    <SelectItem value="DELIVERED">Entregue</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-4 border-t">

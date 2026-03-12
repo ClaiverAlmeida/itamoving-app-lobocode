@@ -4,7 +4,8 @@ import { toDateOnly } from "../utils";
 
 export interface CreateContainersDTO {
   number: string;
-  type: "C20FT" | "C40FT" | "C40FTHC" | "C45FTHC";
+  type: string;
+  seal: string;
   origin: string;
   destination: string;
   boardingDate: string;
@@ -20,7 +21,8 @@ export type UpdateContainersDTO = Partial<CreateContainersDTO>;
 export interface ContainersBackend {
   id: string;
   number: string;
-  type?: "C20FT" | "C40FT" | "C40FTHC" | "C45FTHC";
+  type?: string;
+  seal?: string;
   origin?: string;
   destination?: string;
   shipmentDate?: string;
@@ -45,6 +47,7 @@ function mapBackendToFrontend(container: ContainersBackend): Container {
     id: container.id,
     number: container.number,
     type: container.type,
+    seal: container.seal,
     origin: container.origin,
     destination: container.destination,
     shipmentDate: toDateOnly(container.shipmentDate),

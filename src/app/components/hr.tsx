@@ -89,7 +89,6 @@ export default function RHView() {
     terminationDate: '' as string | undefined,
     role: '' as Usuario['role'],
     salary: 0,
-    contractType: 'CLT' as NonNullable<Usuario['contractType']>,
     status: 'ACTIVE' as Usuario['status'],
     street: '',
     number: '',
@@ -116,13 +115,6 @@ export default function RHView() {
     TERMINATED: 'Demitido',
   };
 
-  const contractTypesLabels: Record<NonNullable<Usuario['contractType']>, string> = {
-    "CLT": "CLT",
-    "PJ": "PJ",
-    "TEMPORARY": "Temporário",
-    "INTERNSHIP": "Estágio",
-  };
-
   const dataPickerBlocked = () => {
     const today = new Date().toISOString().split("T")[0];
     return today;
@@ -146,7 +138,6 @@ export default function RHView() {
       terminationDate: '',
       role: '' as Usuario['role'],
       salary: 0,
-      contractType: 'CLT',
       status: 'ACTIVE',
       street: '',
       number: '',
@@ -170,7 +161,6 @@ export default function RHView() {
     if (!formUsuario.hireDate) return 'Data de Admissão';
     if (!formUsuario.role?.trim()) return 'Cargo';
     if (formUsuario.salary === undefined || formUsuario.salary === null) return 'Salário';
-    if (!formUsuario.contractType) return 'Tipo de Contrato';
     if (!formUsuario.status) return 'Status';
     if (!formUsuario.street?.trim()) return 'Rua';
     if (!formUsuario.number?.trim()) return 'Número';
@@ -210,7 +200,6 @@ export default function RHView() {
       hireDate: formUsuario.hireDate,
       terminationDate: formUsuario.terminationDate || undefined,
       salary: Number(formUsuario.salary),
-      contractType: formUsuario.contractType,
       address: {
         street: formUsuario.street,
         number: formUsuario.number,
@@ -278,7 +267,6 @@ export default function RHView() {
         terminationDate: formUsuario.terminationDate === "" ? undefined : formUsuario.terminationDate,
         role: formUsuario.role,
         salary: Number(formUsuario.salary),
-        contractType: formUsuario.contractType,
         status: formUsuario.status,
         address: {
           street: formUsuario.street,
@@ -306,7 +294,6 @@ export default function RHView() {
       if (optChanged(current.terminationDate, original.terminationDate)) patch.terminationDate = current.terminationDate;
       if (current.role !== original.role) patch.role = current.role;
       if (current.salary !== original.salary) patch.salary = current.salary;
-      if (current.contractType !== original.contractType) patch.contractType = current.contractType;
       if (current.status !== original.status) patch.status = current.status;
       const origAddr = original.address;
       const addressChanged =
@@ -575,24 +562,6 @@ export default function RHView() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="contractType">Tipo de Contrato *</Label>
-                        <Select
-                          value={formUsuario.contractType}
-                          onValueChange={(value: NonNullable<Usuario['contractType']>) => setFormUsuario({ ...formUsuario, contractType: value })}
-                          required
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="CLT">CLT</SelectItem>
-                            <SelectItem value="PJ">PJ</SelectItem>
-                            <SelectItem value="TEMPORARY">Temporário</SelectItem>
-                            <SelectItem value="INTERNSHIP">Estágio</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
                         <Label htmlFor="status">Status *</Label>
                         <Select
                           value={formUsuario.status}
@@ -750,7 +719,6 @@ export default function RHView() {
                   <TableRow className="bg-muted/50">
                     <TableHead className="text-center">Funcionário</TableHead>
                     <TableHead className="text-center">Cargo</TableHead>
-                    <TableHead className="text-center">Tipo</TableHead>
                     <TableHead className="text-center">Salário</TableHead>
                     <TableHead className="text-center">Admissão</TableHead>
                     <TableHead className="text-center">Status</TableHead>
@@ -793,9 +761,6 @@ export default function RHView() {
                             <Briefcase className="w-4 h-4 text-muted-foreground" />
                             {rolesLabels[user.role]}
                           </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline">{user.contractType ? contractTypesLabels[user.contractType] : '-'}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
                           <span className="font-semibold text-green-700">
@@ -847,7 +812,6 @@ export default function RHView() {
                                   terminationDate: user.terminationDate ?? '',
                                   role: user.role,
                                   salary: user.salary ?? 0,
-                                  contractType: user.contractType ?? 'CLT',
                                   status: user.status,
                                   street: user.address?.street ?? '',
                                   number: user.address?.number ?? '',
@@ -932,12 +896,6 @@ export default function RHView() {
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">Data de Admissão</Label>
                   <p className="text-sm">{selectedUsuario.hireDate ? format(new Date(selectedUsuario.hireDate), "dd/MM/yyyy") : '-'}</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Tipo de Contrato</Label>
-                  <p className="text-sm">
-                    <Badge className="font-normal" variant="outline">{selectedUsuario.contractType ? contractTypesLabels[selectedUsuario.contractType] : '-'}</Badge>
-                  </p>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">Salário</Label>
@@ -1075,24 +1033,6 @@ export default function RHView() {
                   onChange={(e) => setFormUsuario({ ...formUsuario, salary: Number(e.target.value) || 0 })}
                   required
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contractTypeEdit">Tipo de Contrato *</Label>
-                <Select
-                  value={formUsuario.contractType}
-                  onValueChange={(value: NonNullable<Usuario['contractType']>) => setFormUsuario({ ...formUsuario, contractType: value })}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CLT">CLT</SelectItem>
-                    <SelectItem value="PJ">PJ</SelectItem>
-                    <SelectItem value="TEMPORARY">Temporário</SelectItem>
-                    <SelectItem value="INTERNSHIP">Estágio</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="statusEdit">Status *</Label>
