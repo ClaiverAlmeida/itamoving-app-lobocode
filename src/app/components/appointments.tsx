@@ -74,7 +74,7 @@ import { ptBR } from "date-fns/locale/pt-BR";
 import { motion, AnimatePresence } from "motion/react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { AtendenteSelect } from "./forms";
-import { EmptyStateAlert, AppointmentBoxesPerDayAlert } from "./alerts";
+import { EmptyStateAlert, AppointmentBoxesPerDayAlert, AppointmentBoxesPerPeriodAlert } from "./alerts";
 import { clientsService } from "../services/clients.service";
 import { appointmentsService, CreateAppointmentsDTO, UpdateAppointmentsDTO } from "../services/appointments.service";
 import { connectSocket, getSocket } from "../services/socket.service";
@@ -95,13 +95,17 @@ export default function AgendamentosView() {
   const [viewMode, setViewMode] = useState<ViewMode>("calendar");
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [isPeriodic, setIsPeriodic] = useState<boolean>();
+  const [isPeriodic, setIsPeriodic] = useState<boolean>(false);
   const [selectedAgendamento, setSelectedAgendamento] =
     useState<Agendamento | null>(null);
   const { user } = useAuth();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [qtdCaixasPorDia, setQtdCaixasPorDia] = useState<
     { collectionDate: string; qtyBoxes: number }[]
+  >([]);
+
+  const [qtdCaixasPorPeriodo, setQtdCaixasPorPeriodo] = useState<
+    { startDate: string; endDate: string; qtyBoxes: number }[]
   >([]);
 
   const clientesAtivos = useMemo(
@@ -138,7 +142,12 @@ export default function AgendamentosView() {
   }, [carregarAgendamentos]);
 
   const carregarQtdCaixasPorDia = async (date: string) => {
-    const dateISO = new Date(date).toISOString();
+    if (!date?.trim()) {
+      setQtdCaixasPorDia([]);
+      return;
+    };
+
+    const dateISO = new Date(date).toISOString() ?? "";
     const result = await appointmentsService.getAllQtdBoxesPerDay(dateISO);
     if (result.success && result.data !== undefined) {
       const raw = result.data as any;
@@ -155,6 +164,40 @@ export default function AgendamentosView() {
               ? [raw]
               : [];
       setQtdCaixasPorDia(list);
+    } else if (result.error) {
+      toast.error(result.error);
+    }
+  };
+
+  const carregarQtdCaixasPorPeriodo = async (startDate: string, endDate: string) => {
+    if (!startDate?.trim() || !endDate?.trim()) {
+      setQtdCaixasPorPeriodo([]);
+      return;
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return;
+    const startDateISO = start.toISOString().slice(0, 10);
+    const endDateISO = end.toISOString().slice(0, 10);
+
+    const result = await appointmentsService.getAllQtdBoxesPerPeriod(startDateISO, endDateISO);
+    if (result.success && result.data !== undefined) {
+      const raw = result.data as any;
+      // TODO - trocar qtyBoxes por qtyBoxesPeriod vindo do backend
+      const list: { startDate: string; endDate: string; qtyBoxes: number }[] =
+        Array.isArray(raw)
+          ? raw
+          : raw?.data != null
+            ? Array.isArray(raw.data)
+              ? raw.data
+              : [raw.data]
+            : typeof raw === "object" &&
+              raw !== null &&
+              ("qtyBoxes" in raw || "startDate" in raw && "endDate" in raw)
+              ? [raw]
+              : [];
+      setQtdCaixasPorPeriodo(list);
     } else if (result.error) {
       toast.error(result.error);
     }
@@ -197,6 +240,7 @@ export default function AgendamentosView() {
       status: "",
     });
     setQtdCaixasPorDia([]);
+    setQtdCaixasPorPeriodo([]);
   };
 
   const resetEditForm = () => {
@@ -238,6 +282,7 @@ export default function AgendamentosView() {
       status: selectedAgendamento.status ?? "",
     });
     carregarQtdCaixasPorDia(collectionDate || new Date().toISOString().slice(0, 10));
+    carregarQtdCaixasPorPeriodo(selectedAgendamento?.startDate ?? "", selectedAgendamento?.endDate ?? "");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -245,7 +290,7 @@ export default function AgendamentosView() {
 
     const cliente = clientes.find((c) => c.id === formData.clientId);
     if (!cliente) {
-      toast.error("Cliente não encontrado");
+      toast.error("Nenhum cliente selecionado");
       return;
     }
 
@@ -277,6 +322,11 @@ export default function AgendamentosView() {
       })();
     if (!collectionDateStr) {
       toast.error("Data de coleta inválida.");
+      return;
+    }
+
+    if (formData.isPeriodic && (formData.collectionDate < formData.startDate || formData.collectionTime > formData.endDate)) {
+      toast.error("A data de coleta não está dentro do intervalo de datas.");
       return;
     }
 
@@ -312,9 +362,10 @@ export default function AgendamentosView() {
     }
 
     addAgendamento(result.data);
-    toast.success("Agendamento criado com sucesso!");
     resetForm();
+    setIsPeriodic(false);
     setIsDialogOpen(false);
+    toast.success("Agendamento criado com sucesso!");
   };
 
   const handleEditAgendamento = async (e: React.FormEvent, agendamento: Agendamento) => {
@@ -408,12 +459,18 @@ export default function AgendamentosView() {
       return;
     }
 
+    if (formData.isPeriodic && (formData.collectionDate < formData.startDate || formData.collectionTime > formData.endDate)) {
+      toast.error("A data de coleta não está dentro do intervalo de datas.");
+      return;
+    }
+
     const result = await appointmentsService.update(selectedAgendamento!.id!, patchPayload);
     if (result.success && result.data) {
       updateAgendamento(selectedAgendamento!.id!, result.data);
       setSelectedAgendamento(result.data);
       setIsEditDialogOpen(false);
       resetEditForm();
+      setIsPeriodic(false);
       toast.success("Agendamento atualizado com sucesso!");
     } else {
       toast.error(result.error ?? "Erro ao atualizar agendamento.");
@@ -798,6 +855,8 @@ export default function AgendamentosView() {
                   resetForm();
                   setClientes([]);
                   setQtdCaixasPorDia([]);
+                  setQtdCaixasPorPeriodo([]);
+                  setIsPeriodic(false);
                 }
               }}
             >
@@ -807,7 +866,7 @@ export default function AgendamentosView() {
                   Novo Agendamento
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
                 <DialogHeader>
                   <DialogTitle>Novo Agendamento</DialogTitle>
                   <DialogDescription>
@@ -848,13 +907,20 @@ export default function AgendamentosView() {
                     />
                   )}
 
+                  <div className="space-y-2 border-b pb-4 mb-4 pt-4">
+                    <Label className="text-lg font-medium">Coleta Única</Label>
+                    <p className="text-xs text-muted-foreground">
+                      O agendamento será uma coleta única.
+                    </p>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="collectionDate">Data da Coleta *</Label>
                       <Input
                         id="collectionDate"
                         type="date"
-                        min={dataPickerBlocked()}
+                        min={formData.startDate ? formData.startDate : dataPickerBlocked()}
+                        max={formData.endDate ? formData.endDate : ''}
                         value={formData.collectionDate}
                         onChange={(e) => {
                           setFormData({
@@ -883,11 +949,28 @@ export default function AgendamentosView() {
                     </div>
                   </div>
 
+                  <AppointmentBoxesPerDayAlert
+                    qtdCaixasPorDia={qtdCaixasPorDia}
+                    collectionDate={formData.collectionDate}
+                    qtyAllowed={13}
+                  />
+
+                  <div className="space-y-2 border-b pb-4 mb-4 pt-4">
+                    <Label className="text-lg font-medium">Coleta Agrupada</Label>
+                    <p className="text-xs text-muted-foreground">
+                      O agendamento será uma coleta agrupada.
+                    </p>
+                  </div>
+
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
-                      <Label htmlFor="isPeriodic">Rota Periódica</Label>
+                      <Label htmlFor="isPeriodic">Período de Coleta</Label>
                       <p className="text-xs text-muted-foreground">
-                        O agendamento será uma rota periódica se o switch estiver ligado.
+                        O agendamento terá um intervalo de datas se caso ativado.
+                        <br />
+                        <span className="text-xs text-muted-foreground">
+                          Se o switch estiver desligado, o agendamento será uma coleta única.
+                        </span>
                       </p>
                     </div>
                     <Switch
@@ -895,16 +978,11 @@ export default function AgendamentosView() {
                       checked={formData.isPeriodic}
                       onCheckedChange={(checked) => {
                         setIsPeriodic(checked);
-                        // if (!checked) {
-                        //   setFormData(({
-                        //     ...formData,
-                        //     startDate: "",
-                        //     endDate: "",
-                        //   }));
-                        // }
                         setFormData(({
                           ...formData,
                           isPeriodic: checked,
+                          startDate: checked ? formData.startDate : '',
+                          endDate: checked ? formData.endDate : '',
                         }));
                       }
                       }
@@ -912,47 +990,60 @@ export default function AgendamentosView() {
                   </div>
 
                   {isPeriodic && (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="startDate">Data de Início</Label>
-                          <Input
-                            id="startDate"
-                            type="date"
-                            min={dataPickerBlocked()}
-                            value={formData.startDate}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                startDate: e.target.value,
-                              })
-                            }
-                          />
+                    <AnimatePresence>
+                      <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="startDate">Data de Início</Label>
+                            <Input
+                              id="startDate"
+                              type="date"
+                              min={dataPickerBlocked()}
+                              max={formData.endDate ? formData.endDate : ''}
+                              value={formData.startDate}
+                              onChange={(e) => {
+                                setFormData({ ...formData, startDate: e.target.value, })
+                                if (e.target.value && formData.endDate && e.target.value <= formData.endDate) {
+                                  carregarQtdCaixasPorPeriodo(e.target.value, formData.endDate);
+                                } else {
+                                  setQtdCaixasPorPeriodo([]);
+                                }
+
+                              }
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="endDate">Data de Fim</Label>
+                            <Input
+                              id="endDate"
+                              type="date"
+                              min={formData.startDate ? formData.startDate : dataPickerBlocked()}
+                              value={formData.endDate}
+                              onChange={(e) => {
+                                setFormData({ ...formData, endDate: e.target.value, })
+                                if (e.target.value && formData.startDate && formData.startDate <= e.target.value) {
+                                  carregarQtdCaixasPorPeriodo(formData.startDate, e.target.value);
+                                } else {
+                                  setQtdCaixasPorPeriodo([]);
+                                }
+                              }
+                              }
+                            />
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="endDate">Data de Fim</Label>
-                          <Input
-                            id="endDate"
-                            type="date"
-                            min={formData.startDate ?? dataPickerBlocked()}
-                            value={formData.endDate}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                endDate: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                    </>
+                      </motion.div>
+                    </AnimatePresence>
                   )}
 
-                  <AppointmentBoxesPerDayAlert
-                    qtdCaixasPorDia={qtdCaixasPorDia}
-                    collectionDate={formData.collectionDate}
-                    qtyAllowed={13}
-                  />
+                  {isPeriodic && qtdCaixasPorPeriodo.length > 0 && (
+                    <AppointmentBoxesPerPeriodAlert items={qtdCaixasPorPeriodo} />
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -1063,6 +1154,8 @@ export default function AgendamentosView() {
                       onClick={() => {
                         resetForm();
                         setIsDialogOpen(false);
+                        setIsPeriodic(false);
+
                       }}
                     >
                       Cancelar
@@ -1708,8 +1801,10 @@ export default function AgendamentosView() {
                 }
                 if (!open) {
                   resetEditForm();
+                  setIsPeriodic(false);
                   setClientes([]);
                   setQtdCaixasPorDia([]);
+                  setQtdCaixasPorPeriodo([]);
                 }
               }}
             >
@@ -1724,7 +1819,7 @@ export default function AgendamentosView() {
                   </Button>
                 </div>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
                 <DialogHeader>
                   <DialogTitle>Editar Agendamento</DialogTitle>
                   <DialogDescription>
@@ -1765,6 +1860,13 @@ export default function AgendamentosView() {
                     />
                   )}
 
+                  <div className="space-y-2 border-b pb-4 mb-4 pt-4">
+                    <Label className="text-lg font-medium">Coleta Única</Label>
+                    <p className="text-xs text-muted-foreground">
+                      O agendamento será uma coleta única.
+                    </p>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="editCollectionDate">Data da Coleta *</Label>
@@ -1800,11 +1902,108 @@ export default function AgendamentosView() {
                     </div>
                   </div>
 
+
                   <AppointmentBoxesPerDayAlert
                     qtdCaixasPorDia={qtdCaixasPorDia}
                     collectionDate={formData.collectionDate}
                     qtyAllowed={13}
                   />
+
+                  <div className="space-y-2 border-b pb-4 mb-4 pt-4">
+                    <Label className="text-lg font-medium">Coleta Agrupada</Label>
+                    <p className="text-xs text-muted-foreground">
+                      O agendamento será uma coleta agrupada.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="isPeriodic">Período de Coleta</Label>
+                      <p className="text-xs text-muted-foreground">
+                        O agendamento terá um intervalo de datas se caso ativado.
+                        <br />
+                        <span className="text-xs text-muted-foreground">
+                          Se o switch estiver desligado, o agendamento será uma coleta única.
+                        </span>
+                      </p>
+                    </div>
+                    <Switch
+                      id="isPeriodic"
+                      checked={formData.isPeriodic}
+                      onCheckedChange={(checked) => {
+                        setIsPeriodic(checked);
+                        setFormData(({
+                          ...formData,
+                          isPeriodic: checked,
+                          startDate: checked ? formData.startDate : '',
+                          endDate: checked ? formData.endDate : '',
+                        }));
+                      }
+                      }
+                    />
+                  </div>
+
+                  {formData.isPeriodic && (
+                    <AnimatePresence>
+                      <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="startDate">Data de Início</Label>
+                            <Input
+                              id="startDate"
+                              type="date"
+                              min={dataPickerBlocked()}
+                              max={formData.endDate ? formData.endDate : ''}
+                              value={formData.startDate}
+                              onLoad={() => {
+                                carregarQtdCaixasPorPeriodo(formData.startDate, formData.endDate);
+                              }}
+                              onChange={(e) => {
+                                setFormData({ ...formData, startDate: e.target.value, })
+                                if (e.target.value && formData.endDate && e.target.value <= formData.endDate) {
+                                  carregarQtdCaixasPorPeriodo(e.target.value, formData.endDate);
+                                } else {
+                                  setQtdCaixasPorPeriodo([]);
+                                }
+
+                              }
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="endDate">Data de Fim</Label>
+                            <Input
+                              id="endDate"
+                              type="date"
+                              min={formData.startDate ? formData.startDate : dataPickerBlocked()}
+                              value={formData.endDate}
+                              onLoad={() => {
+                                carregarQtdCaixasPorPeriodo(formData.startDate, formData.endDate);
+                              }}
+                              onChange={(e) => {
+                                setFormData({ ...formData, endDate: e.target.value, })
+                                if (e.target.value && formData.startDate && formData.startDate <= e.target.value) {
+                                  carregarQtdCaixasPorPeriodo(formData.startDate, e.target.value);
+                                } else {
+                                  setQtdCaixasPorPeriodo([]);
+                                }
+                              }
+                              }
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    </AnimatePresence>
+                  )}
+
+                  {formData.isPeriodic && qtdCaixasPorPeriodo.length > 0 && formData.startDate && formData.endDate && formData.startDate <= formData.endDate && (
+                    <AppointmentBoxesPerPeriodAlert items={qtdCaixasPorPeriodo} />
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -1912,6 +2111,7 @@ export default function AgendamentosView() {
                       type="button"
                       variant="outline"
                       onClick={() => {
+                        setIsPeriodic(false);
                         resetEditForm();
                         setIsEditDialogOpen(false);
                       }}

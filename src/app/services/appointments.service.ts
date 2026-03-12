@@ -123,6 +123,33 @@ export class AppointmentsService {
     }
   }
 
+  async getAllQtdBoxesPerPeriod(startDate: string, endDate: string): Promise<{
+    success: boolean;
+    data?: { startDate: string; endDate: string; qtyBoxes: number }[];
+    error?: string;
+  }> {
+    try {
+      const result = await api.get<
+        | { startDate: string; endDate: string; qtyBoxes: number }[]
+        | { data: { startDate: string; endDate: string; qtyBoxes: number }[] }
+      >("/appointments/qtd-boxes-per-period", { params: { startDate, endDate } });
+      if (result.success && result.data) {
+        const raw = result.data as any;
+        const list = Array.isArray(raw) ? raw : (raw?.data ?? []);
+        return { success: true, data: list };
+      }
+      return {
+        success: false,
+        error: result.error || "Erro ao buscar quantidade de caixas por período",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || "Erro ao buscar quantidade de caixas por período",
+      };
+    }
+  }
+
   async create(
     data: CreateAppointmentsDTO,
   ): Promise<{ success: boolean; data?: Agendamento; error?: string }> {
