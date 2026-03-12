@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { AlertCircle } from "lucide-react";
-import { cn } from "./ui/utils";
+import { cn } from "../ui/utils";
 
 export interface EmptyStateAlertProps {
   /** Título do aviso */

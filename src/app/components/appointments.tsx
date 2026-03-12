@@ -27,7 +27,6 @@ import {
 } from "./ui/dialog";
 import { Calendar } from "./ui/calendar";
 import { Badge } from "./ui/badge";
-import { EmptyStateAlert } from "./EmptyStateAlert";
 import { useData } from "../context/DataContext";
 import { Agendamento, Cliente } from "../types";
 import {
@@ -73,8 +72,9 @@ import { ptBR } from "date-fns/locale/pt-BR";
 import { motion, AnimatePresence } from "motion/react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { AtendenteSelect } from "./forms";
+import { EmptyStateAlert, AppointmentBoxesPerDayAlert } from "./alerts";
 import { clientsService } from "../services/clients.service";
-import { appointmentsService } from "../services/appointments.service";
+import { appointmentsService, CreateAppointmentsDTO, UpdateAppointmentsDTO } from "../services/appointments.service";
 import { connectSocket, getSocket } from "../services/socket.service";
 
 type ViewMode = "calendar" | "list" | "timeline";
@@ -198,6 +198,25 @@ export default function AgendamentosView() {
     });
   };
 
+  /** Preenche o formulário de edição com os dados do agendamento selecionado (data/hora no formato dos inputs). */
+  const fillEditFormFromSelected = () => {
+    if (!selectedAgendamento) return;
+    const dateRaw = selectedAgendamento.collectionDate ?? "";
+    const collectionDate = /^\d{4}-\d{2}-\d{2}/.test(dateRaw) ? dateRaw.slice(0, 10) : dateRaw;
+    const timeRaw = selectedAgendamento.collectionTime ?? "";
+    const collectionTime = /^\d{1,2}:\d{2}/.test(timeRaw) ? timeRaw.slice(0, 5) : timeRaw;
+    setFormData({
+      clientId: selectedAgendamento.client?.id ?? "",
+      collectionDate,
+      collectionTime,
+      qtyBoxes: selectedAgendamento.qtyBoxes ?? 0,
+      observations: selectedAgendamento.observations ?? "",
+      userId: selectedAgendamento.user?.id ?? "",
+      status: selectedAgendamento.status ?? "",
+    });
+    carregarQtdCaixasPorDia(collectionDate || new Date().toISOString().slice(0, 10));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -223,6 +242,7 @@ export default function AgendamentosView() {
       toast.error("Informe a data de coleta.");
       return;
     }
+
     const collectionDateStr = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
       ? rawDate
       : (() => {
@@ -269,10 +289,97 @@ export default function AgendamentosView() {
     setIsDialogOpen(false);
   };
 
-  const handleEditAgendamento = async (agendamento: Agendamento) => {
-    console.log(agendamento);
-    // setSelectedAgendamento(agendamento);
-    // setIsDialogOpen(true);
+  const handleEditAgendamento = async (e: React.FormEvent, agendamento: Agendamento) => {
+    e.preventDefault();
+
+    const cliente = clientes.find((c) => c.id === formData.clientId);
+    if (!cliente) {
+      toast.error("Cliente não encontrado");
+      return;
+    }
+
+    if (!formData.status?.trim()) {
+      toast.error("Selecione o status do agendamento.");
+      return;
+    }
+
+    if (!formData.status?.trim()) {
+      toast.error("Selecione o status do agendamento.");
+      return;
+    }
+
+    const qty = Number(formData.qtyBoxes);
+    if (!Number.isInteger(qty) || qty < 1) {
+      toast.error("Quantidade de caixas deve ser pelo menos 1.");
+      return;
+    }
+
+    const rawDate = (formData.collectionDate ?? "").trim();
+    if (!rawDate) {
+      toast.error("Informe a data de coleta.");
+      return;
+    }
+
+    const collectionDateStr = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+      ? rawDate
+      : (() => {
+        const d = new Date(rawDate);
+        if (Number.isNaN(d.getTime())) {
+          return null;
+        }
+        return d.toISOString().split("T")[0];
+      })();
+    if (!collectionDateStr) {
+      toast.error("Data de coleta inválida.");
+      return;
+    }
+
+    const getUpdatePayload = (): UpdateAppointmentsDTO => {
+      const current: UpdateAppointmentsDTO = {
+        clientId: formData.clientId,
+        userId: formData.userId,
+        collectionDate: collectionDateStr,
+        collectionTime: formData.collectionTime ?? "",
+        qtyBoxes: qty,
+        status: formData.status as
+          | "PENDING"
+          | "CONFIRMED"
+          | "COLLECTED"
+          | "CANCELLED",
+        observations: formData.observations ?? "",
+      }
+
+      const original = selectedAgendamento!;
+      const patch: UpdateAppointmentsDTO = {};
+
+      if (current.clientId !== original.client.id) patch.clientId = current.clientId;
+      if (current.userId !== original.user.id) patch.userId = current.userId;
+      if (current.collectionDate !== original.collectionDate) patch.collectionDate = current.collectionDate;
+      if (current.collectionTime !== original.collectionTime) patch.collectionTime = current.collectionTime;
+      if (current.qtyBoxes !== original.qtyBoxes) patch.qtyBoxes = current.qtyBoxes;
+      if (current.status !== original.status) patch.status = current.status;
+      if (current.observations !== original.observations) patch.observations = current.observations;
+
+      return patch;
+    }
+
+    const patchPayload = getUpdatePayload();
+
+    if (Object.keys(patchPayload).length === 0) {
+      toast.info("Nenhum campo alterado.");
+      return;
+    }
+
+    const result = await appointmentsService.update(selectedAgendamento!.id!, patchPayload);
+    if (result.success && result.data) {
+      updateAgendamento(selectedAgendamento!.id!, result.data);
+      setSelectedAgendamento(result.data);
+      setIsEditDialogOpen(false);
+      resetEditForm();
+      toast.success("Agendamento atualizado com sucesso!");
+    } else {
+      toast.error(result.error ?? "Erro ao atualizar agendamento.");
+    }
   };
 
   const handleStatusChange = async (
@@ -738,82 +845,18 @@ export default function AgendamentosView() {
                     </div>
                   </div>
 
-                  <AnimatePresence>
-                    {(() => {
-                      const list = Array.isArray(qtdCaixasPorDia)
-                        ? qtdCaixasPorDia
-                        : [];
-
-                      const item =
-                        list.length === 1
-                          ? list[0]
-                          : list.find(
-                            (q) =>
-                              q.collectionDate === formData.collectionDate,
-                          );
-                      const qty =
-                        item != null && typeof item.qtyBoxes === "number"
-                          ? item.qtyBoxes
-                          : null;
-                      const qtyAllowed = 13;
-                      const qtyExcess = Math.max(0, (qty ?? 0) - qtyAllowed);
-                      const qtyAllowedExcess = Math.max(
-                        0,
-                        qtyAllowed - (qty ?? 0),
-                      );
-                      const qtyProp = {
-                        color: qtyExcess > 0 ? "red" : "blue",
-                        textColor: qtyExcess > 0 ? "red" : "blue",
-                      };
-                      const existe = list.length > 0 && qty !== null;
-                      return existe ? (
-                        <motion.div
-                          className={`rounded-lg border border-${qtyProp.color}-200/60 bg-${qtyProp.color}-50/80 dark:bg-${qtyProp.color}-950/30 dark:border-${qtyProp.color}-800/50 px-4 py-3`}
-                          initial={{ opacity: 0, y: -6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -6 }}
-                          transition={{ duration: 0.2, ease: "easeOut" }}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-${qtyProp.color}-500/15 text-${qtyProp.color}-600 dark:text-${qtyProp.color}-400`}
-                            >
-                              <Box className="h-4 w-4" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p
-                                className={`text-xs font-medium uppercase tracking-wide text-${qtyProp.color}-700/80 dark:text-${qtyProp.color}-300/80`}
-                              >
-                                Caixas agendadas para este dia
-                              </p>
-                              <p
-                                className={`mt-0.5 text-lg font-semibold tabular-nums text-${qtyProp.color}-900 dark:text-${qtyProp.color}-100`}
-                              >
-                                {qty} {qty === 1 ? "caixa" : "caixas"}
-                              </p>
-                              <p
-                                className={`text-xs font-medium text-${qtyProp.textColor}-500 mt-1`}
-                              >
-                                {qtyExcess} caixas a mais do que o permitido
-                              </p>
-                              <p
-                                className={`text-xs font-medium text-black-500 mt-1`}
-                              >
-                                {qtyAllowedExcess} caixas ainda são permitidas
-                                no dia.
-                              </p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ) : null;
-                    })()}
-                  </AnimatePresence>
+                  <AppointmentBoxesPerDayAlert
+                    qtdCaixasPorDia={qtdCaixasPorDia}
+                    collectionDate={formData.collectionDate}
+                    qtyAllowed={13}
+                  />
 
                   <div className="space-y-2">
                     <Label htmlFor="qtyBoxes">Quantidade de caixas *</Label>
                     <Input
                       id="qtyBoxes"
                       type="number"
+                      required
                       min={1}
                       value={formData.qtyBoxes}
                       onChange={(e) =>
@@ -1514,42 +1557,199 @@ export default function AgendamentosView() {
             </div>
 
             {/* Editar Agendamento */}
-            {/* <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 gap-3">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => handleEditAgendamento(selectedAgendamento)}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar
-                </Button>
-              </div>
-            </div> */}
-
-            {/* Diálogo de Edição de Agendamento */}
-            {/* <Dialog open={isDialogOpen} onOpenChange={(open) => {
-              setIsEditDialogOpen(open);
-              if (!open) resetEditForm();
-            }}>
+            <Dialog
+              open={isEditDialogOpen}
+              onOpenChange={(open) => {
+                setIsEditDialogOpen(open);
+                carregarClientes();
+                if (open && selectedAgendamento) {
+                  fillEditFormFromSelected();
+                }
+                if (!open) {
+                  resetEditForm();
+                  setClientes([]);
+                  setQtdCaixasPorDia([]);
+                }
+              }}
+            >
               <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-fit"
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar
-                </Button>
+                <div className="w-[90%] mx-auto flex items-center justify-center p-6 space-y-6">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
+                </div>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Editar Agendamento</DialogTitle>
+                  <DialogDescription>
+                    Edite os dados do agendamento no sistema
+                  </DialogDescription>
                 </DialogHeader>
-                <DialogDescription>
-                  Edite os dados do agendamento no sistema
-                </DialogDescription>
+
+                <form onSubmit={(e) => handleEditAgendamento(e, selectedAgendamento)} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="editClientId">Cliente *</Label>
+                    <Select
+                      value={formData.clientId}
+                      disabled={!clientesAtivos.length}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, clientId: value })
+                      }
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o cliente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clientesAtivos.map((cliente) => (
+                          <SelectItem key={cliente.id} value={cliente.id}>
+                            {cliente.usaNome} -{" "}
+                            {cliente.usaAddress.cidade as string},{" "}
+                            {cliente.usaAddress.estado as string}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {!clientesAtivos.length && (
+                    <EmptyStateAlert
+                      title="Nenhum cliente ativo"
+                      description="Não há clientes ativos para agendamento. Cadastre um cliente ou ative um existente. O campo Cliente ficará desabilitado até que exista ao menos um cliente ativo."
+                    />
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editCollectionDate">Data da Coleta *</Label>
+                      <Input
+                        type="date"
+                        id="editCollectionDate"
+                        min={dataPickerBlocked()}
+                        value={formData.collectionDate}
+                        onLoad={() => {
+                          carregarQtdCaixasPorDia(formData.collectionDate);
+                        }}
+                        onChange={(e) => {
+                          setFormData({ ...formData, collectionDate: e.target.value })
+                          carregarQtdCaixasPorDia(e.target.value)
+                        }
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="editCollectionTime">Horário Previsto</Label>
+                      <Input
+                        id="editCollectionTime"
+                        type="time"
+                        value={formData.collectionTime}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            collectionTime: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <AppointmentBoxesPerDayAlert
+                    qtdCaixasPorDia={qtdCaixasPorDia}
+                    collectionDate={formData.collectionDate}
+                    qtyAllowed={13}
+                  />
+
+                  <div className="space-y-2">
+                    <Label htmlFor="editQtyBoxes">Quantidade de caixas *</Label>
+                    <Input
+                      id="editQtyBoxes"
+                      type="number"
+                      required
+                      min={1}
+                      value={formData.qtyBoxes}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          qtyBoxes: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <AtendenteSelect
+                    user={user ? { id: user.id, nome: user.nome } : null}
+                    value={formData.userId}
+                    onValueChange={(id) =>
+                      setFormData({ ...formData, userId: id })
+                    }
+                    label="Atendente *"
+                    required
+                  />
+
+                  {/* Editar Status */}
+                  <div className="space-y-2">
+                    <Label htmlFor="editStatus">Status *</Label>
+                    <Select
+                      required
+                      value={formData.status || undefined}
+                      onValueChange={(value) => {
+                        setFormData({
+                          ...formData,
+                          status: value as Agendamento["status"],
+                        });
+                      }}
+                    >
+                      <SelectTrigger id="editStatus" required aria-required>
+                        <SelectValue placeholder="Selecione o status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PENDING">Pendente</SelectItem>
+                        <SelectItem value="CONFIRMED">Confirmado</SelectItem>
+                        <SelectItem value="COLLECTED">Coletado</SelectItem>
+                        <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="editObservations">Observações</Label>
+                    <Textarea
+                      id="editObservations"
+                      value={formData.observations}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          observations: e.target.value,
+                        })
+                      }
+                      placeholder="Informações adicionais..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        resetEditForm();
+                        setIsEditDialogOpen(false);
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="submit">Salvar Alterações</Button>
+                  </div>
+
+                </form>
+
               </DialogContent>
-            </Dialog> */}
+            </Dialog>
 
             {/* Content */}
             <div className="p-6 space-y-6">

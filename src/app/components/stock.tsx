@@ -68,7 +68,7 @@ import {
 } from "../services/stock.service";
 import { PrecoProduto } from "../types";
 import { ResponsavelSelect } from "./forms";
-import { EmptyStateAlert } from "./EmptyStateAlert";
+import { EmptyStateAlert } from "./alerts";
 
 /** Chaves dos itens em inglês camelCase (payload: smallBoxes: 10) */
 const ITEM_KEYS_EN = [
