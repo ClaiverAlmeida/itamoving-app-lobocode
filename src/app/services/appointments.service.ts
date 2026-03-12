@@ -6,6 +6,11 @@ export interface CreateAppointmentsDTO {
   clientId: string;
   collectionDate: string;
   collectionTime: string;
+  value: number;
+  downPayment: number;
+  isPeriodic?: boolean | false;
+  startDate?: string;
+  endDate?: string;
   qtyBoxes: number;
   address: string;
   observations?: string;
@@ -19,6 +24,11 @@ export interface AppointmentsBackend {
   id: string;
   collectionDate: string;
   collectionTime: string;
+  value: number;
+  downPayment: number;
+  isPeriodic?: boolean | false;
+  startDate?: string;
+  endDate?: string;
   qtyBoxes: number;
   address: string;
   observations?: string;
@@ -54,7 +64,12 @@ function mapBackendToFrontend(appointment: AppointmentsBackend): Agendamento {
     status: appointment.status,
     collectionDate: toDateOnly(appointment.collectionDate),
     collectionTime: appointment.collectionTime,
-    qtyBoxes: appointment.qtyBoxes,
+    value: Number(appointment.value),
+    downPayment: Number(appointment.downPayment),
+    startDate: toDateOnly(appointment.startDate),
+    endDate: toDateOnly(appointment.endDate),
+    isPeriodic: appointment.isPeriodic ?? false,
+    qtyBoxes: Number(appointment.qtyBoxes),
     address: appointment.address,
   };
 }

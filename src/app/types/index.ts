@@ -46,6 +46,11 @@ export interface Agendamento {
   id?: string;
   collectionDate: string;
   collectionTime: string;
+  value: number;
+  downPayment: number;
+  isPeriodic?: boolean | false;
+  startDate?: string;
+  endDate?: string;
   qtyBoxes: number;
   address: string;
   observations?: string;

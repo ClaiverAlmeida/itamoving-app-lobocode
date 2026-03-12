@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
+import { Switch } from "./ui/switch";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -94,6 +95,7 @@ export default function AgendamentosView() {
   const [viewMode, setViewMode] = useState<ViewMode>("calendar");
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [isPeriodic, setIsPeriodic] = useState<boolean>();
   const [selectedAgendamento, setSelectedAgendamento] =
     useState<Agendamento | null>(null);
   const { user } = useAuth();
@@ -168,6 +170,11 @@ export default function AgendamentosView() {
     clientId: "",
     collectionDate: "",
     collectionTime: "",
+    value: 0,
+    downPayment: 0,
+    isPeriodic: false,
+    startDate: "",
+    endDate: "",
     qtyBoxes: 0,
     observations: "",
     userId: "",
@@ -179,6 +186,11 @@ export default function AgendamentosView() {
       clientId: "",
       collectionDate: "",
       collectionTime: "",
+      value: 0,
+      downPayment: 0,
+      isPeriodic: false,
+      startDate: "",
+      endDate: "",
       qtyBoxes: 0,
       observations: "",
       userId: "",
@@ -192,6 +204,11 @@ export default function AgendamentosView() {
       clientId: selectedAgendamento?.client.id ?? "",
       collectionDate: selectedAgendamento?.collectionDate ?? "",
       collectionTime: selectedAgendamento?.collectionTime ?? "",
+      value: selectedAgendamento?.value ?? 0,
+      downPayment: selectedAgendamento?.downPayment ?? 0,
+      isPeriodic: selectedAgendamento?.isPeriodic ?? false,
+      startDate: selectedAgendamento?.startDate ?? "",
+      endDate: selectedAgendamento?.endDate ?? "",
       qtyBoxes: selectedAgendamento?.qtyBoxes ?? 0,
       observations: selectedAgendamento?.observations ?? "",
       userId: selectedAgendamento?.user.id ?? "",
@@ -210,6 +227,11 @@ export default function AgendamentosView() {
       clientId: selectedAgendamento.client?.id ?? "",
       collectionDate,
       collectionTime,
+      value: selectedAgendamento?.value ?? 0,
+      downPayment: selectedAgendamento?.downPayment ?? 0,
+      isPeriodic: selectedAgendamento?.isPeriodic ?? false,
+      startDate: selectedAgendamento?.startDate ?? "",
+      endDate: selectedAgendamento?.endDate ?? "",
       qtyBoxes: selectedAgendamento.qtyBoxes ?? 0,
       observations: selectedAgendamento.observations ?? "",
       userId: selectedAgendamento.user?.id ?? "",
@@ -265,6 +287,11 @@ export default function AgendamentosView() {
       userId: formData.userId,
       collectionDate: collectionDateStr,
       collectionTime: formData.collectionTime ?? "",
+      value: formData?.value ?? 0,
+      downPayment: formData?.downPayment ?? 0,
+      isPeriodic: formData?.isPeriodic ?? false,
+      startDate: formData?.startDate ?? "",
+      endDate: formData?.endDate ?? "",
       qtyBoxes: qty,
       address,
       status: formData.status as
@@ -341,6 +368,11 @@ export default function AgendamentosView() {
         userId: formData.userId,
         collectionDate: collectionDateStr,
         collectionTime: formData.collectionTime ?? "",
+        value: formData?.value ?? 0,
+        downPayment: formData?.downPayment ?? 0,
+        isPeriodic: formData?.isPeriodic ?? false,
+        startDate: formData?.startDate ?? "",
+        endDate: formData?.endDate ?? "",
         qtyBoxes: qty,
         status: formData.status as
           | "PENDING"
@@ -357,6 +389,11 @@ export default function AgendamentosView() {
       if (current.userId !== original.user.id) patch.userId = current.userId;
       if (current.collectionDate !== original.collectionDate) patch.collectionDate = current.collectionDate;
       if (current.collectionTime !== original.collectionTime) patch.collectionTime = current.collectionTime;
+      if (current.value !== original.value) patch.value = current.value;
+      if (current.downPayment !== original.downPayment) patch.downPayment = current.downPayment;
+      if (current.isPeriodic !== original.isPeriodic) patch.isPeriodic = current.isPeriodic;
+      if (current.startDate !== original.startDate) patch.startDate = current.startDate;
+      if (current.endDate !== original.endDate) patch.endDate = current.endDate;
       if (current.qtyBoxes !== original.qtyBoxes) patch.qtyBoxes = current.qtyBoxes;
       if (current.status !== original.status) patch.status = current.status;
       if (current.observations !== original.observations) patch.observations = current.observations;
@@ -846,11 +883,110 @@ export default function AgendamentosView() {
                     </div>
                   </div>
 
+                  <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="isPeriodic">Rota Periódica</Label>
+                      <p className="text-xs text-muted-foreground">
+                        O agendamento será uma rota periódica se o switch estiver ligado.
+                      </p>
+                    </div>
+                    <Switch
+                      id="isPeriodic"
+                      checked={formData.isPeriodic}
+                      onCheckedChange={(checked) => {
+                        setIsPeriodic(checked);
+                        // if (!checked) {
+                        //   setFormData(({
+                        //     ...formData,
+                        //     startDate: "",
+                        //     endDate: "",
+                        //   }));
+                        // }
+                        setFormData(({
+                          ...formData,
+                          isPeriodic: checked,
+                        }));
+                      }
+                      }
+                    />
+                  </div>
+
+                  {isPeriodic && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="startDate">Data de Início</Label>
+                          <Input
+                            id="startDate"
+                            type="date"
+                            min={dataPickerBlocked()}
+                            value={formData.startDate}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                startDate: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="endDate">Data de Fim</Label>
+                          <Input
+                            id="endDate"
+                            type="date"
+                            min={formData.startDate ?? dataPickerBlocked()}
+                            value={formData.endDate}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                endDate: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
                   <AppointmentBoxesPerDayAlert
                     qtdCaixasPorDia={qtdCaixasPorDia}
                     collectionDate={formData.collectionDate}
                     qtyAllowed={13}
                   />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="value">Valor Total *</Label>
+                      <Input
+                        id="value"
+                        type="number"
+                        required
+                        min={1}
+                        value={formData.value}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            value: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="downPayment">Valor do Pagamento Antecipado</Label>
+                      <Input
+                        id="downPayment"
+                        type="number"
+                        min={0.00}
+                        value={formData.downPayment}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            downPayment: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="qtyBoxes">Quantidade de caixas *</Label>
@@ -863,7 +999,7 @@ export default function AgendamentosView() {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          qtyBoxes: parseInt(e.target.value),
+                          qtyBoxes: Number(e.target.value),
                         })
                       }
                     />
@@ -1186,313 +1322,317 @@ export default function AgendamentosView() {
       </div>
 
       {/* Content Views */}
-      {viewMode === "calendar" && (
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card className="md:col-span-1">
-            <CardHeader>
-              <CardTitle>Calendário</CardTitle>
-              <CardDescription>Selecione uma data</CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                locale={ptBR}
-                className="rounded-md border"
-                modifiers={{
-                  agendado: getDatesWithAgendamentos(),
-                }}
-                modifiersStyles={{
-                  agendado: {
-                    fontWeight: "bold",
-                    textDecoration: "underline",
-                    color: "#5DADE2",
-                  },
-                }}
-              />
-            </CardContent>
-          </Card>
+      {
+        viewMode === "calendar" && (
+          <div className="grid gap-6 md:grid-cols-3">
+            <Card className="md:col-span-1">
+              <CardHeader>
+                <CardTitle>Calendário</CardTitle>
+                <CardDescription>Selecione uma data</CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  locale={ptBR}
+                  className="rounded-md border"
+                  modifiers={{
+                    agendado: getDatesWithAgendamentos(),
+                  }}
+                  modifiersStyles={{
+                    agendado: {
+                      fontWeight: "bold",
+                      textDecoration: "underline",
+                      color: "#5DADE2",
+                    },
+                  }}
+                />
+              </CardContent>
+            </Card>
 
-          <Card className="md:col-span-2">
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>{getDateLabel(selectedDate)}</CardTitle>
+                <CardDescription>
+                  <span className="flex flex-col items-start gap-2 text-sm text-muted-foreground mt-2">
+                    <span className="text-foreground">
+                      {agendamentosDosDia.length} agendamento(s) programado(s)
+                    </span>
+                    <span className="font-bold text-foreground">
+                      {somaCaixasDosDia} Caixa(s) do dia.
+                    </span>
+                  </span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <AnimatePresence>
+                    {agendamentosDosDia
+                      .sort((a, b) =>
+                        a.collectionTime.localeCompare(b.collectionTime),
+                      )
+                      .map((agendamento) => {
+                        const config = getStatusConfig(agendamento.status);
+                        const StatusIcon = config.icon;
+
+                        return (
+                          <motion.div
+                            key={agendamento.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="group"
+                          >
+                            <Card
+                              className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${config.bgLight}`}
+                              style={{
+                                borderLeftColor: config.color
+                                  .replace("bg-", "#")
+                                  .replace("500", "600"),
+                              }}
+                              onClick={() => setSelectedAgendamento(agendamento)}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-start gap-3 flex-1">
+                                    <div
+                                      className={`p-2 rounded-full ${config.color} bg-opacity-20`}
+                                    >
+                                      <StatusIcon
+                                        className={`w-5 h-5 ${config.textColor}`}
+                                      />
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <span className="font-semibold text-lg">
+                                          {agendamento.collectionTime}
+                                        </span>
+                                        <Badge className={config.bgLight}>
+                                          <span className={config.textColor}>
+                                            {config.label}
+                                          </span>
+                                        </Badge>
+                                      </div>
+                                      <h4 className="font-semibold mb-1">
+                                        {agendamento.client.name}
+                                      </h4>
+                                      <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
+                                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                        <span>{agendamento.address}</span>
+                                      </div>
+                                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                        <div className="flex items-center gap-1">
+                                          <User className="w-3 h-3" />
+                                          <span>{agendamento.user.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Box className="w-3 h-3 text-foreground" />
+                                          <span className="font-bold text-xs text-foreground">
+                                            {agendamento.qtyBoxes} Caixa(s)
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(
+                                          `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.address)}`,
+                                          "_blank",
+                                        );
+                                      }}
+                                    >
+                                      <Navigation className="w-4 h-4 mr-1" />
+                                      Rota
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
+                  </AnimatePresence>
+
+                  {agendamentosDosDia.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhum agendamento para esta data</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )
+      }
+
+      {viewMode === "timeline" && <TimelineView />}
+
+      {
+        viewMode === "list" && (
+          <Card>
             <CardHeader>
-              <CardTitle>{getDateLabel(selectedDate)}</CardTitle>
+              <CardTitle>Todos os Agendamentos</CardTitle>
               <CardDescription>
-                <span className="flex flex-col items-start gap-2 text-sm text-muted-foreground mt-2">
-                  <span className="text-foreground">
-                    {agendamentosDosDia.length} agendamento(s) programado(s)
-                  </span>
-                  <span className="font-bold text-foreground">
-                    {somaCaixasDosDia} Caixa(s) do dia.
-                  </span>
-                </span>
+                {filteredAgendamentos.length} agendamento(s) encontrado(s)
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <AnimatePresence>
-                  {agendamentosDosDia
-                    .sort((a, b) =>
-                      a.collectionTime.localeCompare(b.collectionTime),
-                    )
-                    .map((agendamento) => {
-                      const config = getStatusConfig(agendamento.status);
-                      const StatusIcon = config.icon;
+                {filteredAgendamentos
+                  .sort((a, b) => {
+                    const dateCompare = a.collectionDate.localeCompare(
+                      b.collectionDate,
+                    );
+                    if (dateCompare !== 0) return dateCompare;
+                    return a.collectionTime.localeCompare(b.collectionTime);
+                  })
+                  .map((agendamento) => {
+                    const config = getStatusConfig(agendamento.status);
+                    const StatusIcon = config.icon;
+                    const dateStr = (agendamento.collectionDate ?? "").slice(
+                      0,
+                      10,
+                    );
+                    const agDate =
+                      dateStr.length >= 10
+                        ? new Date(dateStr + "T12:00:00.000Z")
+                        : new Date(NaN);
+                    const isAtrasado =
+                      !Number.isNaN(agDate.getTime()) &&
+                      isPast(agDate) &&
+                      getStatusKey(agendamento.status) === "PENDING" &&
+                      !isToday(agDate);
 
-                      return (
-                        <motion.div
-                          key={agendamento.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          className="group"
-                        >
-                          <Card
-                            className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${config.bgLight}`}
-                            style={{
-                              borderLeftColor: config.color
+                    return (
+                      <motion.div
+                        key={agendamento.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="group"
+                      >
+                        <Card
+                          className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${isAtrasado
+                            ? "bg-red-50 border-red-500"
+                            : config.bgLight
+                            }`}
+                          style={{
+                            borderLeftColor: isAtrasado
+                              ? "#EF4444"
+                              : config.color
                                 .replace("bg-", "#")
                                 .replace("500", "600"),
-                            }}
-                            onClick={() => setSelectedAgendamento(agendamento)}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-start gap-3 flex-1">
-                                  <div
-                                    className={`p-2 rounded-full ${config.color} bg-opacity-20`}
-                                  >
-                                    <StatusIcon
-                                      className={`w-5 h-5 ${config.textColor}`}
-                                    />
-                                  </div>
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <span className="font-semibold text-lg">
-                                        {agendamento.collectionTime}
+                          }}
+                          onClick={() => setSelectedAgendamento(agendamento)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                              <div className="flex items-start gap-3 flex-1 min-w-0 w-full">
+                                <div
+                                  className={`p-2 rounded-full ${config.color} bg-opacity-20 flex-shrink-0`}
+                                >
+                                  <StatusIcon
+                                    className={`w-5 h-5 ${config.textColor}`}
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                    <span className="font-semibold text-sm sm:text-base">
+                                      {dateStr.length >= 10
+                                        ? `${dateStr.slice(8, 10)}/${dateStr.slice(5, 7)}/${dateStr.slice(0, 4)}`
+                                        : format(agDate, "dd/MM/yyyy")}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      •
+                                    </span>
+                                    <span className="font-semibold text-sm sm:text-base">
+                                      {agendamento.collectionTime
+                                        ? agendamento.collectionTime
+                                        : "--:--"}
+                                    </span>
+                                    <Badge className={config.bgLight}>
+                                      <span className={config.textColor}>
+                                        {config.label}
                                       </span>
-                                      <Badge className={config.bgLight}>
-                                        <span className={config.textColor}>
-                                          {config.label}
+                                    </Badge>
+                                    {isAtrasado && (
+                                      <Badge className="bg-red-100">
+                                        <span className="text-red-700">
+                                          Atrasado
                                         </span>
                                       </Badge>
+                                    )}
+                                  </div>
+                                  <h4 className="font-semibold mb-1 truncate">
+                                    {agendamento.client.name}
+                                  </h4>
+                                  <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
+                                    <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                    <span className="line-clamp-2 break-words">
+                                      {agendamento.address}
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                      <User className="w-3 h-3 flex-shrink-0" />
+                                      <span className="truncate">
+                                        {agendamento.user.name}
+                                      </span>
                                     </div>
-                                    <h4 className="font-semibold mb-1">
-                                      {agendamento.client.name}
-                                    </h4>
-                                    <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
-                                      <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                      <span>{agendamento.address}</span>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                      <div className="flex items-center gap-1">
-                                        <User className="w-3 h-3" />
-                                        <span>{agendamento.user.name}</span>
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <Box className="w-3 h-3 text-foreground" />
-                                        <span className="font-bold text-xs text-foreground">
-                                          {agendamento.qtyBoxes} Caixa(s)
-                                        </span>
-                                      </div>
-                                    </div>
+                                    {agendamento.observations && (
+                                      <span className="text-xs italic line-clamp-1 break-words flex items-center gap-1">
+                                        <MessageCircle className="w-3 h-3" />
+                                        {":"} {agendamento.observations}
+                                      </span>
+                                    )}
+                                    <span className="text-xs font-bold text-foreground line-clamp-1 break-words flex items-center gap-1">
+                                      <Box className="w-3 h-3 text-foreground" />
+                                      {":"} {agendamento.qtyBoxes} {""}{" "}
+                                      {"Caixa(s)"}
+                                    </span>
                                   </div>
                                 </div>
-                                <div className="flex flex-col gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      window.open(
-                                        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.address)}`,
-                                        "_blank",
-                                      );
-                                    }}
-                                  >
-                                    <Navigation className="w-4 h-4 mr-1" />
-                                    Rota
-                                  </Button>
-                                </div>
                               </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      );
-                    })}
-                </AnimatePresence>
+                              <div className="flex gap-2 w-full sm:w-auto justify-end">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(
+                                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.address)}`,
+                                      "_blank",
+                                    );
+                                  }}
+                                  className="flex-1 sm:flex-none"
+                                >
+                                  <Navigation className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
 
-                {agendamentosDosDia.length === 0 && (
+                {filteredAgendamentos.length === 0 && (
                   <div className="text-center py-12 text-muted-foreground">
                     <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhum agendamento para esta data</p>
+                    <p>Nenhum agendamento encontrado</p>
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
-        </div>
-      )}
-
-      {viewMode === "timeline" && <TimelineView />}
-
-      {viewMode === "list" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Todos os Agendamentos</CardTitle>
-            <CardDescription>
-              {filteredAgendamentos.length} agendamento(s) encontrado(s)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {filteredAgendamentos
-                .sort((a, b) => {
-                  const dateCompare = a.collectionDate.localeCompare(
-                    b.collectionDate,
-                  );
-                  if (dateCompare !== 0) return dateCompare;
-                  return a.collectionTime.localeCompare(b.collectionTime);
-                })
-                .map((agendamento) => {
-                  const config = getStatusConfig(agendamento.status);
-                  const StatusIcon = config.icon;
-                  const dateStr = (agendamento.collectionDate ?? "").slice(
-                    0,
-                    10,
-                  );
-                  const agDate =
-                    dateStr.length >= 10
-                      ? new Date(dateStr + "T12:00:00.000Z")
-                      : new Date(NaN);
-                  const isAtrasado =
-                    !Number.isNaN(agDate.getTime()) &&
-                    isPast(agDate) &&
-                    getStatusKey(agendamento.status) === "PENDING" &&
-                    !isToday(agDate);
-
-                  return (
-                    <motion.div
-                      key={agendamento.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="group"
-                    >
-                      <Card
-                        className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${isAtrasado
-                          ? "bg-red-50 border-red-500"
-                          : config.bgLight
-                          }`}
-                        style={{
-                          borderLeftColor: isAtrasado
-                            ? "#EF4444"
-                            : config.color
-                              .replace("bg-", "#")
-                              .replace("500", "600"),
-                        }}
-                        onClick={() => setSelectedAgendamento(agendamento)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-                            <div className="flex items-start gap-3 flex-1 min-w-0 w-full">
-                              <div
-                                className={`p-2 rounded-full ${config.color} bg-opacity-20 flex-shrink-0`}
-                              >
-                                <StatusIcon
-                                  className={`w-5 h-5 ${config.textColor}`}
-                                />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                  <span className="font-semibold text-sm sm:text-base">
-                                    {dateStr.length >= 10
-                                      ? `${dateStr.slice(8, 10)}/${dateStr.slice(5, 7)}/${dateStr.slice(0, 4)}`
-                                      : format(agDate, "dd/MM/yyyy")}
-                                  </span>
-                                  <span className="text-muted-foreground">
-                                    •
-                                  </span>
-                                  <span className="font-semibold text-sm sm:text-base">
-                                    {agendamento.collectionTime
-                                      ? agendamento.collectionTime
-                                      : "--:--"}
-                                  </span>
-                                  <Badge className={config.bgLight}>
-                                    <span className={config.textColor}>
-                                      {config.label}
-                                    </span>
-                                  </Badge>
-                                  {isAtrasado && (
-                                    <Badge className="bg-red-100">
-                                      <span className="text-red-700">
-                                        Atrasado
-                                      </span>
-                                    </Badge>
-                                  )}
-                                </div>
-                                <h4 className="font-semibold mb-1 truncate">
-                                  {agendamento.client.name}
-                                </h4>
-                                <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
-                                  <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                  <span className="line-clamp-2 break-words">
-                                    {agendamento.address}
-                                  </span>
-                                </div>
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
-                                  <div className="flex items-center gap-1">
-                                    <User className="w-3 h-3 flex-shrink-0" />
-                                    <span className="truncate">
-                                      {agendamento.user.name}
-                                    </span>
-                                  </div>
-                                  {agendamento.observations && (
-                                    <span className="text-xs italic line-clamp-1 break-words flex items-center gap-1">
-                                      <MessageCircle className="w-3 h-3" />
-                                      {":"} {agendamento.observations}
-                                    </span>
-                                  )}
-                                  <span className="text-xs font-bold text-foreground line-clamp-1 break-words flex items-center gap-1">
-                                    <Box className="w-3 h-3 text-foreground" />
-                                    {":"} {agendamento.qtyBoxes} {""}{" "}
-                                    {"Caixa(s)"}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex gap-2 w-full sm:w-auto justify-end">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(
-                                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.address)}`,
-                                    "_blank",
-                                  );
-                                }}
-                                className="flex-1 sm:flex-none"
-                              >
-                                <Navigation className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })}
-
-              {filteredAgendamentos.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhum agendamento encontrado</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        )
+      }
 
       {/* Painel Lateral - Detalhes do Agendamento */}
       <AnimatePresence>
@@ -1666,6 +1806,40 @@ export default function AgendamentosView() {
                     qtyAllowed={13}
                   />
 
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="value">Valor Total *</Label>
+                      <Input
+                        id="value"
+                        type="number"
+                        required
+                        min={1}
+                        value={formData.value}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            value: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="downPayment">Valor do Pagamento Antecipado</Label>
+                      <Input
+                        id="downPayment"
+                        type="number"
+                        min={0.00}
+                        value={formData.downPayment}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            downPayment: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="editQtyBoxes">Quantidade de caixas *</Label>
                     <Input
@@ -1677,7 +1851,7 @@ export default function AgendamentosView() {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          qtyBoxes: parseInt(e.target.value),
+                          qtyBoxes: Number(e.target.value),
                         })
                       }
                     />
@@ -1828,13 +2002,13 @@ export default function AgendamentosView() {
                     className={cn(
                       "border-l-4 font-medium transition-colors",
                       selectedAgendamento.status === "PENDING" &&
-                        "border-l-[var(--accent)] bg-[var(--accent)]/10 dark:bg-[var(--accent)]/20",
+                      "border-l-[var(--accent)] bg-[var(--accent)]/10 dark:bg-[var(--accent)]/20",
                       selectedAgendamento.status === "CONFIRMED" &&
-                        "border-l-green-600 bg-green-50 dark:bg-green-950/30 dark:border-l-green-500",
+                      "border-l-green-600 bg-green-50 dark:bg-green-950/30 dark:border-l-green-500",
                       selectedAgendamento.status === "COLLECTED" &&
-                        "border-l-[var(--secondary)] bg-[var(--secondary)]/10 dark:bg-[var(--secondary)]/20",
+                      "border-l-[var(--secondary)] bg-[var(--secondary)]/10 dark:bg-[var(--secondary)]/20",
                       selectedAgendamento.status === "CANCELLED" &&
-                        "border-l-[var(--destructive)] bg-[var(--destructive)]/10 dark:bg-[var(--destructive)]/20"
+                      "border-l-[var(--destructive)] bg-[var(--destructive)]/10 dark:bg-[var(--destructive)]/20"
                     )}
                   >
                     <SelectValue />
