@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -838,12 +838,15 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {agendamentos.slice(0, 6).map((agendamento) => {
-              const dataAgendamento = new Date(agendamento.collectionDate + 'T00:00:00');
-              const ehHoje = isToday(dataAgendamento);
-              const ehAmanha = isTomorrow(dataAgendamento);
+          {agendamentos.slice(0, 6).map((agendamento) => {
+            const dateRaw = agendamento.collectionDate ?? "";
+            const dateStr = dateRaw.slice(0, 10);
+            const dataAgendamento =
+              dateStr.length === 10 ? new Date(dateStr + "T00:00:00") : null;
+            const ehHoje = dataAgendamento ? isToday(dataAgendamento) : false;
+            const ehAmanha = dataAgendamento ? isTomorrow(dataAgendamento) : false;
 
-              return (
+            return (
                 <motion.div
                   key={agendamento.id}
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -869,9 +872,21 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Calendar className="w-3 h-3" />
-                          <span>{format(dataAgendamento, "dd/MM/yyyy")}</span>
-                          {ehHoje && <Badge className="bg-green-500 text-white text-xs">Hoje</Badge>}
-                          {ehAmanha && <Badge className="bg-blue-500 text-white text-xs">Amanhã</Badge>}
+                          <span>
+                            {dataAgendamento
+                              ? format(dataAgendamento, "dd/MM/yyyy", { locale: ptBR })
+                              : "--/--/----"}
+                          </span>
+                          {ehHoje && (
+                            <Badge className="bg-green-500 text-white text-xs">
+                              Hoje
+                            </Badge>
+                          )}
+                          {ehAmanha && (
+                            <Badge className="bg-blue-500 text-white text-xs">
+                              Amanhã
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3" />

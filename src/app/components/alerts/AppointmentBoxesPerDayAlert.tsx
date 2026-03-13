@@ -25,11 +25,14 @@ export function AppointmentBoxesPerDayAlert({
   collectionDate,
   qtyAllowed = 13,
 }: AppointmentBoxesPerDayAlertProps) {
+  const dateStr = (collectionDate ?? "").trim().slice(0, 10);
+  if (!dateStr || dateStr.length < 10) return null;
+
   const list = Array.isArray(qtdCaixasPorDia) ? qtdCaixasPorDia : [];
   const item =
     list.length === 1
       ? list[0]
-      : list.find((q) => q.collectionDate === collectionDate);
+      : list.find((q) => (q.collectionDate ?? "").slice(0, 10) === dateStr);
   const qty =
     item != null && typeof item.qtyBoxes === "number" ? item.qtyBoxes : null;
   const qtyExcess = Math.max(0, (qty ?? 0) - qtyAllowed);

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -58,32 +58,32 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
   const [isDrawingAgente, setIsDrawingAgente] = useState(false);
 
   // Filtrar opções de caixa
-  const opcoesCaixa = precosProdutos.filter(p => p.tipo === 'caixa' && p.ativo);
+  const opcoesCaixa = precosProdutos.filter(p => p.type === 'BOX' && p.active);
 
   // Buscar cliente relacionado ao agendamento
   const cliente = clientes.find(c => c.id === agendamento.clienteId);
 
   // Estados do formulário - Remetente (USA)
-  const [remetenteNome, setRemetenteNome] = useState(cliente?.nome || '');
-  const [remetenteTel, setRemetenteTel] = useState(cliente?.telefoneUSA || '');
+  const [remetenteNome, setRemetenteNome] = useState(cliente?.usaNome || '');
+  const [remetenteTel, setRemetenteTel] = useState(cliente?.usaPhone || '');
   const [remetenteEndereco, setRemetenteEndereco] = useState(
-    cliente ? `${cliente.enderecoUSA.rua}, ${cliente.enderecoUSA.numero}` : ''
+    cliente ? `${cliente.usaAddress.rua}, ${cliente.usaAddress.numero}` : ''
   );
-  const [remetenteCidade, setRemetenteCidade] = useState(cliente?.enderecoUSA.cidade || '');
-  const [remetenteEstado, setRemetenteEstado] = useState(cliente?.enderecoUSA.estado || '');
-  const [remetenteZipCode, setRemetenteZipCode] = useState(cliente?.enderecoUSA.zipCode || '');
-  const [remetenteCpfRg, setRemetenteCpfRg] = useState(cliente?.cpf || '');
+  const [remetenteCidade, setRemetenteCidade] = useState(cliente?.usaAddress.cidade || '');
+  const [remetenteEstado, setRemetenteEstado] = useState(cliente?.usaAddress.estado || '');
+  const [remetenteZipCode, setRemetenteZipCode] = useState(cliente?.usaAddress.zipCode || '');
+  const [remetenteCpfRg, setRemetenteCpfRg] = useState(cliente?.usaCpf || '');
 
   // Estados do formulário - Destinatário (Brasil)
-  const [destinatarioNome, setDestinatarioNome] = useState(cliente?.destinoBrasil.nomeRecebedor || '');
-  const [destinatarioCpfRg, setDestinatarioCpfRg] = useState(cliente?.destinoBrasil.cpfRecebedor || '');
-  const [destinatarioEndereco, setDestinatarioEndereco] = useState(cliente?.destinoBrasil.endereco || '');
+  const [destinatarioNome, setDestinatarioNome] = useState(cliente?.brazilNome || '');
+  const [destinatarioCpfRg, setDestinatarioCpfRg] = useState(cliente?.brazilCpf || '');
+  const [destinatarioEndereco, setDestinatarioEndereco] = useState(cliente?.brazilAddress.endereco || '');
   const [destinatarioBairro, setDestinatarioBairro] = useState('');
-  const [destinatarioCidade, setDestinatarioCidade] = useState(cliente?.destinoBrasil.cidade || '');
-  const [destinatarioEstado, setDestinatarioEstado] = useState(cliente?.destinoBrasil.estado || '');
-  const [destinatarioCep, setDestinatarioCep] = useState(cliente?.destinoBrasil.cep || '');
+  const [destinatarioCidade, setDestinatarioCidade] = useState(cliente?.brazilAddress.cidade || '');
+  const [destinatarioEstado, setDestinatarioEstado] = useState(cliente?.brazilAddress.estado || '');
+  const [destinatarioCep, setDestinatarioCep] = useState(cliente?.brazilAddress.cep || '');
   const [destinatarioTelefone, setDestinatarioTelefone] = useState(
-    cliente?.destinoBrasil.telefones?.[0] || ''
+    cliente?.brazilPhone || ''
   );
 
   // Estados para caixas
@@ -122,17 +122,17 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
   const atualizarCaixa = (id: string, campo: keyof Caixa, valor: string | number) => {
     setCaixas(caixas.map(c => {
       if (c.id !== id) return c;
-      
+
       const novaCaixa = { ...c, [campo]: valor };
-      
+
       // Se alterou o tipo, busca o preço
       if (campo === 'tipo') {
-        const produto = opcoesCaixa.find(p => p.tamanho === valor || p.nome === valor);
+        const produto = opcoesCaixa.find(p => p.size === valor || p.name === valor);
         if (produto) {
-          novaCaixa.valor = produto.precoVenda;
+          novaCaixa.valor = produto.salePrice;
         }
       }
-      
+
       return novaCaixa;
     }));
   };
@@ -279,18 +279,19 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
         nome: remetenteNome,
         telefone: remetenteTel,
         endereco: remetenteEndereco,
-        cidade: remetenteCidade,
-        estado: remetenteEstado,
-        zipCode: remetenteZipCode,
+        nome: remetenteCidade,
+        state: remetenteEstado,
+        cep: remetenteZipCode,
+        cpf: remetenteCpfRg,
         cpfRg: remetenteCpfRg,
       },
       destinatario: {
         nome: destinatarioNome,
         cpfRg: destinatarioCpfRg,
-        endereco: destinatarioEndereco,
+        address: destinatarioEndereco,
         bairro: destinatarioBairro,
-        cidade: destinatarioCidade,
-        estado: destinatarioEstado,
+        city: destinatarioCidade,
+        state: destinatarioEstado,
         cep: destinatarioCep,
         telefone: destinatarioTelefone,
       },
@@ -310,7 +311,7 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
     };
 
     addOrdemServicoMotorista(novaOrdem);
-    
+
     if (onSave) {
       onSave(novaOrdem);
     }
@@ -330,20 +331,20 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
       <div className="bg-gradient-to-r from-[#1E3A5F] to-[#2A4A6F] text-white p-6 rounded-t-lg flex items-center justify-between">
         <div className="flex items-center gap-3">
           {embedded ? (
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onClose}
               className="text-white hover:bg-white/20 mr-2 -ml-2"
             >
               <ArrowLeft className="w-6 h-6" />
             </Button>
           ) : (
-             <div className="p-3 bg-[#F5A623] rounded-xl">
+            <div className="p-3 bg-[#F5A623] rounded-xl">
               <Truck className="w-6 h-6" />
             </div>
           )}
-          
+
           <div>
             <h2 className="text-2xl font-bold">ITAMOVING</h2>
             <p className="text-sm text-white/80">Ordem de Serviço - Motorista</p>
@@ -601,8 +602,8 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
                   >
                     <div className="md:col-span-4">
                       <Label className="md:hidden mb-2">Tipo da Caixa</Label>
-                      <Select 
-                        value={caixa.tipo} 
+                      <Select
+                        value={caixa.tipo}
                         onValueChange={(valor) => atualizarCaixa(caixa.id, 'tipo', valor)}
                       >
                         <SelectTrigger className="bg-white">
@@ -610,8 +611,8 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
                         </SelectTrigger>
                         <SelectContent>
                           {opcoesCaixa.map((opcao) => (
-                            <SelectItem key={opcao.id} value={opcao.tamanho || opcao.nome}>
-                              {opcao.nome}
+                            <SelectItem key={opcao.id} value={opcao.size || opcao.name}>
+                              {opcao.name}
                             </SelectItem>
                           ))}
                         </SelectContent>

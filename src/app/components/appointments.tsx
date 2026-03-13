@@ -1,3 +1,4 @@
+import React from "react";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Card,
@@ -90,6 +91,7 @@ export default function AgendamentosView() {
     deleteAgendamento,
   } = useData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreatePeriodicOpen, setIsCreatePeriodicOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("calendar");
@@ -184,7 +186,6 @@ export default function AgendamentosView() {
     const result = await appointmentsService.getAllQtdBoxesPerPeriod(startDateISO, endDateISO);
     if (result.success && result.data !== undefined) {
       const raw = result.data as any;
-      // TODO - trocar qtyBoxes por qtyBoxesPeriod vindo do backend
       const list: { startDate: string; endDate: string; qtyBoxes: number }[] =
         Array.isArray(raw)
           ? raw
@@ -260,6 +261,26 @@ export default function AgendamentosView() {
     });
   };
 
+  const [formDataPeriod, setFormDataPeriod] = useState({
+    title: "",
+    startDate: "",
+    endDate: "",
+    collectionArea: "",
+    status: "",
+    observations: "",
+  });
+
+  const resetFormPeriod = () => {
+    setFormDataPeriod({
+      title: "",
+      startDate: "",
+      endDate: "",
+      collectionArea: "",
+      status: "",
+      observations: "",
+    })
+  }
+
   /** Preenche o formulário de edição com os dados do agendamento selecionado (data/hora no formato dos inputs). */
   const fillEditFormFromSelected = () => {
     if (!selectedAgendamento) return;
@@ -269,7 +290,7 @@ export default function AgendamentosView() {
     const collectionTime = /^\d{1,2}:\d{2}/.test(timeRaw) ? timeRaw.slice(0, 5) : timeRaw;
     setFormData({
       clientId: selectedAgendamento.client?.id ?? "",
-      collectionDate,
+      collectionDate: selectedAgendamento?.collectionDate ?? "",
       collectionTime,
       value: selectedAgendamento?.value ?? 0,
       downPayment: selectedAgendamento?.downPayment ?? 0,
@@ -305,43 +326,28 @@ export default function AgendamentosView() {
       return;
     }
 
-    const rawDate = (formData.collectionDate ?? "").trim();
-    if (!rawDate) {
-      toast.error("Informe a data de coleta.");
-      return;
-    }
-
-    const collectionDateStr = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
-      ? rawDate
-      : (() => {
-        const d = new Date(rawDate);
-        if (Number.isNaN(d.getTime())) {
-          return null;
-        }
-        return d.toISOString().split("T")[0];
-      })();
-    if (!collectionDateStr) {
-      toast.error("Data de coleta inválida.");
-      return;
-    }
-
-    if (formData.isPeriodic && (formData.collectionDate < formData.startDate || formData.collectionTime > formData.endDate)) {
+    if (
+      formData.isPeriodic &&
+      formData.collectionDate &&
+      formData.startDate &&
+      formData.endDate &&
+      formData.collectionDate < formData.startDate
+    ) {
       toast.error("A data de coleta não está dentro do intervalo de datas.");
       return;
     }
 
     const address = `${cliente.usaAddress.rua}, ${cliente.usaAddress.numero}, ${cliente.usaAddress.cidade}, ${cliente.usaAddress.estado} ${cliente.usaAddress.zipCode}`;
 
-    const payload = {
+    const isPeriodic = Boolean(formData?.isPeriodic);
+    const payload: CreateAppointmentsDTO = {
       clientId: formData.clientId,
       userId: formData.userId,
-      collectionDate: collectionDateStr,
-      collectionTime: formData.collectionTime ?? "",
+      collectionDate: formData.collectionDate?.trim(),
+      collectionTime: formData.collectionTime?.trim() ?? "",
       value: formData?.value ?? 0,
       downPayment: formData?.downPayment ?? 0,
-      isPeriodic: formData?.isPeriodic ?? false,
-      startDate: formData?.startDate ?? "",
-      endDate: formData?.endDate ?? "",
+      isPeriodic,
       qtyBoxes: qty,
       address,
       status: formData.status as
@@ -349,9 +355,10 @@ export default function AgendamentosView() {
         | "CONFIRMED"
         | "COLLECTED"
         | "CANCELLED",
-      ...(formData.observations != null && formData.observations !== ""
-        ? { observations: formData.observations }
+      ...(isPeriodic && formData.startDate?.trim() && formData.endDate?.trim()
+        ? { startDate: formData.startDate.trim(), endDate: formData.endDate.trim() }
         : {}),
+      ...(formData.observations?.trim() ? { observations: formData.observations.trim() } : {}),
     };
 
     const result = await appointmentsService.create(payload);
@@ -393,61 +400,41 @@ export default function AgendamentosView() {
       return;
     }
 
-    const rawDate = (formData.collectionDate ?? "").trim();
-    if (!rawDate) {
-      toast.error("Informe a data de coleta.");
-      return;
-    }
-
-    const collectionDateStr = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
-      ? rawDate
-      : (() => {
-        const d = new Date(rawDate);
-        if (Number.isNaN(d.getTime())) {
-          return null;
-        }
-        return d.toISOString().split("T")[0];
-      })();
-    if (!collectionDateStr) {
-      toast.error("Data de coleta inválida.");
-      return;
-    }
-
     const getUpdatePayload = (): UpdateAppointmentsDTO => {
-      const current: UpdateAppointmentsDTO = {
+      const emptyStr = (v: string | undefined | null) => (v == null || String(v).trim() === "" ? "" : String(v).trim());
+      const current = {
         clientId: formData.clientId,
         userId: formData.userId,
-        collectionDate: collectionDateStr,
-        collectionTime: formData.collectionTime ?? "",
+        collectionDate: emptyStr(formData.collectionDate),
+        collectionTime: emptyStr(formData.collectionTime),
         value: formData?.value ?? 0,
         downPayment: formData?.downPayment ?? 0,
-        isPeriodic: formData?.isPeriodic ?? false,
-        startDate: formData?.startDate ?? "",
-        endDate: formData?.endDate ?? "",
+        isPeriodic: Boolean(formData?.isPeriodic),
+        startDate: emptyStr(formData?.startDate),
+        endDate: emptyStr(formData?.endDate),
         qtyBoxes: qty,
-        status: formData.status as
-          | "PENDING"
-          | "CONFIRMED"
-          | "COLLECTED"
-          | "CANCELLED",
-        observations: formData.observations ?? "",
-      }
-
+        status: formData.status as "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED",
+        observations: emptyStr(formData.observations),
+      };
       const original = selectedAgendamento!;
+      const origObs = original.observations ?? "";
+      const origStart = original.startDate ?? "";
+      const origEnd = original.endDate ?? "";
+      const origCollectionTime = original.collectionTime ?? "";
       const patch: UpdateAppointmentsDTO = {};
 
-      if (current.clientId !== original.client.id) patch.clientId = current.clientId;
-      if (current.userId !== original.user.id) patch.userId = current.userId;
-      if (current.collectionDate !== original.collectionDate) patch.collectionDate = current.collectionDate;
-      if (current.collectionTime !== original.collectionTime) patch.collectionTime = current.collectionTime;
+      if (current.clientId !== original.client?.id) patch.clientId = current.clientId;
+      if (current.userId !== original.user?.id) patch.userId = current.userId;
+      if (current.collectionDate !== (original.collectionDate ?? "")) patch.collectionDate = current.collectionDate;
+      if (current.collectionTime !== origCollectionTime) patch.collectionTime = current.collectionTime;
       if (current.value !== original.value) patch.value = current.value;
       if (current.downPayment !== original.downPayment) patch.downPayment = current.downPayment;
-      if (current.isPeriodic !== original.isPeriodic) patch.isPeriodic = current.isPeriodic;
-      if (current.startDate !== original.startDate) patch.startDate = current.startDate;
-      if (current.endDate !== original.endDate) patch.endDate = current.endDate;
+      if (current.isPeriodic !== Boolean(original.isPeriodic)) patch.isPeriodic = current.isPeriodic;
+      if (current.startDate !== origStart) patch.startDate = current.startDate;
+      if (current.endDate !== origEnd) patch.endDate = current.endDate;
       if (current.qtyBoxes !== original.qtyBoxes) patch.qtyBoxes = current.qtyBoxes;
       if (current.status !== original.status) patch.status = current.status;
-      if (current.observations !== original.observations) patch.observations = current.observations;
+      if (current.observations !== origObs) patch.observations = current.observations;
 
       return patch;
     }
@@ -459,7 +446,13 @@ export default function AgendamentosView() {
       return;
     }
 
-    if (formData.isPeriodic && (formData.collectionDate < formData.startDate || formData.collectionTime > formData.endDate)) {
+    if (
+      formData.isPeriodic &&
+      formData.collectionDate &&
+      formData.startDate &&
+      formData.endDate &&
+      formData.collectionDate < formData.startDate
+    ) {
       toast.error("A data de coleta não está dentro do intervalo de datas.");
       return;
     }
@@ -512,6 +505,20 @@ export default function AgendamentosView() {
       return null;
     }
   };
+
+  const handleCreatePeriodic = async (e: React.FormEvent) => {
+    e.preventDefault();
+      // const payload: CreateAppointmentPeriodDTO = {
+      //   title: formDataPeriod.title,
+      //   startDate: formDataPeriod.startDate,
+      //   endDate: formDataPeriod.endDate,
+      //   collectionArea: formDataPeriod.collectionArea,
+      //   status: formDataPeriod.status as Agendamento['status'],
+      //   observations: formDataPeriod.observations ?? "",
+      // }
+
+      // TODO: Implementar a criação de períodos
+  }
 
   const statusConfig = {
     PENDING: {
@@ -845,6 +852,120 @@ export default function AgendamentosView() {
               Exportar
             </Button>
 
+            {/* Criação de Período de Coleta */}
+            <Dialog
+              open={isCreatePeriodicOpen}
+              onOpenChange={(open) => {
+                setIsCreatePeriodicOpen(open);
+                if (!open) {
+                  resetFormPeriod();
+                  setIsCreatePeriodicOpen(false);
+                }
+              }
+              }
+            >
+              <DialogTrigger asChild>
+                <Button variant="secondary" size="sm" className="flex-1 sm:flex-none">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Período de Coleta
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
+                <DialogHeader>
+                  <DialogTitle>Novo Período</DialogTitle>
+                  <DialogDescription>
+                    Crie um novo período de coleta de caixas
+                  </DialogDescription>
+                </DialogHeader>
+
+                <form onSubmit={handleCreatePeriodic} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Título *</Label>
+                    <Input
+                      id="title"
+                      type="text"
+                      onChange={(e) => {
+                        setFormDataPeriod({ ...formDataPeriod, title: e.target.value })
+                      }}
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="startDate">Data de Início *</Label>
+                      <Input
+                        id="startDate"
+                        type="date"
+                        min={dataPickerBlocked()}
+                        value={formDataPeriod.startDate}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="endDate">Data de Fim *</Label>
+                      <Input
+                        id="endDate"
+                        type="date"
+                        min={dataPickerBlocked()}
+                        value={formDataPeriod.endDate}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="collectionArea">Área de Coleta *</Label>
+                      <Input
+                        id="collectionArea"
+                        type="text"
+                        onChange={(e) => {
+                          setFormDataPeriod({ ...formDataPeriod, collectionArea: e.target.value })
+                        }}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status *</Label>
+                      <Select
+                        value={formDataPeriod.status}
+                        onValueChange={(value) => {
+                          setFormDataPeriod({ ...formDataPeriod, status: value })
+                        }}
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PENDING">Pendente</SelectItem>
+                          <SelectItem value="CONFIRMED">Confirmado</SelectItem>
+                          <SelectItem value="COLLECTED">Coletado</SelectItem>
+                          <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="observations">Observações</Label>
+                    <Textarea
+                      id="observations"
+                      value={formDataPeriod.observations}
+                      onChange={(e) => {
+                        setFormDataPeriod({ ...formDataPeriod, observations: e.target.value })
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" type="button" onClick={() => {
+                      resetFormPeriod();
+                      setIsCreatePeriodicOpen(false);
+                    }}>Cancelar</Button>
+                    <Button type="submit">Criar Período</Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+
             {/* Diálogo de Criação de Agendamento */}
             <Dialog
               open={isDialogOpen}
@@ -853,7 +974,7 @@ export default function AgendamentosView() {
                 carregarClientes();
                 if (!open) {
                   resetForm();
-                  setClientes([]);
+                  resetEditForm();
                   setQtdCaixasPorDia([]);
                   setQtdCaixasPorPeriodo([]);
                   setIsPeriodic(false);
@@ -907,21 +1028,16 @@ export default function AgendamentosView() {
                     />
                   )}
 
-                  <div className="space-y-2 border-b pb-4 mb-4 pt-4">
-                    <Label className="text-lg font-medium">Coleta Única</Label>
-                    <p className="text-xs text-muted-foreground">
-                      O agendamento será uma coleta única.
-                    </p>
-                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="collectionDate">Data da Coleta *</Label>
+                      <Label htmlFor="collectionDate">Data da Coleta</Label>
                       <Input
                         id="collectionDate"
                         type="date"
                         min={formData.startDate ? formData.startDate : dataPickerBlocked()}
                         max={formData.endDate ? formData.endDate : ''}
                         value={formData.collectionDate}
+                        required={!formData.isPeriodic}
                         onChange={(e) => {
                           setFormData({
                             ...formData,
@@ -929,7 +1045,6 @@ export default function AgendamentosView() {
                           });
                           carregarQtdCaixasPorDia(e.target.value);
                         }}
-                        required
                       />
                     </div>
 
@@ -954,23 +1069,11 @@ export default function AgendamentosView() {
                     collectionDate={formData.collectionDate}
                     qtyAllowed={13}
                   />
-
-                  <div className="space-y-2 border-b pb-4 mb-4 pt-4">
-                    <Label className="text-lg font-medium">Coleta Agrupada</Label>
-                    <p className="text-xs text-muted-foreground">
-                      O agendamento será uma coleta agrupada.
-                    </p>
-                  </div>
-
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <Label htmlFor="isPeriodic">Período de Coleta</Label>
                       <p className="text-xs text-muted-foreground">
                         O agendamento terá um intervalo de datas se caso ativado.
-                        <br />
-                        <span className="text-xs text-muted-foreground">
-                          Se o switch estiver desligado, o agendamento será uma coleta única.
-                        </span>
                       </p>
                     </div>
                     <Switch
@@ -978,14 +1081,14 @@ export default function AgendamentosView() {
                       checked={formData.isPeriodic}
                       onCheckedChange={(checked) => {
                         setIsPeriodic(checked);
-                        setFormData(({
-                          ...formData,
+                        setFormData((prev) => ({
+                          ...prev,
                           isPeriodic: checked,
-                          startDate: checked ? formData.startDate : '',
-                          endDate: checked ? formData.endDate : '',
+                          startDate: checked ? prev.startDate : '',
+                          endDate: checked ? prev.endDate : '',
                         }));
-                      }
-                      }
+                        if (!checked) setQtdCaixasPorPeriodo([]);
+                      }}
                     />
                   </div>
 
@@ -999,13 +1102,14 @@ export default function AgendamentosView() {
                       >
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="startDate">Data de Início</Label>
+                            <Label htmlFor="startDate">Data de Início *</Label>
                             <Input
                               id="startDate"
                               type="date"
                               min={dataPickerBlocked()}
                               max={formData.endDate ? formData.endDate : ''}
                               value={formData.startDate}
+                              required
                               onChange={(e) => {
                                 setFormData({ ...formData, startDate: e.target.value, })
                                 if (e.target.value && formData.endDate && e.target.value <= formData.endDate) {
@@ -1019,12 +1123,13 @@ export default function AgendamentosView() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="endDate">Data de Fim</Label>
+                            <Label htmlFor="endDate">Data de Fim *</Label>
                             <Input
                               id="endDate"
                               type="date"
                               min={formData.startDate ? formData.startDate : dataPickerBlocked()}
                               value={formData.endDate}
+                              required
                               onChange={(e) => {
                                 setFormData({ ...formData, endDate: e.target.value, })
                                 if (e.target.value && formData.startDate && formData.startDate <= e.target.value) {
@@ -1041,7 +1146,7 @@ export default function AgendamentosView() {
                     </AnimatePresence>
                   )}
 
-                  {isPeriodic && qtdCaixasPorPeriodo.length > 0 && (
+                  {formData.isPeriodic && qtdCaixasPorPeriodo.length > 0 && formData.startDate && formData.endDate && formData.startDate <= formData.endDate && (
                     <AppointmentBoxesPerPeriodAlert items={qtdCaixasPorPeriodo} />
                   )}
 
@@ -1153,9 +1258,11 @@ export default function AgendamentosView() {
                       variant="outline"
                       onClick={() => {
                         resetForm();
+                        resetEditForm();
                         setIsDialogOpen(false);
                         setIsPeriodic(false);
-
+                        setQtdCaixasPorDia([]);
+                        setQtdCaixasPorPeriodo([]);
                       }}
                     >
                       Cancelar
@@ -1580,8 +1687,8 @@ export default function AgendamentosView() {
               <div className="space-y-3">
                 {filteredAgendamentos
                   .sort((a, b) => {
-                    const dateCompare = a.collectionDate.localeCompare(
-                      b.collectionDate,
+                    const dateCompare = (a.collectionDate ?? "").localeCompare(
+                      b.collectionDate ?? "",
                     );
                     if (dateCompare !== 0) return dateCompare;
                     return a.collectionTime.localeCompare(b.collectionTime);
@@ -1637,9 +1744,9 @@ export default function AgendamentosView() {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                                     <span className="font-semibold text-sm sm:text-base">
-                                      {dateStr.length >= 10
-                                        ? `${dateStr.slice(8, 10)}/${dateStr.slice(5, 7)}/${dateStr.slice(0, 4)}`
-                                        : format(agDate, "dd/MM/yyyy")}
+                                      {dateStr ?
+                                        (dateStr.length >= 10 ? `${dateStr.slice(8, 10)}/${dateStr.slice(5, 7)}/${dateStr.slice(0, 4)}` : agDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }))
+                                        : '--/--/----'}
                                     </span>
                                     <span className="text-muted-foreground">
                                       •
@@ -1801,8 +1908,8 @@ export default function AgendamentosView() {
                 }
                 if (!open) {
                   resetEditForm();
+                  resetForm();
                   setIsPeriodic(false);
-                  setClientes([]);
                   setQtdCaixasPorDia([]);
                   setQtdCaixasPorPeriodo([]);
                 }
@@ -1860,29 +1967,32 @@ export default function AgendamentosView() {
                     />
                   )}
 
-                  <div className="space-y-2 border-b pb-4 mb-4 pt-4">
-                    <Label className="text-lg font-medium">Coleta Única</Label>
-                    <p className="text-xs text-muted-foreground">
-                      O agendamento será uma coleta única.
-                    </p>
-                  </div>
-
+                  // TODO - ao terminar a criação de periodos, chamar periodos com select e requisição, mostrando as caixas do periodo e de cada dia.
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="editCollectionDate">Data da Coleta *</Label>
+                      <Label htmlFor="editCollectionDate">Data da Coleta {formData.isPeriodic ? '' : '*'}</Label>
                       <Input
                         type="date"
                         id="editCollectionDate"
                         min={dataPickerBlocked()}
                         value={formData.collectionDate}
+                        required={!formData.isPeriodic}
                         onLoad={() => {
-                          carregarQtdCaixasPorDia(formData.collectionDate);
+                          if (formData.collectionDate) {
+                            carregarQtdCaixasPorDia(formData.collectionDate);
+                          } else {
+                            setQtdCaixasPorDia([]);
+                          }
                         }}
                         onChange={(e) => {
-                          setFormData({ ...formData, collectionDate: e.target.value })
-                          carregarQtdCaixasPorDia(e.target.value)
-                        }
-                        }
+                          const value = e.target.value;
+                          setFormData({ ...formData, collectionDate: value });
+                          if (value) {
+                            carregarQtdCaixasPorDia(value);
+                          } else {
+                            setQtdCaixasPorDia([]);
+                          }
+                        }}
                       />
                     </div>
 
@@ -1909,22 +2019,11 @@ export default function AgendamentosView() {
                     qtyAllowed={13}
                   />
 
-                  <div className="space-y-2 border-b pb-4 mb-4 pt-4">
-                    <Label className="text-lg font-medium">Coleta Agrupada</Label>
-                    <p className="text-xs text-muted-foreground">
-                      O agendamento será uma coleta agrupada.
-                    </p>
-                  </div>
-
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <Label htmlFor="isPeriodic">Período de Coleta</Label>
                       <p className="text-xs text-muted-foreground">
                         O agendamento terá um intervalo de datas se caso ativado.
-                        <br />
-                        <span className="text-xs text-muted-foreground">
-                          Se o switch estiver desligado, o agendamento será uma coleta única.
-                        </span>
                       </p>
                     </div>
                     <Switch
@@ -1932,14 +2031,14 @@ export default function AgendamentosView() {
                       checked={formData.isPeriodic}
                       onCheckedChange={(checked) => {
                         setIsPeriodic(checked);
-                        setFormData(({
-                          ...formData,
+                        setFormData((prev) => ({
+                          ...prev,
                           isPeriodic: checked,
-                          startDate: checked ? formData.startDate : '',
-                          endDate: checked ? formData.endDate : '',
+                          startDate: checked ? prev.startDate : '',
+                          endDate: checked ? prev.endDate : '',
                         }));
-                      }
-                      }
+                        if (!checked) setQtdCaixasPorPeriodo([]);
+                      }}
                     />
                   </div>
 
@@ -1953,13 +2052,14 @@ export default function AgendamentosView() {
                       >
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="startDate">Data de Início</Label>
+                            <Label htmlFor="startDate">Data de Início *</Label>
                             <Input
                               id="startDate"
                               type="date"
                               min={dataPickerBlocked()}
                               max={formData.endDate ? formData.endDate : ''}
                               value={formData.startDate}
+                              required
                               onLoad={() => {
                                 carregarQtdCaixasPorPeriodo(formData.startDate, formData.endDate);
                               }}
@@ -1976,12 +2076,13 @@ export default function AgendamentosView() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="endDate">Data de Fim</Label>
+                            <Label htmlFor="endDate">Data de Fim *</Label>
                             <Input
                               id="endDate"
                               type="date"
                               min={formData.startDate ? formData.startDate : dataPickerBlocked()}
                               value={formData.endDate}
+                              required
                               onLoad={() => {
                                 carregarQtdCaixasPorPeriodo(formData.startDate, formData.endDate);
                               }}
@@ -2114,6 +2215,8 @@ export default function AgendamentosView() {
                         setIsPeriodic(false);
                         resetEditForm();
                         setIsEditDialogOpen(false);
+                        setQtdCaixasPorDia([]);
+                        setQtdCaixasPorPeriodo([]);
                       }}
                     >
                       Cancelar

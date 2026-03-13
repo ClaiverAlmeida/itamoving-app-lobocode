@@ -4,7 +4,7 @@ import { toDateOnly } from "../utils";
 
 export interface CreateAppointmentsDTO {
   clientId: string;
-  collectionDate: string;
+  collectionDate?: string;
   collectionTime: string;
   value: number;
   downPayment: number;
@@ -22,7 +22,7 @@ export type UpdateAppointmentsDTO = Partial<CreateAppointmentsDTO>;
 
 export interface AppointmentsBackend {
   id: string;
-  collectionDate: string;
+  collectionDate?: string;
   collectionTime: string;
   value: number;
   downPayment: number;
@@ -60,15 +60,15 @@ function mapBackendToFrontend(appointment: AppointmentsBackend): Agendamento {
       id: appointment.user?.id ?? "",
       name: appointment.user?.name ?? "",
     },
-    observations: appointment.observations,
+    observations: appointment.observations ?? "",
     status: appointment.status,
     collectionDate: toDateOnly(appointment.collectionDate),
-    collectionTime: appointment.collectionTime,
+    collectionTime: appointment.collectionTime ?? "",
     value: Number(appointment.value),
     downPayment: Number(appointment.downPayment),
     startDate: toDateOnly(appointment.startDate),
     endDate: toDateOnly(appointment.endDate),
-    isPeriodic: appointment.isPeriodic ?? false,
+    isPeriodic: Boolean(appointment.isPeriodic),
     qtyBoxes: Number(appointment.qtyBoxes),
     address: appointment.address,
   };

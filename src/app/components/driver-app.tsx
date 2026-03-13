@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -406,7 +406,7 @@ export default function MotoristaApp() {
                     <Calendar className="w-4 h-4 text-muted-foreground" />
                     <span>
                       {format(
-                        new Date(agendamento.collectionDate),
+                        new Date(agendamento.collectionDate ?? ""),
                         "dd/MM/yyyy",
                         { locale: ptBR },
                       )}{" "}

@@ -44,7 +44,7 @@ export interface Estoque {
 
 export interface Agendamento {
   id?: string;
-  collectionDate: string;
+  collectionDate?: string;
   collectionTime: string;
   value: number;
   downPayment: number;
