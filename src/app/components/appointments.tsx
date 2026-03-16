@@ -1802,20 +1802,24 @@ export default function AgendamentosView() {
             <Card className="md:col-span-2">
               <CardHeader>
                 <CardTitle>
-                  {selectedPeriod && agendamentosDoPeriodo.length === 1
-                    ? "Período e único agendamento"
+                  {selectedPeriod
+                    ? selectedPeriod.title
                     : getDateLabel(selectedDate)}
                 </CardTitle>
                 <CardDescription>
                   <span className="flex flex-col items-start gap-2 text-sm text-muted-foreground mt-2">
-                    {selectedPeriod && agendamentosDoPeriodo.length === 1 ? (
+                    {selectedPeriod ? (
                       <>
                         <span className="text-foreground">
-                          Intervalo do período: {selectedPeriod.startDate && selectedPeriod.endDate
+                          {selectedPeriod.startDate && selectedPeriod.endDate
                             ? `${format(new Date(selectedPeriod.startDate.slice(0, 10)), "dd/MM/yyyy", { locale: ptBR })} – ${format(new Date(selectedPeriod.endDate.slice(0, 10)), "dd/MM/yyyy", { locale: ptBR })}`
                             : "—"}
                         </span>
-                        <span className="font-bold text-foreground">1 agendamento no período</span>
+                        <span className="font-bold text-foreground">
+                          {agendamentosDoPeriodo.length} agendamento(s) no período
+                          {agendamentosDoPeriodo.length > 0 &&
+                            ` • ${agendamentosDoPeriodo.reduce((acc, a) => acc + (a.qtyBoxes ?? 0), 0)} caixa(s)`}
+                        </span>
                       </>
                     ) : (
                       <>
@@ -1878,6 +1882,108 @@ export default function AgendamentosView() {
                       })()}
                     </div>
                   </div>
+                ) : selectedPeriod ? (
+                <div className="space-y-3">
+                  <AnimatePresence>
+                    {[...agendamentosDoPeriodo]
+                      .sort((a, b) => {
+                        const dateA = (a.collectionDate ?? "").slice(0, 10);
+                        const dateB = (b.collectionDate ?? "").slice(0, 10);
+                        if (dateA !== dateB) return dateA.localeCompare(dateB);
+                        return (a.collectionTime ?? "").localeCompare(b.collectionTime ?? "");
+                      })
+                      .map((agendamento) => {
+                        const config = getStatusConfig(agendamento.status);
+                        const StatusIcon = config.icon;
+                        return (
+                          <motion.div
+                            key={agendamento.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="group"
+                          >
+                            <Card
+                              className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${config.bgLight}`}
+                              style={{
+                                borderLeftColor: config.color
+                                  .replace("bg-", "#")
+                                  .replace("500", "600"),
+                              }}
+                              onClick={() => setSelectedAgendamento(agendamento)}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-start gap-3 flex-1">
+                                    <div
+                                      className={`p-2 rounded-full ${config.color} bg-opacity-20`}
+                                    >
+                                      <StatusIcon
+                                        className={`w-5 h-5 ${config.textColor}`}
+                                      />
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <span className="font-semibold text-lg">
+                                          {agendamento.collectionDate?.slice(0, 10)} • {agendamento.collectionTime}
+                                        </span>
+                                        <Badge className={config.bgLight}>
+                                          <span className={config.textColor}>
+                                            {config.label}
+                                          </span>
+                                        </Badge>
+                                      </div>
+                                      <h4 className="font-semibold mb-1">
+                                        {agendamento.client.name}
+                                      </h4>
+                                      <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
+                                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                        <span>{agendamento.address}</span>
+                                      </div>
+                                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                        <div className="flex items-center gap-1">
+                                          <User className="w-3 h-3" />
+                                          <span>{agendamento.user.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Box className="w-3 h-3 text-foreground" />
+                                          <span className="font-bold text-xs text-foreground">
+                                            {agendamento.qtyBoxes} Caixa(s)
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(
+                                          `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.address)}`,
+                                          "_blank",
+                                        );
+                                      }}
+                                    >
+                                      <Navigation className="w-4 h-4 mr-1" />
+                                      Rota
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
+                  </AnimatePresence>
+                  {agendamentosDoPeriodo.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhum agendamento neste período</p>
+                    </div>
+                  )}
+                </div>
                 ) : (
                 <div className="space-y-3">
                   <AnimatePresence>
