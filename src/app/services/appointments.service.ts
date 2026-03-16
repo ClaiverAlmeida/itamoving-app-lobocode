@@ -1,6 +1,6 @@
 import { api } from "./api.service";
 import { Agendamento } from "../types";
-import { toDateOnly } from "../utils";
+import { toDateOnly, toTimeOnly } from "../utils";
 
 export interface CreateAppointmentsPeriodsDTO {
   id?: string;
@@ -83,7 +83,7 @@ function mapBackendToFrontend(appointment: AppointmentsBackend): Agendamento {
     observations: appointment.observations ?? "",
     status: appointment.status,
     collectionDate: toDateOnly(appointment.collectionDate),
-    collectionTime: appointment.collectionTime ?? "",
+    collectionTime: toTimeOnly(appointment.collectionTime) ?? "",
     value: Number(appointment.value),
     downPayment: Number(appointment.downPayment),
     isPeriodic: Boolean(appointment.isPeriodic),
@@ -148,7 +148,7 @@ export class AppointmentsService {
     }
   }
 
-  async getAllQtdBoxesPerDay(date: string): Promise<{
+  async getAllQtdBoxesPerDay(collectionDate: string, isPeriodic: boolean, appointmentPeriodId: string): Promise<{
     success: boolean;
     data?: { collectionDate: string; qtyBoxes: number }[];
     error?: string;
@@ -157,7 +157,7 @@ export class AppointmentsService {
       const result = await api.get<
         | { collectionDate: string; qtyBoxes: number }[]
         | { data: { collectionDate: string; qtyBoxes: number }[] }
-      >("/appointments/qtd-boxes-per-day", { params: { date } });
+      >("/appointments/qtd-boxes-per-day", { params: { collectionDate, isPeriodic, appointmentPeriodId } });
       if (result.success && result.data) {
         const raw = result.data as any;
         const list = Array.isArray(raw) ? raw : (raw?.data ?? []);

@@ -56,6 +56,7 @@ import {
   MessageCircle,
   Box,
   Edit,
+  PanelRightOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -79,8 +80,44 @@ import { EmptyStateAlert, AppointmentBoxesPerDayAlert, AppointmentBoxesPerPeriod
 import { clientsService } from "../services/clients.service";
 import { appointmentsService, CreateAppointmentsDTO, CreateAppointmentsPeriodsDTO, UpdateAppointmentsDTO } from "../services/appointments.service";
 import { connectSocket, getSocket } from "../services/socket.service";
+import { toDateOnly, formatDateOnlyToBR } from "../utils";
 
 type ViewMode = "calendar" | "list" | "timeline";
+
+/** Converte "YYYY-MM-DD" em Date em horário local (meio-dia) para o calendário não duplicar dias por causa de timezone. */
+function parseLocalDate(dateStr: string): Date {
+  if (!dateStr || dateStr.length < 10) return new Date(NaN);
+  const y = parseInt(dateStr.slice(0, 4), 10);
+  const m = parseInt(dateStr.slice(5, 7), 10) - 1;
+  const day = parseInt(dateStr.slice(8, 10), 10);
+  return new Date(y, m, day, 12, 0, 0, 0);
+}
+
+/** Normaliza uma data para YYYY-MM-DD (para comparação). Aceita YYYY-MM-DD ou ISO string. */
+function toYYYYMMDD(value: string | Date): string | null {
+  if (value == null) return null;
+  if (typeof value === "string") {
+    const s = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    const d = new Date(s);
+    if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    return null;
+  }
+  if (!Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
+  return null;
+}
+
+/** Retorna true se a data de coleta está dentro do intervalo do período (inclusive). */
+function isCollectionDateInPeriod(
+  collectionDate: string,
+  period: { startDate: string | Date; endDate: string | Date },
+): boolean {
+  const d = toYYYYMMDD(collectionDate);
+  const startStr = toYYYYMMDD(period.startDate);
+  const endStr = toYYYYMMDD(period.endDate);
+  if (!d || !startStr || !endStr) return false;
+  return d >= startStr && d <= endStr;
+}
 
 export default function AgendamentosView() {
   const {
@@ -117,6 +154,9 @@ export default function AgendamentosView() {
 
   const [periodos, setPeriodos] = useState<CreateAppointmentsPeriodsDTO[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<CreateAppointmentsPeriodsDTO | null>(null);
+  /** Dia opcional no período: quando null, mostra todos os dias do período; quando definido, filtra por esse dia. */
+  const [selectedDayInPeriod, setSelectedDayInPeriod] = useState<Date | null>(null);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
 
   const carregarAgendamentos = useCallback(async () => {
     const result = await appointmentsService.getAll();
@@ -160,14 +200,14 @@ export default function AgendamentosView() {
     };
   }, [carregarAgendamentos]);
 
-  const carregarQtdCaixasPorDia = async (date: string) => {
-    if (!date?.trim()) {
+  const carregarQtdCaixasPorDia = async (collectionDate: string, isPeriodic: boolean, appointmentPeriodId: string) => {
+    if (!collectionDate?.trim()) {
       setQtdCaixasPorDia([]);
       return;
     };
 
-    const dateISO = new Date(date).toISOString() ?? "";
-    const result = await appointmentsService.getAllQtdBoxesPerDay(dateISO);
+    const collectionDateISO = new Date(collectionDate).toISOString() ?? "";
+    const result = await appointmentsService.getAllQtdBoxesPerDay(collectionDateISO, isPeriodic, appointmentPeriodId);
     if (result.success && result.data !== undefined) {
       const raw = result.data as any;
       const list: { collectionDate: string; qtyBoxes: number }[] =
@@ -197,8 +237,8 @@ export default function AgendamentosView() {
     const start = new Date(startDate);
     const end = new Date(endDate);
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return;
-    const startDateISO = start.toISOString().slice(0, 10);
-    const endDateISO = end.toISOString().slice(0, 10);
+    const startDateISO = toDateOnly(startDate) || start.toISOString().slice(0, 10);
+    const endDateISO = toDateOnly(endDate) || end.toISOString().slice(0, 10);
 
     const result = await appointmentsService.getAllQtdBoxesPerPeriod(startDateISO, endDateISO);
     if (result.success && result.data !== undefined) {
@@ -306,7 +346,7 @@ export default function AgendamentosView() {
     const collectionTime = /^\d{1,2}:\d{2}/.test(timeRaw) ? timeRaw.slice(0, 5) : timeRaw;
     setFormData({
       clientId: selectedAgendamento.client?.id ?? "",
-      collectionDate: selectedAgendamento?.collectionDate ?? "",
+      collectionDate,
       collectionTime,
       value: selectedAgendamento?.value ?? 0,
       downPayment: selectedAgendamento?.downPayment ?? 0,
@@ -317,7 +357,7 @@ export default function AgendamentosView() {
       status: selectedAgendamento.status ?? "",
       appointmentPeriodId: selectedAgendamento?.appointmentPeriodId ?? "",
     });
-    carregarQtdCaixasPorDia(collectionDate || new Date().toISOString().slice(0, 10));
+    carregarQtdCaixasPorDia(collectionDate || format(new Date(), "yyyy-MM-dd"), selectedAgendamento?.isPeriodic ?? false, selectedAgendamento?.appointmentPeriodId ?? "");
     if (selectedAgendamento?.isPeriodic && selectedAgendamento?.appointmentPeriodId) {
       carregarPeriodos();
     }
@@ -366,13 +406,12 @@ export default function AgendamentosView() {
       return;
     }
 
-    // if (
-    //   formData.isPeriodic &&
-    //   formData.collectionDate
-    // ) {
-    //   toast.error("A data de coleta não está dentro do intervalo de datas.");
-    //   return;
-    // }
+    if (formData.isPeriodic && periodoSelecionado && formData.collectionDate?.trim()) {
+      if (!isCollectionDateInPeriod(formData.collectionDate, periodoSelecionado)) {
+        toast.error("A data de coleta deve estar dentro do intervalo do período selecionado.");
+        return;
+      }
+    }
 
     const address = `${cliente.usaAddress.rua}, ${cliente.usaAddress.numero}, ${cliente.usaAddress.cidade}, ${cliente.usaAddress.estado} ${cliente.usaAddress.zipCode}`;
 
@@ -405,6 +444,8 @@ export default function AgendamentosView() {
 
     addAgendamento(result.data);
     resetForm();
+    resetFormPeriod();
+    resetFormPeriod();
     setIsPeriodic(false);
     setIsDialogOpen(false);
     toast.success("Agendamento criado com sucesso!");
@@ -449,6 +490,11 @@ export default function AgendamentosView() {
 
     const getUpdatePayload = (): UpdateAppointmentsDTO => {
       const emptyStr = (v: string | undefined | null) => (v == null || String(v).trim() === "" ? "" : String(v).trim());
+      const dateOnly = (v: string | undefined | null) => (emptyStr(v) ? String(v).trim().slice(0, 10) : "");
+      const timeOnly = (v: string | undefined | null) => {
+        const s = emptyStr(v);
+        return /^\d{1,2}:\d{2}/.test(s) ? s.slice(0, 5) : s;
+      };
       const current = {
         clientId: formData.clientId,
         userId: formData.userId,
@@ -464,20 +510,23 @@ export default function AgendamentosView() {
       };
       const original = selectedAgendamento!;
       const origObs = original.observations ?? "";
-      const origCollectionTime = original.collectionTime ?? "";
+      const origCollectionTime = timeOnly(original.collectionTime);
+      const origCollectionDate = dateOnly(original.collectionDate);
       const patch: UpdateAppointmentsDTO = {};
 
       if (current.clientId !== original.client?.id) patch.clientId = current.clientId;
       if (current.userId !== original.user?.id) patch.userId = current.userId;
-      if (current.collectionDate !== (original.collectionDate ?? "")) patch.collectionDate = current.collectionDate;
-      if (current.collectionTime !== origCollectionTime) patch.collectionTime = current.collectionTime;
+      if (dateOnly(current.collectionDate) !== origCollectionDate) patch.collectionDate = current.collectionDate;
+      if (timeOnly(current.collectionTime) !== origCollectionTime) patch.collectionTime = current.collectionTime;
       if (current.value !== original.value) patch.value = current.value;
       if (current.downPayment !== original.downPayment) patch.downPayment = current.downPayment;
       if (current.isPeriodic !== Boolean(original.isPeriodic)) patch.isPeriodic = current.isPeriodic;
       if (current.qtyBoxes !== original.qtyBoxes) patch.qtyBoxes = current.qtyBoxes;
       if (current.status !== original.status) patch.status = current.status;
       if (current.observations !== origObs) patch.observations = current.observations;
-      if (current.appointmentPeriodId !== original.appointmentPeriodId) patch.appointmentPeriodId = current.appointmentPeriodId;
+      const currPeriod = current.appointmentPeriodId ?? "";
+      const origPeriod = original.appointmentPeriodId ?? "";
+      if (currPeriod !== origPeriod) patch.appointmentPeriodId = currPeriod ? currPeriod : undefined;
       return patch;
     }
 
@@ -488,13 +537,12 @@ export default function AgendamentosView() {
       return;
     }
 
-    // if (
-    //   formData.isPeriodic &&
-    //   formData.collectionDate
-    // ) {
-    //   toast.error("A data de coleta não está dentro do intervalo de datas.");
-    //   return;
-    // }
+    if (formData.isPeriodic && periodoSelecionado && formData.collectionDate?.trim()) {
+      if (!isCollectionDateInPeriod(formData.collectionDate, periodoSelecionado)) {
+        toast.error("A data de coleta deve estar dentro do intervalo do período selecionado.");
+        return;
+      }
+    }
 
     const result = await appointmentsService.update(selectedAgendamento!.id!, patchPayload);
     if (result.success && result.data) {
@@ -502,6 +550,8 @@ export default function AgendamentosView() {
       setSelectedAgendamento(result.data);
       setIsEditDialogOpen(false);
       resetEditForm();
+      resetForm();
+      resetFormPeriod();
       setIsPeriodic(false);
       toast.success("Agendamento atualizado com sucesso!");
     } else {
@@ -628,9 +678,23 @@ export default function AgendamentosView() {
     statusConfig[getStatusKey(status)];
 
   const dataPickerBlocked = () => {
-    const today = new Date().toISOString().split("T")[0];
-    return today;
+    return format(new Date(), "yyyy-MM-dd");
   };
+
+  /** Quando é agendamento por período, limita o date picker ao intervalo do período (YYYY-MM-DD). */
+  const periodDateBounds =
+    formData.isPeriodic && formData.appointmentPeriodId
+      ? (() => {
+        const p = periodos.find((x) => x.id === formData.appointmentPeriodId);
+        if (!p?.startDate || !p?.endDate) return { min: undefined, max: undefined };
+        return {
+          min: toYYYYMMDD(p.startDate) ?? undefined,
+          max: toYYYYMMDD(p.endDate) ?? undefined,
+        };
+      })()
+      : { min: undefined, max: undefined };
+  const maxCollectionDateByPeriod = periodDateBounds.max;
+  const minCollectionDateByPeriod = periodDateBounds.min;
 
   const carregarClientes = async () => {
     const result = await clientsService.getAll();
@@ -704,23 +768,43 @@ export default function AgendamentosView() {
     );
   }, [filteredAgendamentos, selectedDate]);
 
-  /** Agendamentos do período selecionado (quando usuário clica em um período). */
+  /** Agendamentos do período selecionado (quando usuário clica em um período). Inclui todos do período, inclusive sem data de coleta. */
   const agendamentosDoPeriodo = useMemo(() => {
     if (!selectedPeriod?.id) return [];
-    return filteredAgendamentos.filter(
-      (a) => (a.appointmentPeriodId ?? "") === selectedPeriod.id,
-    );
-  }, [filteredAgendamentos, selectedPeriod?.id]);
+    return agendamentos.filter((agendamento) => {
+      if ((agendamento.appointmentPeriodId ?? "") !== selectedPeriod.id) return false;
+      const matchesSearch =
+        agendamento.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        agendamento.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        agendamento.user.name.toLowerCase().includes(searchTerm.toLowerCase());
+      if (!matchesSearch) return false;
+      if (filters.status.length > 0 && !filters.status.includes(getStatusKey(agendamento.status))) return false;
+      if (filters.userId && !agendamento.user.name.toLowerCase().includes(filters.userId.toLowerCase())) return false;
+      return true;
+    });
+  }, [agendamentos, selectedPeriod?.id, searchTerm, filters.status, filters.userId]);
+
+  /** Agendamentos do período no dia selecionado (quando selectedDayInPeriod está definido). */
+  const agendamentosDoPeriodoNoDia = useMemo(() => {
+    if (!selectedPeriod?.id || !selectedDayInPeriod) return [];
+    const dayStr = format(selectedDayInPeriod, "yyyy-MM-dd");
+    return agendamentosDoPeriodo.filter((a) => (a.collectionDate ?? "").slice(0, 10) === dayStr);
+  }, [agendamentosDoPeriodo, selectedPeriod?.id, selectedDayInPeriod]);
+
+  const somaCaixasDoPeriodoNoDia = useMemo(() => {
+    return agendamentosDoPeriodoNoDia.reduce((acc, a) => acc + (a.qtyBoxes ?? 0), 0);
+  }, [agendamentosDoPeriodoNoDia]);
 
   /** Datas que pertencem ao intervalo do período selecionado (para destaque no calendário). */
   const getDatesInPeriodRange = useCallback(() => {
     if (!selectedPeriod?.startDate || !selectedPeriod?.endDate) return [];
-    const start = new Date(selectedPeriod.startDate.slice(0, 10) + "T12:00:00.000Z");
-    const end = new Date(selectedPeriod.endDate.slice(0, 10) + "T12:00:00.000Z");
+    const start = parseLocalDate(selectedPeriod.startDate.slice(0, 10));
+    const end = parseLocalDate(selectedPeriod.endDate.slice(0, 10));
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return [];
     const dates: Date[] = [];
-    const d = new Date(start);
-    while (d <= end) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 12, 0, 0, 0);
+    const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 12, 0, 0, 0);
+    while (d <= endDay) {
       dates.push(new Date(d));
       d.setDate(d.getDate() + 1);
     }
@@ -735,7 +819,7 @@ export default function AgendamentosView() {
       const d = (a.collectionDate ?? "").slice(0, 10);
       if (d.length === 10) dateSet.add(d);
     });
-    return Array.from(dateSet).map((d) => new Date(d + "T12:00:00.000Z"));
+    return Array.from(dateSet).map((d) => parseLocalDate(d));
   }, [selectedPeriod?.id, agendamentosDoPeriodo]);
 
   const somaCaixasDosDia = useMemo(() => {
@@ -792,11 +876,13 @@ export default function AgendamentosView() {
     return format(date, "EEEE, dd 'de' MMMM", { locale: ptBR });
   };
 
-  const getDatesWithAgendamentos = () => {
-    return agendamentos.map(
-      (a) => new Date((a.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z"),
-    );
-  };
+  const getDatesWithAgendamentos = useCallback(() => {
+    const seen = new Set<string>();
+    return agendamentos
+      .map((a) => (a.collectionDate ?? "").slice(0, 10))
+      .filter((d) => d.length === 10 && !seen.has(d) && (seen.add(d), true))
+      .map((d) => parseLocalDate(d));
+  }, [agendamentos]);
 
   /** Dias que têm ao mesmo tempo agendamento por grupo (isPeriodic) e agendamento único (!isPeriodic). */
   const getDatesWithGrupoEUnico = useCallback(() => {
@@ -811,24 +897,57 @@ export default function AgendamentosView() {
     });
     return Array.from(byDate.entries())
       .filter(([, v]) => v.grupo && v.unico)
-      .map(([d]) => new Date(d + "T12:00:00.000Z"));
+      .map(([d]) => parseLocalDate(d));
   }, [agendamentos]);
 
-  /** Dias com agendamento que não são “grupo + único” (para não duplicar estilo no calendário). */
+  /** Dias em que há agendamento único e a data está dentro do intervalo de algum período (50% período, 50% único). */
+  const getDatesUnicoDentroDePeriodo = useCallback(() => {
+    const diasComUnico = new Set<string>();
+    agendamentos.forEach((a) => {
+      if (a.isPeriodic) return;
+      const d = (a.collectionDate ?? "").slice(0, 10);
+      if (d.length < 10) return;
+      diasComUnico.add(d);
+    });
+    const result: Date[] = [];
+    periodos.forEach((p) => {
+      const startStr = toYYYYMMDD(p.startDate);
+      const endStr = toYYYYMMDD(p.endDate);
+      if (!startStr || !endStr) return;
+      diasComUnico.forEach((dayStr) => {
+        if (dayStr >= startStr && dayStr <= endStr) {
+          result.push(parseLocalDate(dayStr));
+        }
+      });
+    });
+    const seen = new Set<string>();
+    return result.filter((d) => {
+      const key = d.toISOString().slice(0, 10);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [agendamentos, periodos]);
+
+  /** Dias com agendamento que não são “grupo + único” nem “único dentro de período” (para não duplicar estilo no calendário). */
   const getDatesWithAgendamentosSomente = useCallback(() => {
     const grupoEUnicoSet = new Set(
       getDatesWithGrupoEUnico().map((d) => d.toISOString().slice(0, 10)),
+    );
+    const unicoDentroPeriodoSet = new Set(
+      getDatesUnicoDentroDePeriodo().map((d) => d.toISOString().slice(0, 10)),
     );
     const all = getDatesWithAgendamentos();
     const seen = new Set<string>();
     return all.filter((d) => {
       const key = d.toISOString().slice(0, 10);
       if (grupoEUnicoSet.has(key)) return false;
+      if (unicoDentroPeriodoSet.has(key)) return false;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-  }, [agendamentos, getDatesWithGrupoEUnico]);
+  }, [agendamentos, getDatesWithGrupoEUnico, getDatesUnicoDentroDePeriodo]);
 
   const TimelineView = () => {
     const weekStart = startOfWeek(new Date(), { locale: ptBR });
@@ -887,7 +1006,7 @@ export default function AgendamentosView() {
                                 .replace("bg-", "#")
                                 .replace("500", "600"),
                             }}
-                            onClick={() => setSelectedAgendamento(agendamento)}
+                            onClick={() => { setSelectedAgendamento(agendamento); setIsSidePanelOpen(true); }}
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3 flex-1">
@@ -1100,6 +1219,9 @@ export default function AgendamentosView() {
               onOpenChange={(open) => {
                 setIsDialogOpen(open);
                 carregarClientes();
+                if (open) {
+                  resetForm();
+                }
                 if (!open) {
                   resetForm();
                   resetEditForm();
@@ -1162,7 +1284,8 @@ export default function AgendamentosView() {
                       <Input
                         id="collectionDate"
                         type="date"
-                        min={dataPickerBlocked()}
+                        min={minCollectionDateByPeriod ?? dataPickerBlocked()}
+                        max={maxCollectionDateByPeriod}
                         value={formData.collectionDate}
                         required={!formData.isPeriodic}
                         onChange={(e) => {
@@ -1170,7 +1293,7 @@ export default function AgendamentosView() {
                             ...formData,
                             collectionDate: e.target.value,
                           });
-                          carregarQtdCaixasPorDia(e.target.value);
+                          carregarQtdCaixasPorDia(e.target.value, formData.isPeriodic, formData.appointmentPeriodId);
                         }}
                       />
                     </div>
@@ -1219,6 +1342,7 @@ export default function AgendamentosView() {
                           checked={formData.isPeriodic}
                           onCheckedChange={(checked) => {
                             setIsPeriodic(checked);
+                            carregarQtdCaixasPorDia(formData.collectionDate, checked, formData.appointmentPeriodId);
                             carregarPeriodos();
                             setFormData((prev) => ({
                               ...prev,
@@ -1251,6 +1375,7 @@ export default function AgendamentosView() {
                                     if (period?.startDate != null && period?.endDate != null) {
                                       const startStr = typeof period.startDate === "string" ? period.startDate.slice(0, 10) : new Date(period.startDate).toISOString().slice(0, 10);
                                       const endStr = typeof period.endDate === "string" ? period.endDate.slice(0, 10) : new Date(period.endDate).toISOString().slice(0, 10);
+                                      carregarQtdCaixasPorDia(formData.collectionDate, formData.isPeriodic, value);
                                       carregarQtdCaixasPorPeriodo(startStr, endStr);
                                     } else {
                                       setQtdCaixasPorPeriodo([]);
@@ -1263,7 +1388,7 @@ export default function AgendamentosView() {
                                   <SelectContent>
                                     {periodos.map((period) => (
                                       <SelectItem key={period.id ?? ""} value={period.id ?? ""}>
-                                        {period.title} - ({period.collectionArea}) : {new Date(period.startDate).toLocaleDateString('pt-BR')} - {new Date(period.endDate).toLocaleDateString('pt-BR')}
+                                        {period.title} - ({period.collectionArea}) : {formatDateOnlyToBR(toDateOnly(String(period.startDate)))} – {formatDateOnlyToBR(toDateOnly(String(period.endDate)))}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -1556,7 +1681,7 @@ export default function AgendamentosView() {
                   const count = agendamentos.filter((a) => (a.appointmentPeriodId ?? "") === periodo.id).length;
                   const dateRange =
                     startStr && endStr
-                      ? `${format(new Date(startStr), "dd/MM/yyyy", { locale: ptBR })} – ${format(new Date(endStr), "dd/MM/yyyy", { locale: ptBR })}`
+                      ? `${formatDateOnlyToBR(startStr)} – ${formatDateOnlyToBR(endStr)}`
                       : "";
                   return (
                     <Card
@@ -1571,11 +1696,13 @@ export default function AgendamentosView() {
                       onClick={() => {
                         if (isSelected) {
                           setSelectedPeriod(null);
+                          setSelectedDayInPeriod(null);
                         } else {
                           setSelectedPeriod(periodo);
-                          const startStr = (periodo.startDate ?? "").slice(0, 10);
-                          if (startStr.length === 10) setSelectedDate(new Date(startStr + "T12:00:00.000Z"));
+                          setSelectedDayInPeriod(null);
                         }
+                        setIsSidePanelOpen(false);
+                        setViewMode("calendar");
                       }}
                     >
                       <CardContent className="p-4">
@@ -1608,6 +1735,33 @@ export default function AgendamentosView() {
                                 </div>
                               )}
                             </div>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              title="Editar período"
+                              onClick={() => { }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              title="Visualizar no menu lateral"
+                              onClick={() => {
+                                setSelectedPeriod(periodo);
+                                setSelectedDayInPeriod(null);
+                                setSelectedAgendamento(null);
+                                setIsSidePanelOpen(true);
+                              }}
+                            >
+                              <PanelRightOpen className="w-4 h-4" />
+                            </Button>
                           </div>
                         </div>
                       </CardContent>
@@ -1756,22 +1910,33 @@ export default function AgendamentosView() {
               <CardContent className="flex justify-center">
                 <Calendar
                   mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
+                  selected={selectedPeriod ? (selectedDayInPeriod ?? undefined) : selectedDate}
+                  onSelect={(date) => {
+                    if (!date) return;
+                    if (selectedPeriod) {
+                      const isSameDay = selectedDayInPeriod && format(date, "yyyy-MM-dd") === format(selectedDayInPeriod, "yyyy-MM-dd");
+                      setSelectedDayInPeriod(isSameDay ? null : date);
+                    } else {
+                      setSelectedDate(date);
+                    }
+                  }}
                   locale={ptBR}
                   className="rounded-md border"
+                  numberOfMonths={1}
                   modifiers={{
                     agendado: getDatesWithAgendamentosSomente(),
                     diaGrupoEUnico: getDatesWithGrupoEUnico(),
+                    diaUnicoDentroPeriodo: getDatesUnicoDentroDePeriodo(),
                     ...(selectedPeriod
                       ? {
-                          periodInterval: getDatesInPeriodRange(),
-                          periodAppointmentDay: getDatesWithAppointmentsInPeriod(),
-                        }
+                        periodInterval: getDatesInPeriodRange(),
+                        periodAppointmentDay: getDatesWithAppointmentsInPeriod(),
+                      }
                       : {}),
                   }}
                   modifiersClassNames={{
                     diaGrupoEUnico: "calendar-day-half-half",
+                    diaUnicoDentroPeriodo: "calendar-day-half-half",
                   }}
                   modifiersStyles={{
                     agendado: {
@@ -1781,26 +1946,32 @@ export default function AgendamentosView() {
                       borderRadius: "6px",
                     },
                     diaGrupoEUnico: {
-                      background: "linear-gradient(to right, rgba(59, 130, 246, 0.55) 50%, rgba(16, 185, 129, 0.55) 50%)",
+                      background: "linear-gradient(90deg, rgba(59, 130, 246, 0.7) 0%, rgba(59, 130, 246, 0.7) 50%, rgba(16, 185, 129, 0.7) 50%, rgba(16, 185, 129, 0.7) 100%)",
+                      color: "#0f172a",
+                      fontWeight: "600",
+                      borderRadius: "6px",
+                    },
+                    diaUnicoDentroPeriodo: {
+                      background: "linear-gradient(90deg, rgba(59, 130, 246, 0.7) 0%, rgba(59, 130, 246, 0.7) 50%, rgba(16, 185, 129, 0.7) 50%, rgba(16, 185, 129, 0.7) 100%)",
                       color: "#0f172a",
                       fontWeight: "600",
                       borderRadius: "6px",
                     },
                     ...(selectedPeriod
                       ? {
-                          periodInterval: {
-                            backgroundColor: "rgba(59, 130, 246, 0.2)",
-                            fontWeight: "bold",
-                            border: "1px solid rgb(59, 130, 246)",
-                            borderRadius: "6px",
-                          },
-                          periodAppointmentDay: {
-                            backgroundColor: "rgba(59, 130, 246, 0.45)",
-                            border: "1px solid rgb(59, 130, 246)",
-                            borderRadius: "6px",
-                            fontWeight: "600",
-                          },
-                        }
+                        periodInterval: {
+                          backgroundColor: "rgba(59, 130, 246, 0.2)",
+                          fontWeight: "bold",
+                          border: "1px solid rgb(59, 130, 246)",
+                          borderRadius: "6px",
+                        },
+                        periodAppointmentDay: {
+                          backgroundColor: "rgba(59, 130, 246, 0.45)",
+                          border: "1px solid rgb(59, 130, 246)",
+                          borderRadius: "6px",
+                          fontWeight: "600",
+                        },
+                      }
                       : {}),
                   }}
                 />
@@ -1820,13 +1991,15 @@ export default function AgendamentosView() {
                       <>
                         <span className="text-foreground">
                           {selectedPeriod.startDate && selectedPeriod.endDate
-                            ? `${format(new Date(selectedPeriod.startDate.slice(0, 10)), "dd/MM/yyyy", { locale: ptBR })} – ${format(new Date(selectedPeriod.endDate.slice(0, 10)), "dd/MM/yyyy", { locale: ptBR })}`
+                            ? `${formatDateOnlyToBR(selectedPeriod.startDate.slice(0, 10))} – ${formatDateOnlyToBR(selectedPeriod.endDate.slice(0, 10))}`
                             : "—"}
                         </span>
                         <span className="font-bold text-foreground">
-                          {agendamentosDoPeriodo.length} agendamento(s) no período
-                          {agendamentosDoPeriodo.length > 0 &&
-                            ` • ${agendamentosDoPeriodo.reduce((acc, a) => acc + (a.qtyBoxes ?? 0), 0)} caixa(s)`}
+                          {selectedDayInPeriod ? (
+                            <>Dia: {format(selectedDayInPeriod, "dd/MM/yyyy", { locale: ptBR })} • {agendamentosDoPeriodoNoDia.length} agendamento(s){agendamentosDoPeriodoNoDia.length > 0 && ` • ${somaCaixasDoPeriodoNoDia} caixa(s)`}</>
+                          ) : (
+                            <>{agendamentosDoPeriodo.length} agendamento(s) no período{agendamentosDoPeriodo.length > 0 && ` • ${agendamentosDoPeriodo.reduce((acc, a) => acc + (a.qtyBoxes ?? 0), 0)} caixa(s)`}</>
+                          )}
                         </span>
                       </>
                     ) : (
@@ -1843,165 +2016,33 @@ export default function AgendamentosView() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {selectedPeriod && agendamentosDoPeriodo.length === 1 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="rounded-lg border-2 border-blue-200 bg-blue-50 dark:bg-blue-950/20 p-4 space-y-2">
-                      <h4 className="font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                        <CalendarIcon className="w-4 h-4" />
-                        Resumo do período
-                      </h4>
-                      <p className="text-sm text-blue-800 dark:text-blue-200">
-                        {selectedPeriod.title} • {selectedPeriod.collectionArea}
-                      </p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
-                        {selectedPeriod.startDate && selectedPeriod.endDate
-                          ? `${format(new Date(selectedPeriod.startDate.slice(0, 10)), "dd/MM/yyyy", { locale: ptBR })} – ${format(new Date(selectedPeriod.endDate.slice(0, 10)), "dd/MM/yyyy", { locale: ptBR })}`
-                          : ""}
-                      </p>
-                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                        1 cliente • {agendamentosDoPeriodo[0]?.qtyBoxes ?? 0} caixas
-                      </p>
-                    </div>
-                    <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 p-4">
-                      <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2 flex items-center gap-2">
-                        <Package className="w-4 h-4" />
-                        Agendamento único
-                      </h4>
-                      {agendamentosDoPeriodo[0] && (() => {
-                        const ag = agendamentosDoPeriodo[0];
-                        const config = getStatusConfig(ag.status);
-                        const StatusIcon = config.icon;
-                        return (
-                          <Card
-                            className={`border-l-4 cursor-pointer ${config.bgLight}`}
-                            style={{ borderLeftColor: config.color.replace("bg-", "#").replace("500", "600") }}
-                            onClick={() => setSelectedAgendamento(ag)}
-                          >
-                            <CardContent className="p-3">
-                              <div className="flex items-center gap-2 mb-1">
-                                <StatusIcon className={cn("w-4 h-4", config.textColor)} />
-                                <span className="font-semibold">{ag.client?.name}</span>
-                              </div>
-                              <p className="text-xs text-muted-foreground">{ag.collectionDate?.slice(0, 10)} {ag.collectionTime}</p>
-                              <p className="text-sm font-medium mt-1">{ag.qtyBoxes} caixa(s) • {ag.user?.name}</p>
-                            </CardContent>
-                          </Card>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                ) : selectedPeriod ? (
                 <div className="space-y-3">
+                  {selectedPeriod && selectedDayInPeriod && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedDayInPeriod(null)}
+                    >
+                      Ver todos os dias do período
+                    </Button>
+                  )}
                   <AnimatePresence>
-                    {[...agendamentosDoPeriodo]
+                    {(selectedPeriod
+                      ? (selectedDayInPeriod ? agendamentosDoPeriodoNoDia : agendamentosDoPeriodo)
+                      : agendamentosDosDia)
+                      .slice()
                       .sort((a, b) => {
-                        const dateA = (a.collectionDate ?? "").slice(0, 10);
-                        const dateB = (b.collectionDate ?? "").slice(0, 10);
-                        if (dateA !== dateB) return dateA.localeCompare(dateB);
+                        if (selectedPeriod && !selectedDayInPeriod) {
+                          const dateCmp = (a.collectionDate ?? "").localeCompare(b.collectionDate ?? "");
+                          if (dateCmp !== 0) return dateCmp;
+                        }
                         return (a.collectionTime ?? "").localeCompare(b.collectionTime ?? "");
                       })
                       .map((agendamento) => {
                         const config = getStatusConfig(agendamento.status);
                         const StatusIcon = config.icon;
-                        return (
-                          <motion.div
-                            key={agendamento.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="group"
-                          >
-                            <Card
-                              className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${config.bgLight}`}
-                              style={{
-                                borderLeftColor: config.color
-                                  .replace("bg-", "#")
-                                  .replace("500", "600"),
-                              }}
-                              onClick={() => setSelectedAgendamento(agendamento)}
-                            >
-                              <CardContent className="p-4">
-                                <div className="flex items-start justify-between">
-                                  <div className="flex items-start gap-3 flex-1">
-                                    <div
-                                      className={`p-2 rounded-full ${config.color} bg-opacity-20`}
-                                    >
-                                      <StatusIcon
-                                        className={`w-5 h-5 ${config.textColor}`}
-                                      />
-                                    </div>
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <span className="font-semibold text-lg">
-                                          {agendamento.collectionDate?.slice(0, 10)} • {agendamento.collectionTime}
-                                        </span>
-                                        <Badge className={config.bgLight}>
-                                          <span className={config.textColor}>
-                                            {config.label}
-                                          </span>
-                                        </Badge>
-                                      </div>
-                                      <h4 className="font-semibold mb-1">
-                                        {agendamento.client.name}
-                                      </h4>
-                                      <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
-                                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                        <span>{agendamento.address}</span>
-                                      </div>
-                                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                        <div className="flex items-center gap-1">
-                                          <User className="w-3 h-3" />
-                                          <span>{agendamento.user.name}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                          <Box className="w-3 h-3 text-foreground" />
-                                          <span className="font-bold text-xs text-foreground">
-                                            {agendamento.qtyBoxes} Caixa(s)
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="flex flex-col gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        window.open(
-                                          `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.address)}`,
-                                          "_blank",
-                                        );
-                                      }}
-                                    >
-                                      <Navigation className="w-4 h-4 mr-1" />
-                                      Rota
-                                    </Button>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </motion.div>
-                        );
-                      })}
-                  </AnimatePresence>
-                  {agendamentosDoPeriodo.length === 0 && (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>Nenhum agendamento neste período</p>
-                    </div>
-                  )}
-                </div>
-                ) : (
-                <div className="space-y-3">
-                  <AnimatePresence>
-                    {agendamentosDosDia
-                      .sort((a, b) =>
-                        a.collectionTime.localeCompare(b.collectionTime),
-                      )
-                      .map((agendamento) => {
-                        const config = getStatusConfig(agendamento.status);
-                        const StatusIcon = config.icon;
+                        const timeLabel = (agendamento.collectionTime ?? "").trim() || "—";
 
                         return (
                           <motion.div
@@ -2018,7 +2059,7 @@ export default function AgendamentosView() {
                                   .replace("bg-", "#")
                                   .replace("500", "600"),
                               }}
-                              onClick={() => setSelectedAgendamento(agendamento)}
+                              onClick={() => { setSelectedAgendamento(agendamento); setIsSidePanelOpen(true); }}
                             >
                               <CardContent className="p-4">
                                 <div className="flex items-start justify-between">
@@ -2032,8 +2073,12 @@ export default function AgendamentosView() {
                                     </div>
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2 mb-2">
-                                        <span className="font-semibold text-lg">
-                                          {agendamento.collectionTime}
+                                        <span className={selectedPeriod ? "font-semibold text-base" : "font-semibold text-lg"}>
+                                          {selectedPeriod && !selectedDayInPeriod
+                                            ? `${formatDateOnlyToBR((agendamento.collectionDate ?? "").slice(0, 10)) || "Sem data"} · ${timeLabel}`
+                                            : selectedPeriod && selectedDayInPeriod
+                                              ? `${format(selectedDayInPeriod, "dd/MM/yyyy", { locale: ptBR })} · ${timeLabel}`
+                                              : (agendamento.collectionTime ?? "").trim() || "—"}
                                         </span>
                                         <Badge className={config.bgLight}>
                                           <span className={config.textColor}>
@@ -2086,14 +2131,21 @@ export default function AgendamentosView() {
                       })}
                   </AnimatePresence>
 
-                  {agendamentosDosDia.length === 0 && (
+                  {(selectedPeriod
+                    ? (selectedDayInPeriod ? agendamentosDoPeriodoNoDia.length === 0 : agendamentosDoPeriodo.length === 0)
+                    : agendamentosDosDia.length === 0) && (
                     <div className="text-center py-12 text-muted-foreground">
                       <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>Nenhum agendamento para esta data</p>
+                      <p>
+                        {selectedPeriod
+                          ? selectedDayInPeriod
+                            ? "Nenhum agendamento neste dia do período"
+                            : "Nenhum agendamento neste período"
+                          : "Nenhum agendamento para esta data"}
+                      </p>
                     </div>
                   )}
                 </div>
-                )}
               </CardContent>
             </Card>
           </div>
@@ -2157,7 +2209,7 @@ export default function AgendamentosView() {
                                 .replace("bg-", "#")
                                 .replace("500", "600"),
                           }}
-                          onClick={() => setSelectedAgendamento(agendamento)}
+                          onClick={() => { setSelectedAgendamento(agendamento); setIsSidePanelOpen(true); }}
                         >
                           <CardContent className="p-4">
                             <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
@@ -2173,7 +2225,7 @@ export default function AgendamentosView() {
                                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                                     <span className="font-semibold text-sm sm:text-base">
                                       {dateStr ?
-                                        (dateStr.length >= 10 ? `${dateStr.slice(8, 10)}/${dateStr.slice(5, 7)}/${dateStr.slice(0, 4)}` : agDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }))
+                                        (formatDateOnlyToBR(dateStr) || '--/--/----')
                                         : '--/--/----'}
                                     </span>
                                     <span className="text-muted-foreground">
@@ -2264,7 +2316,7 @@ export default function AgendamentosView() {
 
       {/* Painel Lateral - Período (resumo agregado) ou Detalhes do Agendamento */}
       <AnimatePresence>
-        {(selectedPeriod || selectedAgendamento) && (
+        {isSidePanelOpen && (selectedPeriod || selectedAgendamento) && (
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -2280,16 +2332,25 @@ export default function AgendamentosView() {
                       <h2 className="text-xl font-bold text-foreground mb-2">
                         {selectedPeriod.title}
                       </h2>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedPeriod.collectionArea && `${selectedPeriod.collectionArea} • `}
-                        {selectedPeriod.startDate && selectedPeriod.endDate && (
-                          <>
-                            {format(new Date(selectedPeriod.startDate.slice(0, 10)), "dd/MM/yyyy", { locale: ptBR })} – {format(new Date(selectedPeriod.endDate.slice(0, 10)), "dd/MM/yyyy", { locale: ptBR })}
-                          </>
-                        )}
-                      </p>
+                      {selectedPeriod.startDate && selectedPeriod.endDate && (
+                        <p className="text-sm text-muted-foreground">
+                          {formatDateOnlyToBR(selectedPeriod.startDate.slice(0, 10))} – {formatDateOnlyToBR(selectedPeriod.endDate.slice(0, 10))}
+                        </p>
+                      )}
+                      {selectedPeriod.collectionArea?.trim() && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {selectedPeriod.collectionArea}
+                        </p>
+                      )}
+                      {selectedPeriod.status && (
+                        <Badge className={getStatusConfig(selectedPeriod.status).bgLight + " mt-2"} variant="secondary">
+                          <span className={getStatusConfig(selectedPeriod.status).textColor}>
+                            {getStatusConfig(selectedPeriod.status).label}
+                          </span>
+                        </Badge>
+                      )}
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedPeriod(null)}>
+                    <Button variant="ghost" size="sm" onClick={() => { setSelectedPeriod(null); setIsSidePanelOpen(false); }}>
                       <X className="w-5 h-5" />
                     </Button>
                   </div>
@@ -2379,9 +2440,9 @@ export default function AgendamentosView() {
                                   <span className="font-medium truncate">{ag.client?.name}</span>
                                 </div>
                                 <div className="flex items-center gap-2 flex-shrink-0 text-xs text-muted-foreground">
-                                  <span>{(ag.collectionDate ?? "").slice(0, 10)}</span>
+                                  <span>{(formatDateOnlyToBR(ag.collectionDate) ?? "").slice(0, 10)}</span>
                                   <span>{ag.collectionTime}</span>
-                                  <Badge variant="outline" className="text-xs">{ag.qtyBoxes} cx</Badge>
+                                  <Badge variant="outline" className="text-xs">{ag.qtyBoxes} caixa(s)</Badge>
                                 </div>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1 truncate">{ag.user?.name}</p>
@@ -2399,531 +2460,533 @@ export default function AgendamentosView() {
               (() => {
                 const ag = selectedAgendamento;
                 return (
-              <>
-            {/* Header - Detalhes do Agendamento */}
-            <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-border p-6 z-10">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold text-foreground mb-2">
-                    {ag.client.name}
-                  </h2>
-                  <Badge
-                    className={
-                      getStatusConfig(ag.status).bgLight
-                    }
-                  >
-                    <span
-                      className={
-                        getStatusConfig(ag.status).textColor
-                      }
-                    >
-                      {getStatusConfig(ag.status).label}
-                    </span>
-                  </Badge>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedAgendamento(null)}
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
-
-              {/* Data e Hora */}
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <CalendarIcon className="w-4 h-4" />
-                  <span>
-                    {((): string => {
-                      const s = (
-                        ag.collectionDate ?? ""
-                      ).slice(0, 10);
-                      return s.length >= 10
-                        ? `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`
-                        : "--";
-                    })()}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="w-4 h-4" />
-                  <span>{ag.collectionTime}</span>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Editar Agendamento */}
-            <Dialog
-              open={isEditDialogOpen}
-              onOpenChange={(open) => {
-                setIsEditDialogOpen(open);
-                carregarClientes();
-                if (open && ag) {
-                  fillEditFormFromSelected();
-                }
-                if (!open) {
-                  resetEditForm();
-                  resetForm();
-                  setIsPeriodic(false);
-                  setQtdCaixasPorDia([]);
-                  setQtdCaixasPorPeriodo([]);
-                }
-              }}
-            >
-              <DialogTrigger asChild>
-                <div className="w-[90%] mx-auto flex items-center justify-center p-6 space-y-6">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Editar
-                  </Button>
-                </div>
-              </DialogTrigger>
-              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
-                <DialogHeader>
-                  <DialogTitle>Editar Agendamento</DialogTitle>
-                  <DialogDescription>
-                    Edite os dados do agendamento no sistema
-                  </DialogDescription>
-                </DialogHeader>
-
-                <form onSubmit={(e) => handleEditAgendamento(e, ag)} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="editClientId">Cliente *</Label>
-                    <Select
-                      value={formData.clientId}
-                      disabled={!clientesAtivos.length}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, clientId: value })
-                      }
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clientesAtivos.map((cliente) => (
-                          <SelectItem key={cliente.id} value={cliente.id}>
-                            {cliente.usaNome} -{" "}
-                            {cliente.usaAddress.cidade as string},{" "}
-                            {cliente.usaAddress.estado as string}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {!clientesAtivos.length && (
-                    <EmptyStateAlert
-                      title="Nenhum cliente ativo"
-                      description="Não há clientes ativos para agendamento. Cadastre um cliente ou ative um existente. O campo Cliente ficará desabilitado até que exista ao menos um cliente ativo."
-                    />
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="editCollectionDate">Data da Coleta {formData.isPeriodic ? '' : '*'}</Label>
-                      <Input
-                        type="date"
-                        id="editCollectionDate"
-                        min={dataPickerBlocked()}
-                        value={formData.collectionDate}
-                        required={!formData.isPeriodic}
-                        onLoad={() => {
-                          if (formData.collectionDate) {
-                            carregarQtdCaixasPorDia(formData.collectionDate);
-                          } else {
-                            setQtdCaixasPorDia([]);
-                          }
-                        }}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setFormData({ ...formData, collectionDate: value });
-                          if (value) {
-                            carregarQtdCaixasPorDia(value);
-                          } else {
-                            setQtdCaixasPorDia([]);
-                          }
-                        }}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="editCollectionTime">Horário Previsto</Label>
-                      <Input
-                        id="editCollectionTime"
-                        type="time"
-                        value={formData.collectionTime}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            collectionTime: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <AppointmentBoxesPerDayAlert
-                    qtdCaixasPorDia={qtdCaixasPorDia}
-                    collectionDate={formData.collectionDate}
-                    qtyAllowed={13}
-                  />
-
-                  <div className="rounded-xl border border-slate-200 bg-slate-50/95 dark:bg-slate-900/70 dark:border-slate-700 px-4 py-4 mt-4 shadow-[0_4px_12px_rgba(15,23,42,0.04)] space-y-5">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="space-y-0.5">
-                        <Label
-                          htmlFor="isPeriodic"
-                          className="text-xs font-semibold text-slate-900 dark:text-slate-50"
-                        >
-                          Período de Coleta
-                        </Label>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                          Ative para definir um intervalo de datas recorrentes para este agendamento.
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                          {formData.isPeriodic ? "Ativado" : "Desativado"}
-                        </span>
-                        <Switch
-                          id="isPeriodic"
-                          checked={formData.isPeriodic}
-                          onCheckedChange={(checked) => {
-                            setIsPeriodic(checked);
-                            carregarPeriodos();
-                            setFormData((prev) => ({
-                              ...prev,
-                              isPeriodic: checked,
-                            }));
-                            if (!checked) setQtdCaixasPorPeriodo([]);
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {formData.isPeriodic && (
-                      periodos.length > 0 ? (
-                        <AnimatePresence>
-                          <motion.div
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                            className="pt-2"
+                  <>
+                    {/* Header - Detalhes do Agendamento */}
+                    <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-border p-6 z-10">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h2 className="text-xl font-bold text-foreground mb-2">
+                            {ag.client.name}
+                          </h2>
+                          <Badge
+                            className={
+                              getStatusConfig(ag.status).bgLight
+                            }
                           >
-                            <div className="grid grid-cols-1 gap-3">
-                              <div className="space-y-2">
-                                <Label htmlFor="appointmentPeriodId">Selecione o Período de Coleta *</Label>
-                                <Select
-                                  value={formData.appointmentPeriodId}
-                                  onValueChange={(value) => {
-                                    setFormData({ ...formData, appointmentPeriodId: value });
-                                    const period = periodos.find((p) => p.id === value);
-                                    if (period?.startDate != null && period?.endDate != null) {
-                                      const startStr = typeof period.startDate === "string" ? period.startDate.slice(0, 10) : new Date(period.startDate).toISOString().slice(0, 10);
-                                      const endStr = typeof period.endDate === "string" ? period.endDate.slice(0, 10) : new Date(period.endDate).toISOString().slice(0, 10);
-                                      carregarQtdCaixasPorPeriodo(startStr, endStr);
-                                    } else {
-                                      setQtdCaixasPorPeriodo([]);
-                                    }
-                                  }}
+                            <span
+                              className={
+                                getStatusConfig(ag.status).textColor
+                              }
+                            >
+                              {getStatusConfig(ag.status).label}
+                            </span>
+                          </Badge>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setSelectedAgendamento(null); setIsSidePanelOpen(false); }}
+                        >
+                          <X className="w-5 h-5" />
+                        </Button>
+                      </div>
+
+                      {/* Data e Hora */}
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <CalendarIcon className="w-4 h-4" />
+                          <span>
+                            {((): string => {
+                              const s = (
+                                ag.collectionDate ?? ""
+                              ).slice(0, 10);
+                              return s.length >= 10
+                                ? `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`
+                                : "--";
+                            })()}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Clock className="w-4 h-4" />
+                          <span>{ag.collectionTime}</span>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* Editar Agendamento */}
+                    <Dialog
+                      open={isEditDialogOpen}
+                      onOpenChange={(open) => {
+                        setIsEditDialogOpen(open);
+                        carregarClientes();
+                        if (open && ag) {
+                          fillEditFormFromSelected();
+                        }
+                        if (!open) {
+                          resetForm();
+                          setIsPeriodic(false);
+                          setQtdCaixasPorDia([]);
+                          setQtdCaixasPorPeriodo([]);
+                        }
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <div className="w-[90%] mx-auto flex items-center justify-center p-6 space-y-6">
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar
+                          </Button>
+                        </div>
+                      </DialogTrigger>
+                      <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
+                        <DialogHeader>
+                          <DialogTitle>Editar Agendamento</DialogTitle>
+                          <DialogDescription>
+                            Edite os dados do agendamento no sistema
+                          </DialogDescription>
+                        </DialogHeader>
+
+                        <form onSubmit={(e) => handleEditAgendamento(e, ag)} className="space-y-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="editClientId">Cliente *</Label>
+                            <Select
+                              value={formData.clientId}
+                              disabled={!clientesAtivos.length}
+                              onValueChange={(value) =>
+                                setFormData({ ...formData, clientId: value })
+                              }
+                              required
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o cliente" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {clientesAtivos.map((cliente) => (
+                                  <SelectItem key={cliente.id} value={cliente.id}>
+                                    {cliente.usaNome} -{" "}
+                                    {cliente.usaAddress.cidade as string},{" "}
+                                    {cliente.usaAddress.estado as string}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {!clientesAtivos.length && (
+                            <EmptyStateAlert
+                              title="Nenhum cliente ativo"
+                              description="Não há clientes ativos para agendamento. Cadastre um cliente ou ative um existente. O campo Cliente ficará desabilitado até que exista ao menos um cliente ativo."
+                            />
+                          )}
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="editCollectionDate">Data da Coleta {formData.isPeriodic ? '' : '*'}</Label>
+                              <Input
+                                type="date"
+                                id="editCollectionDate"
+                                min={minCollectionDateByPeriod ?? dataPickerBlocked()}
+                                max={maxCollectionDateByPeriod}
+                                value={formData.collectionDate}
+                                required={!formData.isPeriodic}
+                                onLoad={() => {
+                                  if (formData.collectionDate) {
+                                    carregarQtdCaixasPorDia(formData.collectionDate, formData.isPeriodic, formData.appointmentPeriodId);
+                                  } else {
+                                    setQtdCaixasPorDia([]);
+                                  }
+                                }}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setFormData({ ...formData, collectionDate: value });
+                                  if (value) {
+                                    carregarQtdCaixasPorDia(value, formData.isPeriodic, formData.appointmentPeriodId);
+                                  } else {
+                                    setQtdCaixasPorDia([]);
+                                  }
+                                }}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="editCollectionTime">Horário Previsto</Label>
+                              <Input
+                                id="editCollectionTime"
+                                type="time"
+                                value={formData.collectionTime}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    collectionTime: e.target.value,
+                                  })
+                                }
+                              />
+                            </div>
+                          </div>
+
+                          <AppointmentBoxesPerDayAlert
+                            qtdCaixasPorDia={qtdCaixasPorDia}
+                            collectionDate={formData.collectionDate}
+                            qtyAllowed={13}
+                          />
+
+                          <div className="rounded-xl border border-slate-200 bg-slate-50/95 dark:bg-slate-900/70 dark:border-slate-700 px-4 py-4 mt-4 shadow-[0_4px_12px_rgba(15,23,42,0.04)] space-y-5">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="space-y-0.5">
+                                <Label
+                                  htmlFor="isPeriodic"
+                                  className="text-xs font-semibold text-slate-900 dark:text-slate-50"
                                 >
-                                  <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Selecione o período de coleta" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {periodos.map((period) => (
-                                      <SelectItem key={period.id ?? ""} value={period.id ?? ""}>
-                                        {period.title} - ({period.collectionArea}) : {new Date(period.startDate).toLocaleDateString('pt-BR')} - {new Date(period.endDate).toLocaleDateString('pt-BR')}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                  Período de Coleta
+                                </Label>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                  Ative para definir um intervalo de datas recorrentes para este agendamento.
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                                  {formData.isPeriodic ? "Ativado" : "Desativado"}
+                                </span>
+                                <Switch
+                                  id="isPeriodic"
+                                  checked={formData.isPeriodic}
+                                  onCheckedChange={(checked) => {
+                                    setIsPeriodic(checked);
+                                    carregarQtdCaixasPorDia(formData.collectionDate, checked, formData.appointmentPeriodId);
+                                    carregarPeriodos();
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      isPeriodic: checked,
+                                    }));
+                                    if (!checked) setQtdCaixasPorPeriodo([]);
+                                  }}
+                                />
                               </div>
                             </div>
-                          </motion.div>
-                        </AnimatePresence>
-                      ) : (
-                        <div className="pt-2">
-                          <EmptyStateAlert
-                            title="Nenhum período de coleta encontrado"
-                            description="Cadastre um período de coleta para poder usar esta opção no agendamento."
+
+                            {formData.isPeriodic && (
+                              periodos.length > 0 ? (
+                                <AnimatePresence>
+                                  <motion.div
+                                    initial={{ opacity: 0, y: -20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -20 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="pt-2"
+                                  >
+                                    <div className="grid grid-cols-1 gap-3">
+                                      <div className="space-y-2">
+                                        <Label htmlFor="appointmentPeriodId">Selecione o Período de Coleta *</Label>
+                                        <Select
+                                          value={formData.appointmentPeriodId}
+                                          onValueChange={(value) => {
+                                            setFormData({ ...formData, appointmentPeriodId: value });
+                                            const period = periodos.find((p) => p.id === value);
+                                            if (period?.startDate != null && period?.endDate != null) {
+                                              const startStr = typeof period.startDate === "string" ? period.startDate.slice(0, 10) : new Date(period.startDate).toISOString().slice(0, 10);
+                                              const endStr = typeof period.endDate === "string" ? period.endDate.slice(0, 10) : new Date(period.endDate).toISOString().slice(0, 10);
+                                              carregarQtdCaixasPorDia(formData.collectionDate, formData.isPeriodic, value);
+                                              carregarQtdCaixasPorPeriodo(startStr, endStr);
+                                            } else {
+                                              setQtdCaixasPorPeriodo([]);
+                                            }
+                                          }}
+                                        >
+                                          <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Selecione o período de coleta" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {periodos.map((period) => (
+                                              <SelectItem key={period.id ?? ""} value={period.id ?? ""}>
+                                                {period.title} - ({period.collectionArea}) : {formatDateOnlyToBR(toDateOnly(String(period.startDate)))} – {formatDateOnlyToBR(toDateOnly(String(period.endDate)))}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                </AnimatePresence>
+                              ) : (
+                                <div className="pt-2">
+                                  <EmptyStateAlert
+                                    title="Nenhum período de coleta encontrado"
+                                    description="Cadastre um período de coleta para poder usar esta opção no agendamento."
+                                  />
+                                </div>
+                              )
+                            )}
+                          </div>
+
+                          {formData.isPeriodic && periodos.length > 0 && formData.appointmentPeriodId && (
+                            <AppointmentBoxesPerPeriodAlert items={qtdCaixasPorPeriodo} />
+                          )}
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="value">Valor Total *</Label>
+                              <Input
+                                id="value"
+                                type="number"
+                                required
+                                min={1}
+                                value={formData.value}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    value: Number(e.target.value),
+                                  })
+                                }
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="downPayment">Valor do Pagamento Antecipado</Label>
+                              <Input
+                                id="downPayment"
+                                type="number"
+                                min={0.00}
+                                value={formData.downPayment}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    downPayment: Number(e.target.value),
+                                  })
+                                }
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="editQtyBoxes">Quantidade de caixas *</Label>
+                            <Input
+                              id="editQtyBoxes"
+                              type="number"
+                              required
+                              min={1}
+                              value={formData.qtyBoxes}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  qtyBoxes: Number(e.target.value),
+                                })
+                              }
+                            />
+                          </div>
+                          <AtendenteSelect
+                            user={user ? { id: user.id, nome: user.nome } : null}
+                            value={formData.userId}
+                            onValueChange={(id) =>
+                              setFormData({ ...formData, userId: id })
+                            }
+                            label="Atendente *"
+                            required
                           />
+
+                          {/* Editar Status */}
+                          <div className="space-y-2">
+                            <Label htmlFor="editStatus">Status *</Label>
+                            <Select
+                              required
+                              value={formData.status || undefined}
+                              onValueChange={(value) => {
+                                setFormData({
+                                  ...formData,
+                                  status: value as Agendamento["status"],
+                                });
+                              }}
+                            >
+                              <SelectTrigger id="editStatus" required aria-required>
+                                <SelectValue placeholder="Selecione o status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PENDING">Pendente</SelectItem>
+                                <SelectItem value="CONFIRMED">Confirmado</SelectItem>
+                                <SelectItem value="COLLECTED">Coletado</SelectItem>
+                                <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="editObservations">Observações</Label>
+                            <Textarea
+                              id="editObservations"
+                              value={formData.observations}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  observations: e.target.value,
+                                })
+                              }
+                              placeholder="Informações adicionais..."
+                              rows={3}
+                            />
+                          </div>
+
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                resetForm();
+                                setIsPeriodic(false);
+                                setQtdCaixasPorDia([]);
+                                setQtdCaixasPorPeriodo([]);
+                                setIsEditDialogOpen(false);
+                              }}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button type="submit">Salvar Alterações</Button>
+                          </div>
+
+                        </form>
+
+                      </DialogContent>
+                    </Dialog>
+
+                    {/* Content */}
+                    <div className="p-6 space-y-6">
+                      {/* Endereço */}
+                      <div>
+                        <h3 className="font-semibold mb-2 flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          Endereço de Coleta
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {ag.address}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 w-full"
+                          onClick={() =>
+                            window.open(
+                              `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ag.address)}`,
+                              "_blank",
+                            )
+                          }
+                        >
+                          <Navigation className="w-4 h-4 mr-2" />
+                          Abrir no Google Maps
+                        </Button>
+                      </div>
+
+                      {/* Atendente Responsável */}
+                      <div>
+                        <h3 className="font-semibold mb-2 flex items-center gap-2">
+                          <User className="w-4 h-4" />
+                          Atendente Responsável
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {ag.user?.name}
+                        </p>
+                      </div>
+
+                      {/* Observações */}
+                      {ag.observations && (
+                        <div>
+                          <h3 className="font-semibold mb-2">Observações</h3>
+                          <p className="text-sm text-muted-foreground italic">
+                            {ag.observations}
+                          </p>
                         </div>
-                      )
-                    )}
-                  </div>
+                      )}
 
-                  {formData.isPeriodic && periodos.length > 0 && formData.appointmentPeriodId && (
-                    <AppointmentBoxesPerPeriodAlert items={qtdCaixasPorPeriodo} />
-                  )}
+                      {/* Quantidade de Caixas */}
+                      <div>
+                        <h3 className="font-semibold mb-2">Quantidade de Caixas</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {ag.qtyBoxes} {"Caixa(s)"}
+                        </p>
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="value">Valor Total *</Label>
-                      <Input
-                        id="value"
-                        type="number"
-                        required
-                        min={1}
-                        value={formData.value}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            value: Number(e.target.value),
-                          })
-                        }
-                      />
+                      {/* Alterar Status */}
+                      <div>
+                        <h3 className="font-semibold mb-2">Alterar Status</h3>
+                        <Select
+                          value={ag.status}
+                          onValueChange={(value) => {
+                            handleStatusChange(
+                              ag.id!,
+                              value as Agendamento["status"],
+                            );
+                            setSelectedAgendamento({
+                              ...ag,
+                              status: value as Agendamento["status"],
+                              collectionTime: ag.collectionTime ?? "",
+                            });
+                          }}
+                        >
+                          <SelectTrigger
+                            className={cn(
+                              "border-l-4 font-medium transition-colors",
+                              ag.status === "PENDING" &&
+                              "border-l-[var(--accent)] bg-[var(--accent)]/10 dark:bg-[var(--accent)]/20",
+                              ag.status === "CONFIRMED" &&
+                              "border-l-green-600 bg-green-50 dark:bg-green-950/30 dark:border-l-green-500",
+                              ag.status === "COLLECTED" &&
+                              "border-l-[var(--secondary)] bg-[var(--secondary)]/10 dark:bg-[var(--secondary)]/20",
+                              ag.status === "CANCELLED" &&
+                              "border-l-[var(--destructive)] bg-[var(--destructive)]/10 dark:bg-[var(--destructive)]/20"
+                            )}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem
+                              value="PENDING"
+                              className="focus:bg-[var(--accent)]/15 focus:text-[var(--accent)] data-[highlighted]:bg-[var(--accent)]/15 text-[var(--accent)] dark:focus:bg-[var(--accent)]/25 dark:data-[highlighted]:bg-[var(--accent)]/25"
+                            >
+                              <span className="mr-2 inline-block size-2 rounded-full bg-[var(--accent)]" />
+                              Pendente
+                            </SelectItem>
+                            <SelectItem
+                              value="CONFIRMED"
+                              className="focus:bg-green-50 focus:text-green-700 data-[highlighted]:bg-green-50 text-green-700 dark:focus:bg-green-950/50 dark:data-[highlighted]:bg-green-950/50 dark:text-green-400"
+                            >
+                              <span className="mr-2 inline-block size-2 rounded-full bg-green-500" />
+                              Confirmado
+                            </SelectItem>
+                            <SelectItem
+                              value="COLLECTED"
+                              className="focus:bg-[var(--secondary)]/15 focus:text-[var(--secondary)] data-[highlighted]:bg-[var(--secondary)]/15 text-[var(--secondary)] dark:focus:bg-[var(--secondary)]/25 dark:data-[highlighted]:bg-[var(--secondary)]/25"
+                            >
+                              <span className="mr-2 inline-block size-2 rounded-full bg-[var(--secondary)]" />
+                              Coletado
+                            </SelectItem>
+                            <SelectItem
+                              value="CANCELLED"
+                              className="focus:bg-[var(--destructive)]/15 focus:text-[var(--destructive)] data-[highlighted]:bg-[var(--destructive)]/15 text-[var(--destructive)] dark:focus:bg-[var(--destructive)]/25 dark:data-[highlighted]:bg-[var(--destructive)]/25"
+                            >
+                              <span className="mr-2 inline-block size-2 rounded-full bg-[var(--destructive)]" />
+                              Cancelado
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Ações */}
+                      <div className="space-y-2 pt-4 border-t">
+                        <Button
+                          variant="destructive"
+                          className="w-full"
+                          onClick={() =>
+                            handleDelete(
+                              ag.id!,
+                              ag.client.name,
+                            )
+                          }
+                        >
+                          Excluir Agendamento
+                        </Button>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="downPayment">Valor do Pagamento Antecipado</Label>
-                      <Input
-                        id="downPayment"
-                        type="number"
-                        min={0.00}
-                        value={formData.downPayment}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            downPayment: Number(e.target.value),
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="editQtyBoxes">Quantidade de caixas *</Label>
-                    <Input
-                      id="editQtyBoxes"
-                      type="number"
-                      required
-                      min={1}
-                      value={formData.qtyBoxes}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          qtyBoxes: Number(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                  <AtendenteSelect
-                    user={user ? { id: user.id, nome: user.nome } : null}
-                    value={formData.userId}
-                    onValueChange={(id) =>
-                      setFormData({ ...formData, userId: id })
-                    }
-                    label="Atendente *"
-                    required
-                  />
-
-                  {/* Editar Status */}
-                  <div className="space-y-2">
-                    <Label htmlFor="editStatus">Status *</Label>
-                    <Select
-                      required
-                      value={formData.status || undefined}
-                      onValueChange={(value) => {
-                        setFormData({
-                          ...formData,
-                          status: value as Agendamento["status"],
-                        });
-                      }}
-                    >
-                      <SelectTrigger id="editStatus" required aria-required>
-                        <SelectValue placeholder="Selecione o status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PENDING">Pendente</SelectItem>
-                        <SelectItem value="CONFIRMED">Confirmado</SelectItem>
-                        <SelectItem value="COLLECTED">Coletado</SelectItem>
-                        <SelectItem value="CANCELLED">Cancelado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="editObservations">Observações</Label>
-                    <Textarea
-                      id="editObservations"
-                      value={formData.observations}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          observations: e.target.value,
-                        })
-                      }
-                      placeholder="Informações adicionais..."
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setIsPeriodic(false);
-                        resetEditForm();
-                        setIsEditDialogOpen(false);
-                        setQtdCaixasPorDia([]);
-                        setQtdCaixasPorPeriodo([]);
-                      }}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button type="submit">Salvar Alterações</Button>
-                  </div>
-
-                </form>
-
-              </DialogContent>
-            </Dialog>
-
-            {/* Content */}
-            <div className="p-6 space-y-6">
-              {/* Endereço */}
-              <div>
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Endereço de Coleta
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {ag.address}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 w-full"
-                  onClick={() =>
-                    window.open(
-                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ag.address)}`,
-                      "_blank",
-                    )
-                  }
-                >
-                  <Navigation className="w-4 h-4 mr-2" />
-                  Abrir no Google Maps
-                </Button>
-              </div>
-
-              {/* Atendente Responsável */}
-              <div>
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  Atendente Responsável
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {ag.user?.name}
-                </p>
-              </div>
-
-              {/* Observações */}
-              {ag.observations && (
-                <div>
-                  <h3 className="font-semibold mb-2">Observações</h3>
-                  <p className="text-sm text-muted-foreground italic">
-                    {ag.observations}
-                  </p>
-                </div>
-              )}
-
-              {/* Quantidade de Caixas */}
-              <div>
-                <h3 className="font-semibold mb-2">Quantidade de Caixas</h3>
-                <p className="text-sm text-muted-foreground">
-                  {ag.qtyBoxes} {"Caixa(s)"}
-                </p>
-              </div>
-
-              {/* Alterar Status */}
-              <div>
-                <h3 className="font-semibold mb-2">Alterar Status</h3>
-                <Select
-                  value={ag.status}
-                  onValueChange={(value) => {
-                    handleStatusChange(
-                      ag.id!,
-                      value as Agendamento["status"],
-                    );
-                    setSelectedAgendamento({
-                      ...ag,
-                      status: value as Agendamento["status"],
-                      collectionTime: ag.collectionTime ?? "",
-                    });
-                  }}
-                >
-                  <SelectTrigger
-                    className={cn(
-                      "border-l-4 font-medium transition-colors",
-                      ag.status === "PENDING" &&
-                      "border-l-[var(--accent)] bg-[var(--accent)]/10 dark:bg-[var(--accent)]/20",
-                      ag.status === "CONFIRMED" &&
-                      "border-l-green-600 bg-green-50 dark:bg-green-950/30 dark:border-l-green-500",
-                      ag.status === "COLLECTED" &&
-                      "border-l-[var(--secondary)] bg-[var(--secondary)]/10 dark:bg-[var(--secondary)]/20",
-                      ag.status === "CANCELLED" &&
-                      "border-l-[var(--destructive)] bg-[var(--destructive)]/10 dark:bg-[var(--destructive)]/20"
-                    )}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem
-                      value="PENDING"
-                      className="focus:bg-[var(--accent)]/15 focus:text-[var(--accent)] data-[highlighted]:bg-[var(--accent)]/15 text-[var(--accent)] dark:focus:bg-[var(--accent)]/25 dark:data-[highlighted]:bg-[var(--accent)]/25"
-                    >
-                      <span className="mr-2 inline-block size-2 rounded-full bg-[var(--accent)]" />
-                      Pendente
-                    </SelectItem>
-                    <SelectItem
-                      value="CONFIRMED"
-                      className="focus:bg-green-50 focus:text-green-700 data-[highlighted]:bg-green-50 text-green-700 dark:focus:bg-green-950/50 dark:data-[highlighted]:bg-green-950/50 dark:text-green-400"
-                    >
-                      <span className="mr-2 inline-block size-2 rounded-full bg-green-500" />
-                      Confirmado
-                    </SelectItem>
-                    <SelectItem
-                      value="COLLECTED"
-                      className="focus:bg-[var(--secondary)]/15 focus:text-[var(--secondary)] data-[highlighted]:bg-[var(--secondary)]/15 text-[var(--secondary)] dark:focus:bg-[var(--secondary)]/25 dark:data-[highlighted]:bg-[var(--secondary)]/25"
-                    >
-                      <span className="mr-2 inline-block size-2 rounded-full bg-[var(--secondary)]" />
-                      Coletado
-                    </SelectItem>
-                    <SelectItem
-                      value="CANCELLED"
-                      className="focus:bg-[var(--destructive)]/15 focus:text-[var(--destructive)] data-[highlighted]:bg-[var(--destructive)]/15 text-[var(--destructive)] dark:focus:bg-[var(--destructive)]/25 dark:data-[highlighted]:bg-[var(--destructive)]/25"
-                    >
-                      <span className="mr-2 inline-block size-2 rounded-full bg-[var(--destructive)]" />
-                      Cancelado
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Ações */}
-              <div className="space-y-2 pt-4 border-t">
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={() =>
-                    handleDelete(
-                      ag.id!,
-                      ag.client.name,
-                    )
-                  }
-                >
-                  Excluir Agendamento
-                </Button>
-              </div>
-            </div>
-              </>
+                  </>
                 );
               })()
             ) : null}

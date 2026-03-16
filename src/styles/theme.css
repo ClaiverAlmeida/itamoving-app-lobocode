@@ -186,14 +186,64 @@
   opacity: 0.9 !important;
 }
 
-/* Calendário: dia com agendamento grupo + único = 50% azul, 50% verde */
+/* Calendário: metade do quadrado A | metade B (divisão exata no meio vertical). */
 button.calendar-day-half-half,
 .rdp-day.calendar-day-half-half,
+.rdp .rdp-day.calendar-day-half-half,
 [data-rdp-day].calendar-day-half-half {
+  position: relative !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #0f172a !important;
+  font-weight: 600;
+  border-radius: 6px;
+  width: 100% !important;
+  min-width: 2rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+/* Metade esquerda = azul (A), metade direita = verde (B). Linha de corte exata em 50%. */
+button.calendar-day-half-half::before,
+.rdp-day.calendar-day-half-half::before,
+.rdp .rdp-day.calendar-day-half-half::before,
+[data-rdp-day].calendar-day-half-half::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  border-radius: 6px;
+  box-sizing: border-box;
+  /* to right = esquerda → direita. Parada dura em 50% = A | B */
   background: linear-gradient(
     to right,
-    rgba(59, 130, 246, 0.55) 50%,
-    rgba(16, 185, 129, 0.55) 50%
-  ) !important;
-  background-color: transparent !important;
+    rgba(59, 130, 246, 0.85) 0%,
+    rgba(59, 130, 246, 0.85) 50%,
+    rgba(16, 185, 129, 0.85) 50%,
+    rgba(16, 185, 129, 0.85) 100%
+  );
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.dark button.calendar-day-half-half,
+.dark .rdp-day.calendar-day-half-half,
+.dark .rdp .rdp-day.calendar-day-half-half,
+.dark [data-rdp-day].calendar-day-half-half {
+  color: #f1f5f9 !important;
+}
+.dark button.calendar-day-half-half::before,
+.dark .rdp-day.calendar-day-half-half::before,
+.dark .rdp .rdp-day.calendar-day-half-half::before,
+.dark [data-rdp-day].calendar-day-half-half::before {
+  background: linear-gradient(
+    to right,
+    rgba(96, 165, 250, 0.8) 0%,
+    rgba(96, 165, 250, 0.8) 50%,
+    rgba(52, 211, 153, 0.8) 50%,
+    rgba(52, 211, 153, 0.8) 100%
+  );
 }
