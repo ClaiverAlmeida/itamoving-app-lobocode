@@ -1568,7 +1568,15 @@ export default function AgendamentosView() {
                       style={{
                         borderLeftColor: isSelected ? "rgb(37, 99, 235)" : "rgb(100, 116, 139)",
                       }}
-                      onClick={() => setSelectedPeriod(isSelected ? null : periodo)}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedPeriod(null);
+                        } else {
+                          setSelectedPeriod(periodo);
+                          const startStr = (periodo.startDate ?? "").slice(0, 10);
+                          if (startStr.length === 10) setSelectedDate(new Date(startStr + "T12:00:00.000Z"));
+                        }
+                      }}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-3">

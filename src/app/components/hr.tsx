@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -41,7 +41,8 @@ import {
   CalendarDays,
   Wallet,
   Sun,
-  UserMinus
+  UserMinus,
+  Pencil
 } from 'lucide-react';
 import { Usuario } from '../types';
 import {
@@ -49,8 +50,10 @@ import {
   formatNumberTelephoneEUA,
 } from "../utils";
 import { usersService, UpdateUsersDTO, CreateUsersDTO } from '../services/hr/users.service';
+import { useAuth } from "../context/AuthContext";
 
 export default function RHView() {
+  const { user: currentUser } = useAuth();
   const {
     usuarios,
     addUsuario,
@@ -64,6 +67,7 @@ export default function RHView() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditCredencialsDialogOpen, setIsEditCredencialsDialogOpen] = useState(false);
 
   useEffect(() => {
     usersService.getAll().then((result) => {
@@ -85,7 +89,6 @@ export default function RHView() {
     terminationDate: '' as string | undefined,
     role: '' as Usuario['role'],
     salary: 0,
-    contractType: 'CLT' as NonNullable<Usuario['contractType']>,
     status: 'ACTIVE' as Usuario['status'],
     street: '',
     number: '',
@@ -112,13 +115,6 @@ export default function RHView() {
     TERMINATED: 'Demitido',
   };
 
-  const contractTypesLabels: Record<NonNullable<Usuario['contractType']>, string> = {
-    "CLT": "CLT",
-    "PJ": "PJ",
-    "TEMPORARY": "Temporário",
-    "INTERNSHIP": "Estágio",
-  };
-
   const dataPickerBlocked = () => {
     const today = new Date().toISOString().split("T")[0];
     return today;
@@ -142,7 +138,6 @@ export default function RHView() {
       terminationDate: '',
       role: '' as Usuario['role'],
       salary: 0,
-      contractType: 'CLT',
       status: 'ACTIVE',
       street: '',
       number: '',
@@ -166,7 +161,6 @@ export default function RHView() {
     if (!formUsuario.hireDate) return 'Data de Admissão';
     if (!formUsuario.role?.trim()) return 'Cargo';
     if (formUsuario.salary === undefined || formUsuario.salary === null) return 'Salário';
-    if (!formUsuario.contractType) return 'Tipo de Contrato';
     if (!formUsuario.status) return 'Status';
     if (!formUsuario.street?.trim()) return 'Rua';
     if (!formUsuario.number?.trim()) return 'Número';
@@ -176,7 +170,7 @@ export default function RHView() {
     return null;
   };
 
-  // CRUD Funcionários
+  // CRUD Funcionários (Usuarios)
   const handleSubmitUsuario = async (e: React.FormEvent) => {
     e.preventDefault();
     const missing = getFirstMissingRequired(false);
@@ -206,7 +200,6 @@ export default function RHView() {
       hireDate: formUsuario.hireDate,
       terminationDate: formUsuario.terminationDate || undefined,
       salary: Number(formUsuario.salary),
-      contractType: formUsuario.contractType,
       address: {
         street: formUsuario.street,
         number: formUsuario.number,
@@ -226,6 +219,7 @@ export default function RHView() {
       toast.success('Funcionário cadastrado com sucesso!');
       resetFormUsuario();
       setIsDialogOpen(false);
+      setIsEditCredencialsDialogOpen(false);
     }
     else if (result.error) {
       toast.error(result.error || 'Erro ao cadastrar funcionário');
@@ -265,6 +259,7 @@ export default function RHView() {
         name: formUsuario.name,
         email: formUsuario.email,
         login: formUsuario.login,
+        password: formUsuario.password ?? undefined,
         phone: formUsuario.phone,
         cpf: formUsuario.cpf,
         birthDate: formUsuario.birthDate,
@@ -272,7 +267,6 @@ export default function RHView() {
         terminationDate: formUsuario.terminationDate === "" ? undefined : formUsuario.terminationDate,
         role: formUsuario.role,
         salary: Number(formUsuario.salary),
-        contractType: formUsuario.contractType,
         status: formUsuario.status,
         address: {
           street: formUsuario.street,
@@ -292,6 +286,7 @@ export default function RHView() {
       if (current.name !== original.name) patch.name = current.name;
       if (current.email !== original.email) patch.email = current.email;
       if (current.login !== undefined && current.login !== original.login) patch.login = current.login;
+      if (optChanged(current.password, original.password)) patch.password = current.password;
       if (current.phone !== original.phone) patch.phone = current.phone;
       if (current.cpf !== original.cpf) patch.cpf = current.cpf;
       if (current.birthDate !== original.birthDate) patch.birthDate = current.birthDate;
@@ -299,7 +294,6 @@ export default function RHView() {
       if (optChanged(current.terminationDate, original.terminationDate)) patch.terminationDate = current.terminationDate;
       if (current.role !== original.role) patch.role = current.role;
       if (current.salary !== original.salary) patch.salary = current.salary;
-      if (current.contractType !== original.contractType) patch.contractType = current.contractType;
       if (current.status !== original.status) patch.status = current.status;
       const origAddr = original.address;
       const addressChanged =
@@ -341,6 +335,7 @@ export default function RHView() {
       resetFormUsuario();
       setIsEditDialogOpen(false);
       setSelectedUsuario(null);
+      setIsEditCredencialsDialogOpen(false);
     }
     else if (result.error) {
       toast.error(result.error || 'Erro ao atualizar funcionário');
@@ -386,7 +381,7 @@ export default function RHView() {
             Recursos Humanos
           </h1>
           <p className="text-muted-foreground mt-2">
-            Gestão completa de pessoal e departamento pessoal
+            Gestão de funcionários e departamento pessoal
           </p>
         </div>
       </motion.div>
@@ -460,7 +455,7 @@ export default function RHView() {
                     Novo Funcionário
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-[95vw] sm:max-w-[60vw] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-[40vw] sm:max-w-[40vw] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Cadastrar Novo Funcionário</DialogTitle>
                     <DialogDescription>
@@ -468,9 +463,9 @@ export default function RHView() {
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleSubmitUsuario} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Dados Pessoais */}
-                      <div className="col-span-1 sm:col-span-4">
+                      <div className="col-span-1 sm:col-span-2">
                         <Label className="text-base font-semibold">Dados Pessoais</Label>
                       </div>
                       <div className="space-y-2">
@@ -488,29 +483,12 @@ export default function RHView() {
                           id="email"
                           type="email"
                           value={formUsuario.email}
+                          onBlur={(e) => setFormUsuario({ ...formUsuario, login: e.target.value })}
                           onChange={(e) => setFormUsuario({ ...formUsuario, email: e.target.value })}
                           required
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="login">Login *</Label>
-                        <Input
-                          id="login"
-                          value={formUsuario.login}
-                          onChange={(e) => setFormUsuario({ ...formUsuario, login: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="password">Senha *</Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          value={formUsuario.password}
-                          onChange={(e) => setFormUsuario({ ...formUsuario, password: e.target.value })}
-                          required
-                        />
-                      </div>
+
                       <div className="space-y-2">
                         <Label htmlFor="phone">Telefone *</Label>
                         <Input
@@ -551,7 +529,7 @@ export default function RHView() {
                       </div>
 
                       {/* Dados Profissionais */}
-                      <div className="col-span-1 sm:col-span-4 pt-4 border-t">
+                      <div className="col-span-1 sm:col-span-2 pt-4 border-t">
                         <Label className="text-base font-semibold">Dados Profissionais</Label>
                       </div>
                       <div className="space-y-2">
@@ -584,24 +562,6 @@ export default function RHView() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="contractType">Tipo de Contrato *</Label>
-                        <Select
-                          value={formUsuario.contractType}
-                          onValueChange={(value: NonNullable<Usuario['contractType']>) => setFormUsuario({ ...formUsuario, contractType: value })}
-                          required
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="CLT">CLT</SelectItem>
-                            <SelectItem value="PJ">PJ</SelectItem>
-                            <SelectItem value="TEMPORARY">Temporário</SelectItem>
-                            <SelectItem value="INTERNSHIP">Estágio</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
                         <Label htmlFor="status">Status *</Label>
                         <Select
                           value={formUsuario.status}
@@ -622,7 +582,7 @@ export default function RHView() {
                       </div>
 
                       {/* Endereço */}
-                      <div className="col-span-1 sm:col-span-4 pt-4 border-t">
+                      <div className="col-span-1 sm:col-span-2 pt-4 border-t">
                         <Label className="text-base font-semibold">Endereço</Label>
                       </div>
                       <div className="space-y-2">
@@ -689,12 +649,38 @@ export default function RHView() {
                         />
                       </div>
 
+                      {/* Credenciais */}
+                      <div className="col-span-1 sm:col-span-2 pt-4 border-t">
+                        <Label className="text-base font-semibold">Credenciais de Acesso</Label>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="login">Login *</Label>
+                        <Input
+                          id="login"
+                          type="email"
+                          value={formUsuario.login}
+                          onChange={(e) => setFormUsuario({ ...formUsuario, login: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Senha *</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={formUsuario.password}
+                          onChange={(e) => setFormUsuario({ ...formUsuario, password: e.target.value })}
+                          required
+                        />
+                      </div>
                     </div>
+
                     <div className="flex justify-end gap-2 pt-4 border-t">
                       <Button type="button" variant="outline"
                         onClick={() => {
                           setIsDialogOpen(false);
                           resetFormUsuario();
+                          setIsEditCredencialsDialogOpen(false);
                         }
                         }
                       >
@@ -733,7 +719,6 @@ export default function RHView() {
                   <TableRow className="bg-muted/50">
                     <TableHead className="text-center">Funcionário</TableHead>
                     <TableHead className="text-center">Cargo</TableHead>
-                    <TableHead className="text-center">Tipo</TableHead>
                     <TableHead className="text-center">Salário</TableHead>
                     <TableHead className="text-center">Admissão</TableHead>
                     <TableHead className="text-center">Status</TableHead>
@@ -751,14 +736,19 @@ export default function RHView() {
                     usuariosFiltrados.map((user) => (
                       <TableRow key={user.id} className="hover:bg-muted/30">
                         <TableCell className="text-center">
-                          <div className="flex items-center gap-3 justify-center">
+                          <div className="flex items-center justify-start gap-3">
                             <Avatar>
                               <AvatarFallback className="bg-gradient-to-br from-[#1E3A5F] to-[#5DADE2] text-white">
                                 {user.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="text-left">
-                              <div className="font-medium">{user.name}</div>
+                              <div className="font-medium flex items-center gap-2">
+                                {user.name}
+                                {currentUser?.id === user.id && (
+                                  <span className="text-xs text-muted-foreground font-normal">(Você)</span>
+                                )}
+                              </div>
                               <div className="text-sm text-muted-foreground flex items-center gap-1">
                                 <Mail className="w-3 h-3" />
                                 {user.email}
@@ -773,9 +763,6 @@ export default function RHView() {
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="outline">{user.contractType ? contractTypesLabels[user.contractType] : '-'}</Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
                           <span className="font-semibold text-green-700">
                             {user.salary != null ? `R$ ${Number(user.salary).toFixed(2)}` : '-'}
                           </span>
@@ -787,8 +774,8 @@ export default function RHView() {
                           <Badge
                             variant={
                               user.status === 'ACTIVE' ? 'default' :
-                              user.status === 'ON_LEAVE' ? 'secondary' :
-                              user.status === 'TERMINATED' ? 'destructive' : 'outline'
+                                user.status === 'ON_LEAVE' ? 'secondary' :
+                                  user.status === 'TERMINATED' ? 'destructive' : 'outline'
                             }
                           >
                             {user.status === 'ACTIVE' ? <UserCheck className="w-3 h-3 mr-1" /> : user.status === 'ON_LEAVE' ? <Sun className="w-3 h-3 mr-1" /> : user.status === 'TERMINATED' ? <UserMinus className="w-3 h-3 mr-1" /> : <UserX className="w-3 h-3 mr-1" />}
@@ -810,6 +797,7 @@ export default function RHView() {
                             <Button
                               variant="ghost"
                               size="sm"
+                              disabled={currentUser?.id === user.id ? true : false as boolean}
                               onClick={() => {
                                 setSelectedUsuario(user);
                                 setFormUsuario({
@@ -824,7 +812,6 @@ export default function RHView() {
                                   terminationDate: user.terminationDate ?? '',
                                   role: user.role,
                                   salary: user.salary ?? 0,
-                                  contractType: user.contractType ?? 'CLT',
                                   status: user.status,
                                   street: user.address?.street ?? '',
                                   number: user.address?.number ?? '',
@@ -841,6 +828,7 @@ export default function RHView() {
                             <Button
                               variant="ghost"
                               size="sm"
+                              disabled={currentUser?.id === user.id ? true : false as boolean}
                               onClick={() => handleDeleteUsuario(user.id!)}
                             >
                               <Trash2 className="w-4 h-4 text-red-600" />
@@ -910,12 +898,6 @@ export default function RHView() {
                   <p className="text-sm">{selectedUsuario.hireDate ? format(new Date(selectedUsuario.hireDate), "dd/MM/yyyy") : '-'}</p>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Tipo de Contrato</Label>
-                  <p className="text-sm">
-                    <Badge className="font-normal" variant="outline">{selectedUsuario.contractType ? contractTypesLabels[selectedUsuario.contractType] : '-'}</Badge>
-                  </p>
-                </div>
-                <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">Salário</Label>
                   <p className="text-sm font-semibold text-green-700">
                     {selectedUsuario.salary != null ? `R$ ${Number(selectedUsuario.salary).toFixed(2)}` : '-'}
@@ -941,10 +923,13 @@ export default function RHView() {
       {/* Dialog de Edição - Similar ao de cadastro mas com título diferente */}
       <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
         setIsEditDialogOpen(open);
-        if (!open) resetFormUsuario();
+        if (!open) {
+          resetFormUsuario();
+          setIsEditCredencialsDialogOpen(false);
+        }
       }
       }>
-        <DialogContent className="max-w-[95vw] sm:max-w-[60vw] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[40vw] sm:max-w-[40vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Funcionário</DialogTitle>
             <DialogDescription>
@@ -953,9 +938,9 @@ export default function RHView() {
           </DialogHeader>
           <form onSubmit={handleEditUsuario} className="space-y-4">
             {/* Mesmo conteúdo do formulário de cadastro */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Dados Pessoais */}
-              <div className="col-span-1 sm:col-span-4">
+              <div className="col-span-1 sm:col-span-2">
                 <Label className="text-base font-semibold">Dados Pessoais</Label>
               </div>
               <div className="space-y-2">
@@ -974,15 +959,6 @@ export default function RHView() {
                   type="email"
                   value={formUsuario.email}
                   onChange={(e) => setFormUsuario({ ...formUsuario, email: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="loginEdit">Login *</Label>
-                <Input
-                  id="loginEdit"
-                  value={formUsuario.login}
-                  onChange={(e) => setFormUsuario({ ...formUsuario, login: e.target.value })}
                   required
                 />
               </div>
@@ -1026,7 +1002,7 @@ export default function RHView() {
               </div>
 
               {/* Dados Profissionais */}
-              <div className="col-span-1 sm:col-span-4 pt-4 border-t">
+              <div className="col-span-1 sm:col-span-2 pt-4 border-t">
                 <Label className="text-base font-semibold">Dados Profissionais</Label>
               </div>
               <div className="space-y-2">
@@ -1059,24 +1035,6 @@ export default function RHView() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contractTypeEdit">Tipo de Contrato *</Label>
-                <Select
-                  value={formUsuario.contractType}
-                  onValueChange={(value: NonNullable<Usuario['contractType']>) => setFormUsuario({ ...formUsuario, contractType: value })}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CLT">CLT</SelectItem>
-                    <SelectItem value="PJ">PJ</SelectItem>
-                    <SelectItem value="TEMPORARY">Temporário</SelectItem>
-                    <SelectItem value="INTERNSHIP">Estágio</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="statusEdit">Status *</Label>
                 <Select
                   value={formUsuario.status}
@@ -1097,7 +1055,7 @@ export default function RHView() {
               </div>
 
               {/* Endereço */}
-              <div className="col-span-1 sm:col-span-4 pt-4 border-t">
+              <div className="col-span-1 sm:col-span-2 pt-4 border-t">
                 <Label className="text-base font-semibold">Endereço</Label>
               </div>
               <div className="space-y-2">
@@ -1165,13 +1123,59 @@ export default function RHView() {
                 />
               </div>
 
+              {/* Credenciais */}
+              <div className="col-span-1 sm:col-span-2 pt-4 border-t">
+                <Label className="text-base font-semibold">Credenciais de Acesso</Label>
+              </div>
+
+              <div className="col-span-1 sm:col-span-2">
+                <Button type="button" variant="default"
+                  onClick={() => {
+                    setIsEditCredencialsDialogOpen(!isEditCredencialsDialogOpen);
+                    setFormUsuario({ ...formUsuario, password: '' });
+                  }}
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Editar Credenciais
+                </Button>
+              </div>
+
+              {/* Ativar caso desejar editar as credenciais */}
+              {(isEditCredencialsDialogOpen) && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="loginEdit">Login *</Label>
+                    <Input
+                      id="loginEdit"
+                      type="email"
+                      value={formUsuario.login}
+                      onChange={(e) => setFormUsuario({ ...formUsuario, login: e.target.value })}
+                      required
+                      disabled={!isEditCredencialsDialogOpen}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="passwordEdit">Senha</Label>
+                    <Input
+                      id="passwordEdit"
+                      type="passwordEdit"
+                      value={formUsuario.password}
+                      onChange={(e) => setFormUsuario({ ...formUsuario, password: e.target.value })}
+                      disabled={!isEditCredencialsDialogOpen}
+                    />
+                  </div>
+                </>
+              )}
+
             </div>
+
             <div className="flex justify-end gap-2 pt-4 border-t">
               <Button type="button" variant="outline"
                 onClick={() => {
                   setIsEditDialogOpen(false);
                   setSelectedUsuario(null);
                   resetFormUsuario();
+                  setIsEditCredencialsDialogOpen(false);
                 }
                 }>
                 Cancelar
