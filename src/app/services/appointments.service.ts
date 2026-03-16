@@ -2,15 +2,36 @@ import { api } from "./api.service";
 import { Agendamento } from "../types";
 import { toDateOnly } from "../utils";
 
+export interface CreateAppointmentsPeriodsDTO {
+  id?: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  collectionArea: string;
+  status: "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED";
+  observations?: string;
+}
+
+export type UpdateAppointmentsPeriodsDTO = Partial<CreateAppointmentsPeriodsDTO>;
+
+export interface AppointmentsPeriodsBackend {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  collectionArea: string;
+  status: "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED";
+  observations?: string;
+}
+
 export interface CreateAppointmentsDTO {
   clientId: string;
+  appointmentPeriodId?: string;
   collectionDate?: string;
   collectionTime: string;
   value: number;
   downPayment: number;
   isPeriodic?: boolean | false;
-  startDate?: string;
-  endDate?: string;
   qtyBoxes: number;
   address: string;
   observations?: string;
@@ -22,13 +43,12 @@ export type UpdateAppointmentsDTO = Partial<CreateAppointmentsDTO>;
 
 export interface AppointmentsBackend {
   id: string;
+  appointmentPeriodId?: string;
   collectionDate?: string;
   collectionTime: string;
   value: number;
   downPayment: number;
   isPeriodic?: boolean | false;
-  startDate?: string;
-  endDate?: string;
   qtyBoxes: number;
   address: string;
   observations?: string;
@@ -66,11 +86,22 @@ function mapBackendToFrontend(appointment: AppointmentsBackend): Agendamento {
     collectionTime: appointment.collectionTime ?? "",
     value: Number(appointment.value),
     downPayment: Number(appointment.downPayment),
-    startDate: toDateOnly(appointment.startDate),
-    endDate: toDateOnly(appointment.endDate),
     isPeriodic: Boolean(appointment.isPeriodic),
     qtyBoxes: Number(appointment.qtyBoxes),
     address: appointment.address,
+    appointmentPeriodId: appointment.appointmentPeriodId ?? "",
+  };
+}
+
+function mapBackendToFrontendPeriods(appointmentPeriod: AppointmentsPeriodsBackend): CreateAppointmentsPeriodsDTO {
+  return {
+    id: appointmentPeriod.id,
+    title: appointmentPeriod.title,
+    startDate: appointmentPeriod.startDate,
+    endDate: appointmentPeriod.endDate,
+    collectionArea: appointmentPeriod.collectionArea,
+    status: appointmentPeriod.status,
+    observations: appointmentPeriod.observations,
   };
 }
 
@@ -89,6 +120,27 @@ export class AppointmentsService {
         const appointmentsBackend = raw as AppointmentsBackend[];
         const appointments = appointmentsBackend.map(mapBackendToFrontend);
         return { success: true, data: appointments };
+      }
+      return { success: false, error: result.error || "Erro ao buscar agendamentos" };
+    } catch (error) {
+      return { success: false, error: error.message || "Erro ao buscar agendamentos" };
+    }
+  }
+
+  async getAllPeriods(): Promise<{
+    success: boolean;
+    data?: CreateAppointmentsPeriodsDTO[];
+    error?: string;
+  }> {
+    try {
+      const result = await api.get<
+        AppointmentsPeriodsBackend[] | { data: AppointmentsPeriodsBackend[] }
+      >("/appointments/periods");
+      if (result.success && result.data) {
+        const raw = (result.data as any)?.data ?? result.data;
+        const appointmentsPeriodsBackend = raw as AppointmentsPeriodsBackend[];
+        const appointmentsPeriods = appointmentsPeriodsBackend.map(mapBackendToFrontendPeriods);
+        return { success: true, data: appointmentsPeriods };
       }
       return { success: false, error: result.error || "Erro ao buscar agendamentos" };
     } catch (error) {
@@ -163,6 +215,27 @@ export class AppointmentsService {
         const appointmentsBackend = raw as AppointmentsBackend;
         const appointment = mapBackendToFrontend(appointmentsBackend);
         return { success: true, data: appointment };
+      }
+
+      return { success: false, error: result.error || "Erro ao criar agendamento" };
+    } catch (error) {
+      return { success: false, error: error.message || "Erro ao criar agendamento" };
+    }
+  }
+
+  async createPeriod(
+    data: CreateAppointmentsPeriodsDTO,
+  ): Promise<{ success: boolean; data?: CreateAppointmentsPeriodsDTO; error?: string }> {
+    try {
+      const result = await api.post<
+        AppointmentsPeriodsBackend | { data: AppointmentsPeriodsBackend }
+      >("/appointments/periods", data);
+
+      if (result.success && result.data) {
+        const raw = (result.data as any)?.data ?? result.data;
+        const appointmentsPeriodsBackend = raw as AppointmentsPeriodsBackend;
+        const period = mapBackendToFrontendPeriods(appointmentsPeriodsBackend);
+        return { success: true, data: period };
       }
 
       return { success: false, error: result.error || "Erro ao criar agendamento" };

@@ -44,13 +44,12 @@ export interface Estoque {
 
 export interface Agendamento {
   id?: string;
+  appointmentPeriodId?: string;
   collectionDate?: string;
   collectionTime: string;
   value: number;
   downPayment: number;
   isPeriodic?: boolean | false;
-  startDate?: string;
-  endDate?: string;
   qtyBoxes: number;
   address: string;
   observations?: string;
@@ -201,11 +200,10 @@ export interface OrdemServicoMotorista {
   // Dados do Remetente (USA)
   remetente: {
     nome: string;
-    endereco: string;
-    cidade: string;
-    estado: string;
+    address: string;
+    state: string;
     zipCode: string;
-    telefone: string;
+    phone: string;
     cpfRg?: string;
   };
 

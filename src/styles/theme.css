@@ -185,3 +185,15 @@
   color: var(--foreground) !important;
   opacity: 0.9 !important;
 }
+
+/* Calendário: dia com agendamento grupo + único = 50% azul, 50% verde */
+button.calendar-day-half-half,
+.rdp-day.calendar-day-half-half,
+[data-rdp-day].calendar-day-half-half {
+  background: linear-gradient(
+    to right,
+    rgba(59, 130, 246, 0.55) 50%,
+    rgba(16, 185, 129, 0.55) 50%
+  ) !important;
+  background-color: transparent !important;
+}
