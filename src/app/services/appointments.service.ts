@@ -177,13 +177,13 @@ export class AppointmentsService {
 
   async getAllQtdBoxesPerPeriod(startDate: string, endDate: string): Promise<{
     success: boolean;
-    data?: { startDate: string; endDate: string; qtyBoxes: number }[];
+    data?: { collectionDate: string; qtyBoxes: number }[];
     error?: string;
   }> {
     try {
       const result = await api.get<
-        | { startDate: string; endDate: string; qtyBoxes: number }[]
-        | { data: { startDate: string; endDate: string; qtyBoxes: number }[] }
+        | { collectionDate: string; qtyBoxes: number }[]
+        | { data: { collectionDate: string; qtyBoxes: number }[] }
       >("/appointments/qtd-boxes-per-period", { params: { startDate, endDate } });
       if (result.success && result.data) {
         const raw = result.data as any;

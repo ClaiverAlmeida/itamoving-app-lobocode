@@ -157,7 +157,7 @@ export default function AgendamentosView() {
   >([]);
 
   const [qtdCaixasPorPeriodo, setQtdCaixasPorPeriodo] = useState<
-    { startDate: string; endDate: string; qtyBoxes: number }[]
+    { collectionDate: string; qtyBoxes: number }[]
   >([]);
 
   const clientesAtivos = useMemo(
@@ -258,7 +258,7 @@ export default function AgendamentosView() {
     const result = await appointmentsService.getAllQtdBoxesPerPeriod(startDateISO, endDateISO);
     if (result.success && result.data !== undefined) {
       const raw = result.data as any;
-      const list: { startDate: string; endDate: string; qtyBoxes: number }[] =
+      const list: { collectionDate: string; qtyBoxes: number }[] =
         Array.isArray(raw)
           ? raw
           : raw?.data != null
@@ -267,7 +267,7 @@ export default function AgendamentosView() {
               : [raw.data]
             : typeof raw === "object" &&
               raw !== null &&
-              ("qtyBoxes" in raw || "startDate" in raw && "endDate" in raw)
+              "collectionDate" in raw
               ? [raw]
               : [];
       setQtdCaixasPorPeriodo(list);
@@ -403,16 +403,18 @@ export default function AgendamentosView() {
     }
   };
 
-  /** Ao abrir o modal de edição com período selecionado, carrega as caixas do período quando periodos estiverem disponíveis. */
+  /** Recarrega caixas por período quando o período é escolhido ou quando a lista de períodos chega/atualiza (ex.: após cadastrar período). */
+  const periodDialogOpen = isDialogOpen || isEditDialogOpen;
   useEffect(() => {
-    if (!isEditDialogOpen || !formData.isPeriodic || !formData.appointmentPeriodId || periodos.length === 0) return;
-    const period = periodos.find((p) => p.id === formData.appointmentPeriodId);
+    if (!periodDialogOpen || !formData.isPeriodic || !formData.appointmentPeriodId?.trim() || periodos.length === 0) return;
+    const pid = String(formData.appointmentPeriodId).trim();
+    const period = periodos.find((p) => String(p.id ?? "") === pid);
     if (period?.startDate != null && period?.endDate != null) {
       const startStr = typeof period.startDate === "string" ? period.startDate.slice(0, 10) : new Date(period.startDate).toISOString().slice(0, 10);
       const endStr = typeof period.endDate === "string" ? period.endDate.slice(0, 10) : new Date(period.endDate).toISOString().slice(0, 10);
       carregarQtdCaixasPorPeriodo(startStr, endStr);
     }
-  }, [isEditDialogOpen, formData.isPeriodic, formData.appointmentPeriodId, periodos]);
+  }, [periodDialogOpen, formData.isPeriodic, formData.appointmentPeriodId, periodos]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -440,8 +442,8 @@ export default function AgendamentosView() {
       return;
     }
 
-    const qty = Number(formData.qtyBoxes);
-    if (!Number.isInteger(qty) || qty < 1) {
+    const qty = Math.max(1, Math.floor(Number(formData.qtyBoxes)) || 1);
+    if (qty < 1) {
       toast.error("Quantidade de caixas deve ser pelo menos 1.");
       return;
     }
@@ -472,7 +474,9 @@ export default function AgendamentosView() {
         | "COLLECTED"
         | "CANCELLED",
       ...(formData.observations?.trim() ? { observations: formData.observations.trim() } : {}),
-      ...(formData.appointmentPeriodId?.trim() ? { appointmentPeriodId: formData.appointmentPeriodId.trim() } : undefined),
+      ...(formData.isPeriodic && formData.appointmentPeriodId?.trim()
+        ? { appointmentPeriodId: formData.appointmentPeriodId.trim() }
+        : {}),
     };
 
     const result = await appointmentsService.create(payload);
@@ -545,7 +549,7 @@ export default function AgendamentosView() {
         qtyBoxes: qty,
         status: formData.status as "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED",
         observations: emptyStr(formData.observations),
-        ...(formData.appointmentPeriodId?.trim() ? { appointmentPeriodId: formData.appointmentPeriodId.trim() } : undefined),
+        appointmentPeriodId: formData.isPeriodic && formData.appointmentPeriodId?.trim() ? formData.appointmentPeriodId.trim() : "",
       };
       const original = selectedAgendamento!;
       const origObs = original.observations ?? "";
@@ -565,7 +569,7 @@ export default function AgendamentosView() {
       if (current.observations !== origObs) patch.observations = current.observations;
       const currPeriod = current.appointmentPeriodId ?? "";
       const origPeriod = original.appointmentPeriodId ?? "";
-      if (currPeriod !== origPeriod) patch.appointmentPeriodId = currPeriod ? currPeriod : undefined;
+      if (currPeriod !== origPeriod) patch.appointmentPeriodId = currPeriod || "";
       return patch;
     }
 
@@ -712,9 +716,7 @@ export default function AgendamentosView() {
       return;
     }
 
-    console.log("confirmed", confirmed);
-    
-    if (!confirmed) {
+    if (!confirmed && (patchPayload.startDate || patchPayload.endDate)) {
       pendingEditPeriodPayloadRef.current = patchPayload;
       setConfirmEditPeriodOpen(true);
       return;
@@ -730,8 +732,9 @@ export default function AgendamentosView() {
       toast.success("Período atualizado com sucesso!");
       setIsDialogEditPeriodOpen(false);
       resetFormPeriod();
-      await carregarPeriodos();
-      await carregarAgendamentos();
+      carregarPeriodos();
+      carregarAgendamentos();
+      setSelectedPeriod(result.data);
     } else {
       toast.error(result.error ?? "Erro ao atualizar período.");
     }
@@ -1503,11 +1506,12 @@ export default function AgendamentosView() {
                           checked={formData.isPeriodic}
                           onCheckedChange={(checked) => {
                             setIsPeriodic(checked);
-                            carregarQtdCaixasPorDia(formData.collectionDate, checked, formData.appointmentPeriodId);
+                            carregarQtdCaixasPorDia(formData.collectionDate, checked, checked ? formData.appointmentPeriodId : "");
                             carregarPeriodos();
                             setFormData((prev) => ({
                               ...prev,
                               isPeriodic: checked,
+                              ...(checked ? {} : { appointmentPeriodId: "" }),
                             }));
                             if (!checked) setQtdCaixasPorPeriodo([]);
                           }}
@@ -1515,7 +1519,7 @@ export default function AgendamentosView() {
                       </div>
                     </div>
 
-                    {isPeriodic && (
+                    {formData.isPeriodic && (
                       periodos.length > 0 ? (
                         <AnimatePresence>
                           <motion.div
@@ -1531,16 +1535,24 @@ export default function AgendamentosView() {
                                 <Select
                                   value={formData.appointmentPeriodId}
                                   onValueChange={(value) => {
-                                    setFormData({ ...formData, appointmentPeriodId: value });
-                                    const period = periodos.find((p) => p.id === value);
-                                    if (period?.startDate != null && period?.endDate != null) {
-                                      const startStr = typeof period.startDate === "string" ? period.startDate.slice(0, 10) : new Date(period.startDate).toISOString().slice(0, 10);
-                                      const endStr = typeof period.endDate === "string" ? period.endDate.slice(0, 10) : new Date(period.endDate).toISOString().slice(0, 10);
-                                      carregarQtdCaixasPorDia(formData.collectionDate, formData.isPeriodic, value);
-                                      carregarQtdCaixasPorPeriodo(startStr, endStr);
-                                    } else {
-                                      setQtdCaixasPorPeriodo([]);
-                                    }
+                                    setFormData((prev) => {
+                                      const period = periodos.find((p) => String(p.id ?? "") === String(value));
+                                      if (period?.startDate != null && period?.endDate != null) {
+                                        const startStr =
+                                          typeof period.startDate === "string"
+                                            ? period.startDate.slice(0, 10)
+                                            : new Date(period.startDate).toISOString().slice(0, 10);
+                                        const endStr =
+                                          typeof period.endDate === "string"
+                                            ? period.endDate.slice(0, 10)
+                                            : new Date(period.endDate).toISOString().slice(0, 10);
+                                        carregarQtdCaixasPorDia(prev.collectionDate, prev.isPeriodic, value);
+                                        carregarQtdCaixasPorPeriodo(startStr, endStr);
+                                      } else {
+                                        setQtdCaixasPorPeriodo([]);
+                                      }
+                                      return { ...prev, appointmentPeriodId: value };
+                                    });
                                   }}
                                 >
                                   <SelectTrigger className="w-full">
@@ -2266,8 +2278,8 @@ export default function AgendamentosView() {
                           borderRadius: "6px",
                         },
                         periodAppointmentDay: {
-                          background: "rgba(249, 115, 22, 0.6)",
-                          color: "#fff",
+                          background: "linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%)",
+                          color: "#0f172a",
                           border: "1px solid rgb(255, 255, 255)",
                           borderRadius: "6px",
                           fontWeight: "600",
@@ -2958,11 +2970,12 @@ export default function AgendamentosView() {
                                   checked={formData.isPeriodic}
                                   onCheckedChange={(checked) => {
                                     setIsPeriodic(checked);
-                                    carregarQtdCaixasPorDia(formData.collectionDate, checked, formData.appointmentPeriodId);
+                                    carregarQtdCaixasPorDia(formData.collectionDate, checked, checked ? formData.appointmentPeriodId : "");
                                     carregarPeriodos();
                                     setFormData((prev) => ({
                                       ...prev,
                                       isPeriodic: checked,
+                                      ...(checked ? {} : { appointmentPeriodId: "" }),
                                     }));
                                     if (!checked) setQtdCaixasPorPeriodo([]);
                                   }}
@@ -2986,16 +2999,24 @@ export default function AgendamentosView() {
                                         <Select
                                           value={formData.appointmentPeriodId}
                                           onValueChange={(value) => {
-                                            setFormData({ ...formData, appointmentPeriodId: value });
-                                            const period = periodos.find((p) => p.id === value);
-                                            if (period?.startDate != null && period?.endDate != null) {
-                                              const startStr = typeof period.startDate === "string" ? period.startDate.slice(0, 10) : new Date(period.startDate).toISOString().slice(0, 10);
-                                              const endStr = typeof period.endDate === "string" ? period.endDate.slice(0, 10) : new Date(period.endDate).toISOString().slice(0, 10);
-                                              carregarQtdCaixasPorDia(formData.collectionDate, formData.isPeriodic, value);
-                                              carregarQtdCaixasPorPeriodo(startStr, endStr);
-                                            } else {
-                                              setQtdCaixasPorPeriodo([]);
-                                            }
+                                            setFormData((prev) => {
+                                              const period = periodos.find((p) => String(p.id ?? "") === String(value));
+                                              if (period?.startDate != null && period?.endDate != null) {
+                                                const startStr =
+                                                  typeof period.startDate === "string"
+                                                    ? period.startDate.slice(0, 10)
+                                                    : new Date(period.startDate).toISOString().slice(0, 10);
+                                                const endStr =
+                                                  typeof period.endDate === "string"
+                                                    ? period.endDate.slice(0, 10)
+                                                    : new Date(period.endDate).toISOString().slice(0, 10);
+                                                carregarQtdCaixasPorDia(prev.collectionDate, prev.isPeriodic, value);
+                                                carregarQtdCaixasPorPeriodo(startStr, endStr);
+                                              } else {
+                                                setQtdCaixasPorPeriodo([]);
+                                              }
+                                              return { ...prev, appointmentPeriodId: value };
+                                            });
                                           }}
                                         >
                                           <SelectTrigger className="w-full">

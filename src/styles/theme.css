@@ -241,13 +241,13 @@ button.calendar-day-agendado,
   border-radius: 6px;
 }
 
-/* Período com agendamento (laranja) – texto branco, opacidade padrão */
+/* Período com agendamento (meio a meio verde + roxo) – igual ao half-half */
 button.calendar-day-period-appointment,
 .rdp-day.calendar-day-period-appointment,
 .rdp .rdp-day.calendar-day-period-appointment,
 [data-rdp-day].calendar-day-period-appointment {
-  background: rgba(249, 115, 22, 0.6) !important;
-  color: #fff !important;
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%) !important;
+  color: #0f172a !important;
   border: 1px solid rgb(255, 255, 255) !important;
   border-radius: 6px;
   font-weight: 600 !important;
@@ -256,8 +256,8 @@ button.calendar-day-period-appointment,
 .dark .rdp-day.calendar-day-period-appointment,
 .dark .rdp .rdp-day.calendar-day-period-appointment,
 .dark [data-rdp-day].calendar-day-period-appointment {
-  background: rgba(251, 146, 60, 0.5) !important;
-  color: #fff !important;
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(134, 239, 172, 0.35) 50%, rgba(134, 239, 172, 0.35) 100%) !important;
+  color: #f1f5f9 !important;
 }
 
 /* Dia de hoje: sem intervalo e sem agendamento → laranja */
@@ -425,11 +425,11 @@ button.calendar-day-period-appointment,
 .calendar-appointments .rdp-day.calendar-day-selected {
   border: 1px solid #0f172a !important; /* slate-900, contrasta bem com verde/roxo/laranja */
   color: #0f172a !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
 }
 .dark .calendar-appointments button.rdp-day.calendar-day-selected,
 .dark .calendar-appointments .rdp-day.calendar-day-selected {
   border: 1px solid #e5e7eb !important; /* slate-200 no dark */
   color: #e5e7eb !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
 }
