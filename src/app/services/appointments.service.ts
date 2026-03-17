@@ -264,6 +264,26 @@ export class AppointmentsService {
     }
   }
 
+  async updatePeriod(
+    id: string,
+    data: UpdateAppointmentsPeriodsDTO,
+  ): Promise<{ success: boolean; data?: CreateAppointmentsPeriodsDTO; error?: string }> {
+    try {
+      const result = await api.patch<
+        AppointmentsPeriodsBackend | { data: AppointmentsPeriodsBackend }
+      >(`/appointments/periods/${id}`, data);
+      if (result.success && result.data) {
+        const raw = (result.data as any)?.data ?? result.data;
+        const appointmentsPeriodsBackend = raw as AppointmentsPeriodsBackend;
+        const period = mapBackendToFrontendPeriods(appointmentsPeriodsBackend);
+        return { success: true, data: period };
+      }
+      return { success: false, error: result.error || "Erro ao atualizar período de coleta" };
+    } catch (error) {
+      return { success: false, error: error.message || "Erro ao atualizar período de coleta" };
+    }
+  }
+
   async delete(id: string): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await api.delete<

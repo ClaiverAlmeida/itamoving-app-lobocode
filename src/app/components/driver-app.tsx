@@ -174,7 +174,7 @@ export default function MotoristaApp() {
                   Telefone:
                 </span>
                 <span className="font-semibold">
-                  {ordemConcluida.remetente.telefone}
+                  {ordemConcluida.remetente.phone}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -182,7 +182,7 @@ export default function MotoristaApp() {
                   Origem:
                 </span>
                 <span className="font-semibold">
-                  {ordemConcluida.remetente.endereco}
+                  {ordemConcluida.remetente.address}
                 </span>
               </div>
               <div className="flex items-center gap-2">

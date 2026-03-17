@@ -292,7 +292,7 @@ const DraggableCard = ({ lead, onSelect, onStatusChange }: DraggableCardProps) =
         {/* Prioridade Badge */}
         {prioridadeInfo && (
           <div className={`absolute -top-2 -right-2 ${prioridadeInfo.bg} rounded-full p-1.5 border-2 border-white shadow-md`}>
-            <PrioridadeIcon className={`w-3 h-3 ${prioridadeInfo.color}`} />
+            {PrioridadeIcon && <PrioridadeIcon className={`w-3 h-3 ${prioridadeInfo.color}`} />}
           </div>
         )}
 

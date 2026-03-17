@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -24,12 +24,24 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { Calendar } from "./ui/calendar";
 import { Badge } from "./ui/badge";
+import { Alert, AlertDescription } from "./ui/alert";
 import { useData } from "../context/DataContext";
 import { Agendamento, Cliente } from "../types";
 import {
@@ -78,7 +90,7 @@ import { AuthProvider, useAuth } from "../context/AuthContext";
 import { AtendenteSelect } from "./forms";
 import { EmptyStateAlert, AppointmentBoxesPerDayAlert, AppointmentBoxesPerPeriodAlert } from "./alerts";
 import { clientsService } from "../services/clients.service";
-import { appointmentsService, CreateAppointmentsDTO, CreateAppointmentsPeriodsDTO, UpdateAppointmentsDTO } from "../services/appointments.service";
+import { appointmentsService, CreateAppointmentsDTO, CreateAppointmentsPeriodsDTO, UpdateAppointmentsDTO, UpdateAppointmentsPeriodsDTO } from "../services/appointments.service";
 import { connectSocket, getSocket } from "../services/socket.service";
 import { toDateOnly, formatDateOnlyToBR } from "../utils";
 
@@ -128,6 +140,7 @@ export default function AgendamentosView() {
     deleteAgendamento,
   } = useData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDialogEditPeriodOpen, setIsDialogEditPeriodOpen] = useState(false);
   const [isCreatePeriodicOpen, setIsCreatePeriodicOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -157,6 +170,8 @@ export default function AgendamentosView() {
   /** Dia opcional no período: quando null, mostra todos os dias do período; quando definido, filtra por esse dia. */
   const [selectedDayInPeriod, setSelectedDayInPeriod] = useState<Date | null>(null);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
+  const [confirmEditPeriodOpen, setConfirmEditPeriodOpen] = useState(false);
+  const pendingEditPeriodPayloadRef = useRef<UpdateAppointmentsPeriodsDTO | null>(null);
 
   const carregarAgendamentos = useCallback(async () => {
     const result = await appointmentsService.getAll();
@@ -334,8 +349,33 @@ export default function AgendamentosView() {
       collectionArea: "",
       status: "",
       observations: "",
+    });
+  }
+
+  const resetEditFormPeriod = () => {
+    setFormDataPeriod({
+      id: selectedPeriod?.id ?? "",
+      title: selectedPeriod?.title ?? "",
+      startDate: selectedPeriod?.startDate ?? "",
+      endDate: selectedPeriod?.endDate ?? "",
+      collectionArea: selectedPeriod?.collectionArea ?? "",
+      status: selectedPeriod?.status ?? "",
+      observations: selectedPeriod?.observations ?? "",
     })
   }
+
+  /** Preenche o formulário de edição de período com os dados do período (datas em YYYY-MM-DD para input type="date"). */
+  const fillEditFormPeriodFrom = (periodo: UpdateAppointmentsPeriodsDTO) => {
+    setFormDataPeriod({
+      id: periodo?.id ?? "",
+      title: periodo?.title ?? "",
+      startDate: toDateOnly(String(periodo?.startDate ?? "")),
+      endDate: toDateOnly(String(periodo?.endDate ?? "")),
+      collectionArea: periodo?.collectionArea ?? "",
+      status: periodo?.status ?? "PENDING",
+      observations: periodo?.observations ?? "",
+    });
+  };
 
   /** Preenche o formulário de edição com os dados do agendamento selecionado (data/hora no formato dos inputs). */
   const fillEditFormFromSelected = () => {
@@ -445,7 +485,6 @@ export default function AgendamentosView() {
     addAgendamento(result.data);
     resetForm();
     resetFormPeriod();
-    resetFormPeriod();
     setIsPeriodic(false);
     setIsDialogOpen(false);
     toast.success("Agendamento criado com sucesso!");
@@ -553,6 +592,7 @@ export default function AgendamentosView() {
       resetForm();
       resetFormPeriod();
       setIsPeriodic(false);
+      await carregarAgendamentos();
       toast.success("Agendamento atualizado com sucesso!");
     } else {
       toast.error(result.error ?? "Erro ao atualizar agendamento.");
@@ -565,9 +605,9 @@ export default function AgendamentosView() {
   ) => {
     const result = await appointmentsService.update(id, { status });
     if (result.success && result.data) {
-      updateAgendamento(id, { status });
-      setSelectedAgendamento(result.data);
+      updateAgendamento(id, result.data);
       setSelectedAgendamento(null);
+      await carregarAgendamentos();
       toast.success("Status atualizado!");
       return result.data;
     } else {
@@ -584,6 +624,7 @@ export default function AgendamentosView() {
       if (result.success) {
         deleteAgendamento(id);
         setSelectedAgendamento(null);
+        await carregarAgendamentos();
         toast.success("Agendamento excluído com sucesso!");
         return true;
       } else {
@@ -595,6 +636,7 @@ export default function AgendamentosView() {
     }
   };
 
+  /** Função para criar um novo período de coleta. */
   const handleCreatePeriodic = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -624,6 +666,76 @@ export default function AgendamentosView() {
       toast.error(result.error ?? "Erro ao criar período de coleta.");
     }
   }
+
+  // Edição do período de coleta: validação, confirmação (modal) e atualização centralizadas aqui
+  const handleEditPeriod = async (e?: React.FormEvent, confirmed?: boolean) => {
+    e?.preventDefault();
+
+    if (!selectedPeriod) {
+      toast.error("Período não selecionado.");
+      return;
+    }
+
+    if (formDataPeriod.startDate > formDataPeriod.endDate) {
+      toast.error("A data de início não pode ser maior que a data de término.");
+      return;
+    }
+
+    const emptyStr = (v: string | undefined | null) =>
+      v == null || String(v).trim() === "" ? "" : String(v).trim();
+    const dateOnly = (v: string | undefined | null) =>
+      emptyStr(v) ? String(v).trim().slice(0, 10) : "";
+
+    const original = selectedPeriod;
+    const origObs = original.observations ?? "";
+    const patchPayload: UpdateAppointmentsPeriodsDTO = {};
+
+    const current = {
+      title: formDataPeriod.title,
+      startDate: dateOnly(formDataPeriod.startDate),
+      endDate: dateOnly(formDataPeriod.endDate),
+      collectionArea: formDataPeriod.collectionArea,
+      status: formDataPeriod.status as Agendamento["status"],
+      observations: emptyStr(formDataPeriod.observations),
+    };
+
+    if (current.title !== original.title) patchPayload.title = current.title;
+    if (current.startDate !== dateOnly(original.startDate)) patchPayload.startDate = current.startDate;
+    if (current.endDate !== dateOnly(original.endDate)) patchPayload.endDate = current.endDate;
+    if (current.collectionArea !== original.collectionArea)
+      patchPayload.collectionArea = current.collectionArea;
+    if (current.status !== original.status) patchPayload.status = current.status;
+    if (current.observations !== origObs) patchPayload.observations = current.observations;
+
+    if (Object.keys(patchPayload).length === 0) {
+      toast.info("Nenhum campo alterado.");
+      return;
+    }
+
+    console.log("confirmed", confirmed);
+    
+    if (!confirmed) {
+      pendingEditPeriodPayloadRef.current = patchPayload;
+      setConfirmEditPeriodOpen(true);
+      return;
+    }
+
+    const payload = pendingEditPeriodPayloadRef.current ?? patchPayload;
+    pendingEditPeriodPayloadRef.current = null;
+    setConfirmEditPeriodOpen(false);
+
+    const result = await appointmentsService.updatePeriod(selectedPeriod.id!, payload);
+
+    if (result.success && result.data) {
+      toast.success("Período atualizado com sucesso!");
+      setIsDialogEditPeriodOpen(false);
+      resetFormPeriod();
+      await carregarPeriodos();
+      await carregarAgendamentos();
+    } else {
+      toast.error(result.error ?? "Erro ao atualizar período.");
+    }
+  };
 
   const statusConfig = {
     PENDING: {
@@ -949,6 +1061,35 @@ export default function AgendamentosView() {
     });
   }, [agendamentos, getDatesWithGrupoEUnico, getDatesUnicoDentroDePeriodo]);
 
+  /** Dias que possuem ao menos um agendamento único (!isPeriodic). Usado quando nenhum período está selecionado. */
+  const getDatesWithAgendamentoUnico = useCallback(() => {
+    const dateSet = new Set<string>();
+    agendamentos.forEach((a) => {
+      if (a.isPeriodic) return;
+      const d = (a.collectionDate ?? "").slice(0, 10);
+      if (d.length === 10) dateSet.add(d);
+    });
+    return Array.from(dateSet).map((d) => parseLocalDate(d));
+  }, [agendamentos]);
+
+  /** Conjunto de datas que usam o gradiente 50% roxo / 50% verde (para não aplicar outros modificadores em cima). */
+  const datesHalfHalfSet = useMemo(() => {
+    const set = new Set<string>();
+    getDatesWithGrupoEUnico().forEach((d) => set.add(format(d, "yyyy-MM-dd")));
+    getDatesUnicoDentroDePeriodo().forEach((d) => set.add(format(d, "yyyy-MM-dd")));
+    return set;
+  }, [getDatesWithGrupoEUnico, getDatesUnicoDentroDePeriodo]);
+
+  /** Intervalo do período excluindo dias que já têm o gradiente 50/50 (evita sobrescrever). */
+  const getDatesInPeriodRangeOnlyNoHalfHalf = useCallback(() => {
+    return getDatesInPeriodRange().filter((d) => !datesHalfHalfSet.has(format(d, "yyyy-MM-dd")));
+  }, [getDatesInPeriodRange, datesHalfHalfSet]);
+
+  /** Dias com agendamento no período excluindo os que já têm o gradiente 50/50 (evita sobrescrever). */
+  const getDatesWithAppointmentsInPeriodNoHalfHalf = useCallback(() => {
+    return getDatesWithAppointmentsInPeriod().filter((d) => !datesHalfHalfSet.has(format(d, "yyyy-MM-dd")));
+  }, [getDatesWithAppointmentsInPeriod, datesHalfHalfSet]);
+
   const TimelineView = () => {
     const weekStart = startOfWeek(new Date(), { locale: ptBR });
     const weekEnd = endOfWeek(new Date(), { locale: ptBR });
@@ -1092,17 +1233,35 @@ export default function AgendamentosView() {
               Exportar
             </Button>
 
+            {/* Confirmação ao salvar edição do período (realocação dos agendamentos) */}
+            <AlertDialog open={confirmEditPeriodOpen} onOpenChange={setConfirmEditPeriodOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar alterações no período?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Os agendamentos vinculados a este período serão realocados: ficarão sem data de coleta definida, mas continuarão dentro do período e poderão ser reagendados no novo intervalo. Deseja continuar?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => handleEditPeriod(undefined, true)}>
+                    Confirmar alterações
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
             {/* Criação de Período de Coleta */}
             <Dialog
               open={isCreatePeriodicOpen}
               onOpenChange={(open) => {
                 setIsCreatePeriodicOpen(open);
-                if (!open) {
+                if (open) {
                   resetFormPeriod();
-                  setIsCreatePeriodicOpen(false);
+                } else {
+                  resetFormPeriod();
                 }
-              }
-              }
+              }}
             >
               <DialogTrigger asChild>
                 <Button variant="secondary" size="sm" className="flex-1 sm:flex-none">
@@ -1124,6 +1283,7 @@ export default function AgendamentosView() {
                     <Input
                       id="title"
                       type="text"
+                      value={formDataPeriod.title}
                       onChange={(e) => {
                         setFormDataPeriod({ ...formDataPeriod, title: e.target.value })
                       }}
@@ -1165,6 +1325,7 @@ export default function AgendamentosView() {
                       <Input
                         id="collectionArea"
                         type="text"
+                        value={formDataPeriod.collectionArea}
                         onChange={(e) => {
                           setFormDataPeriod({ ...formDataPeriod, collectionArea: e.target.value })
                         }}
@@ -1699,7 +1860,8 @@ export default function AgendamentosView() {
                           setSelectedDayInPeriod(null);
                         } else {
                           setSelectedPeriod(periodo);
-                          setSelectedDayInPeriod(null);
+                          const firstDay = periodo?.startDate ? parseLocalDate(periodo.startDate.slice(0, 10)) : null;
+                          setSelectedDayInPeriod(firstDay && !Number.isNaN(firstDay.getTime()) ? firstDay : null);
                         }
                         setIsSidePanelOpen(false);
                         setViewMode("calendar");
@@ -1737,16 +1899,126 @@ export default function AgendamentosView() {
                             </div>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                              title="Editar período"
-                              onClick={() => { }}
+                            {/* Editar Período */}
+                            <Dialog
+                              open={isDialogEditPeriodOpen && selectedPeriod?.id === periodo.id}
+                              onOpenChange={(open) => {
+                                if (open) {
+                                  setSelectedPeriod(periodo);
+                                  fillEditFormPeriodFrom(periodo);
+                                  setIsDialogEditPeriodOpen(true);
+                                } else {
+                                  resetFormPeriod();
+                                  setIsDialogEditPeriodOpen(false);
+                                }
+                              }}
                             >
-                              <Edit className="w-4 h-4" />
-                            </Button>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                  title="Editar período"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
+                                <DialogHeader>
+                                  <DialogTitle>Editar Período</DialogTitle>
+                                  <DialogDescription>Edite as informações do período. Os agendamentos vinculados serão realocados.</DialogDescription>
+                                </DialogHeader>
+                                <form id="form-edit-period" onSubmit={handleEditPeriod}>
+                                  <div className="space-y-4">
+                                    <div className="space-y-2">
+                                      <Label htmlFor="titleEdit">Título *</Label>
+                                      <Input
+                                        id="titleEdit"
+                                        name="titleEdit"
+                                        value={formDataPeriod.title}
+                                        onChange={(e) => setFormDataPeriod({ ...formDataPeriod, title: e.target.value })}
+                                        required
+                                      />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div className="space-y-2">
+                                        <Label htmlFor="startDateEdit">Data de Início *</Label>
+                                        <Input
+                                          id="startDateEdit"
+                                          type="date"
+                                          min={dataPickerBlocked()}
+                                          max={formDataPeriod.endDate}
+                                          value={formDataPeriod.startDate}
+                                          onChange={(e) => setFormDataPeriod({ ...formDataPeriod, startDate: e.target.value })}
+                                          required
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label htmlFor="endDateEdit">Data de Fim *</Label>
+                                        <Input
+                                          id="endDateEdit"
+                                          type="date"
+                                          min={formDataPeriod.startDate ? formDataPeriod.startDate : dataPickerBlocked()}
+                                          value={formDataPeriod.endDate}
+                                          onChange={(e) => setFormDataPeriod({ ...formDataPeriod, endDate: e.target.value })}
+                                          required
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div className="space-y-2">
+                                        <Label htmlFor="collectionAreaEdit">Área de Coleta *</Label>
+                                        <Input
+                                          id="collectionAreaEdit"
+                                          value={formDataPeriod.collectionArea}
+                                          onChange={(e) => setFormDataPeriod({ ...formDataPeriod, collectionArea: e.target.value })}
+                                          required
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label htmlFor="observationsEdit">Status *</Label>
+                                        <Select
+                                          value={formDataPeriod.status}
+                                          onValueChange={(value) => setFormDataPeriod({ ...formDataPeriod, status: value })}
+                                          required
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Selecione o status" />
+                                            <SelectContent>
+                                              <SelectItem value="PENDING">Pendente</SelectItem>
+                                              <SelectItem value="CONFIRMED">Confirmado</SelectItem>
+                                              <SelectItem value="COLLECTED">Coletado</SelectItem>
+                                              <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                                            </SelectContent>
+                                          </SelectTrigger>
+                                        </Select>
+                                      </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label htmlFor="observationsEdit">Observações</Label>
+                                      <Textarea
+                                        id="observationsEdit"
+                                        value={formDataPeriod.observations}
+                                        onChange={(e) => setFormDataPeriod({ ...formDataPeriod, observations: e.target.value })}
+                                      />
+                                    </div>
+                                  </div>
+                                </form>
+                                <DialogFooter>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                      resetFormPeriod();
+                                      setIsDialogEditPeriodOpen(false);
+                                    }}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                  <Button type="submit" form="form-edit-period">Salvar Alterações</Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
                             <Button
                               type="button"
                               variant="ghost"
@@ -1755,7 +2027,8 @@ export default function AgendamentosView() {
                               title="Visualizar no menu lateral"
                               onClick={() => {
                                 setSelectedPeriod(periodo);
-                                setSelectedDayInPeriod(null);
+                                const firstDay = periodo?.startDate ? parseLocalDate(periodo.startDate.slice(0, 10)) : null;
+                                setSelectedDayInPeriod(firstDay && !Number.isNaN(firstDay.getTime()) ? firstDay : null);
                                 setSelectedAgendamento(null);
                                 setIsSidePanelOpen(true);
                               }}
@@ -1921,53 +2194,81 @@ export default function AgendamentosView() {
                     }
                   }}
                   locale={ptBR}
-                  className="rounded-md border"
+                  className="rounded-md border calendar-appointments"
                   numberOfMonths={1}
+                  classNames={{
+                    cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:rounded-md",
+                    day: "rdp-day size-8 p-0 font-normal aria-selected:opacity-100 rounded-md cursor-pointer",
+                    day_today: "calendar-day-today",
+                    day_selected: "calendar-day-selected",
+                  }}
                   modifiers={{
-                    agendado: getDatesWithAgendamentosSomente(),
-                    diaGrupoEUnico: getDatesWithGrupoEUnico(),
-                    diaUnicoDentroPeriodo: getDatesUnicoDentroDePeriodo(),
+                    ...(!selectedPeriod
+                      ? { agendado: getDatesWithAgendamentos() }
+                      : {}),
                     ...(selectedPeriod
                       ? {
-                        periodInterval: getDatesInPeriodRange(),
-                        periodAppointmentDay: getDatesWithAppointmentsInPeriod(),
+                        diaGrupoEUnico: getDatesWithGrupoEUnico(),
+                        diaUnicoDentroPeriodo: getDatesUnicoDentroDePeriodo(),
+                        periodInterval: getDatesInPeriodRangeOnlyNoHalfHalf(),
+                        periodAppointmentDay: getDatesWithAppointmentsInPeriodNoHalfHalf(),
                       }
                       : {}),
                   }}
                   modifiersClassNames={{
-                    diaGrupoEUnico: "calendar-day-half-half",
-                    diaUnicoDentroPeriodo: "calendar-day-half-half",
+                    ...(!selectedPeriod ? { agendado: "calendar-day-agendado" } : {}),
+                    ...(selectedPeriod
+                      ? {
+                        diaGrupoEUnico: "calendar-day-half-half",
+                        diaUnicoDentroPeriodo: "calendar-day-half-half",
+                        periodInterval: "calendar-day-period-interval",
+                        periodAppointmentDay: "calendar-day-period-appointment",
+                      }
+                      : {}),
                   }}
                   modifiersStyles={{
-                    agendado: {
-                      backgroundColor: "rgba(93, 173, 226, 0.5)",
-                      color: "#1e3a5f",
-                      fontWeight: "600",
-                      borderRadius: "6px",
-                    },
-                    diaGrupoEUnico: {
-                      background: "linear-gradient(90deg, rgba(59, 130, 246, 0.7) 0%, rgba(59, 130, 246, 0.7) 50%, rgba(16, 185, 129, 0.7) 50%, rgba(16, 185, 129, 0.7) 100%)",
-                      color: "#0f172a",
-                      fontWeight: "600",
-                      borderRadius: "6px",
-                    },
-                    diaUnicoDentroPeriodo: {
-                      background: "linear-gradient(90deg, rgba(59, 130, 246, 0.7) 0%, rgba(59, 130, 246, 0.7) 50%, rgba(16, 185, 129, 0.7) 50%, rgba(16, 185, 129, 0.7) 100%)",
-                      color: "#0f172a",
-                      fontWeight: "600",
-                      borderRadius: "6px",
-                    },
+                    ...(!selectedPeriod
+                      ? {
+                        agendado: {
+                          background: "rgba(139, 92, 246, 0.6)",
+                          color: "#fff",
+                          fontWeight: "600",
+                          borderRadius: "6px",
+                          border: "1px solid rgb(255, 255, 255)",
+                        },
+                      }
+                      : {}),
+                    ...(selectedPeriod
+                      ? {
+                        diaGrupoEUnico: {
+                          background: "linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%)",
+                          color: "#0f172a",
+                          border: "1px solid rgb(255, 255, 255)",
+                          fontWeight: "600",
+                          borderRadius: "6px",
+                        },
+                        diaUnicoDentroPeriodo: {
+                          background: "linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%)",
+                          color: "#0f172a",
+                          border: "1px solid rgb(255, 255, 255)",
+                          fontWeight: "600",
+                          borderRadius: "6px",
+                        },
+                      }
+                      : {}),
                     ...(selectedPeriod
                       ? {
                         periodInterval: {
-                          backgroundColor: "rgba(59, 130, 246, 0.2)",
-                          fontWeight: "bold",
-                          border: "1px solid rgb(59, 130, 246)",
+                          background: "rgba(187, 247, 208, 0.6)",
+                          color: "#0f172a",
+                          fontWeight: "600",
+                          border: "1px solid rgb(255, 255, 255)",
                           borderRadius: "6px",
                         },
                         periodAppointmentDay: {
-                          backgroundColor: "rgba(59, 130, 246, 0.45)",
-                          border: "1px solid rgb(59, 130, 246)",
+                          background: "rgba(249, 115, 22, 0.6)",
+                          color: "#fff",
+                          border: "1px solid rgb(255, 255, 255)",
                           borderRadius: "6px",
                           fontWeight: "600",
                         },
@@ -2134,17 +2435,17 @@ export default function AgendamentosView() {
                   {(selectedPeriod
                     ? (selectedDayInPeriod ? agendamentosDoPeriodoNoDia.length === 0 : agendamentosDoPeriodo.length === 0)
                     : agendamentosDosDia.length === 0) && (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>
-                        {selectedPeriod
-                          ? selectedDayInPeriod
-                            ? "Nenhum agendamento neste dia do período"
-                            : "Nenhum agendamento neste período"
-                          : "Nenhum agendamento para esta data"}
-                      </p>
-                    </div>
-                  )}
+                      <div className="text-center py-12 text-muted-foreground">
+                        <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>
+                          {selectedPeriod
+                            ? selectedDayInPeriod
+                              ? "Nenhum agendamento neste dia do período"
+                              : "Nenhum agendamento neste período"
+                            : "Nenhum agendamento para esta data"}
+                        </p>
+                      </div>
+                    )}
                 </div>
               </CardContent>
             </Card>
@@ -2338,12 +2639,13 @@ export default function AgendamentosView() {
                         </p>
                       )}
                       {selectedPeriod.collectionArea?.trim() && (
-                        <p className="text-sm text-muted-foreground mt-1">
+                        <p className="text-sm text-muted-foreground mt-2 flex items-center gap-1">
+                          <MapPin className="w-4 h-4 flex-shrink-0" />
                           {selectedPeriod.collectionArea}
                         </p>
                       )}
                       {selectedPeriod.status && (
-                        <Badge className={getStatusConfig(selectedPeriod.status).bgLight + " mt-2"} variant="secondary">
+                        <Badge className={getStatusConfig(selectedPeriod.status).bgLight + " mt-3"} variant="secondary">
                           <span className={getStatusConfig(selectedPeriod.status).textColor}>
                             {getStatusConfig(selectedPeriod.status).label}
                           </span>
