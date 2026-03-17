@@ -458,10 +458,11 @@ export default function AgendamentosView() {
     const address = `${cliente.usaAddress.rua}, ${cliente.usaAddress.numero}, ${cliente.usaAddress.cidade}, ${cliente.usaAddress.estado} ${cliente.usaAddress.zipCode}`;
 
     const isPeriodic = Boolean(formData?.isPeriodic);
+    const comPeriodo = isPeriodic && Boolean(formData.appointmentPeriodId?.trim());
     const payload: CreateAppointmentsDTO = {
       clientId: formData.clientId,
       userId: formData.userId,
-      collectionDate: formData.collectionDate?.trim(),
+      collectionDate: comPeriodo ? undefined : (formData.collectionDate?.trim() ?? undefined),
       collectionTime: formData.collectionTime?.trim() ?? "",
       value: formData?.value ?? 0,
       downPayment: formData?.downPayment ?? 0,
@@ -474,9 +475,7 @@ export default function AgendamentosView() {
         | "COLLECTED"
         | "CANCELLED",
       ...(formData.observations?.trim() ? { observations: formData.observations.trim() } : {}),
-      ...(formData.isPeriodic && formData.appointmentPeriodId?.trim()
-        ? { appointmentPeriodId: formData.appointmentPeriodId.trim() }
-        : {}),
+      ...(comPeriodo ? { appointmentPeriodId: formData.appointmentPeriodId!.trim() } : {}),
     };
 
     const result = await appointmentsService.create(payload);
@@ -569,7 +568,10 @@ export default function AgendamentosView() {
       if (current.observations !== origObs) patch.observations = current.observations;
       const currPeriod = current.appointmentPeriodId ?? "";
       const origPeriod = original.appointmentPeriodId ?? "";
-      if (currPeriod !== origPeriod) patch.appointmentPeriodId = currPeriod || "";
+      if (currPeriod !== origPeriod) {
+        patch.appointmentPeriodId = currPeriod || "";
+        if (currPeriod && current.isPeriodic) patch.collectionDate = "";
+      }
       return patch;
     }
 
