@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -63,14 +63,14 @@ export default function MotoristaApp() {
       grandes: 0,
       total: ordem.caixas.length
     };
-    
+
     ordem.caixas.forEach(c => {
       const tipo = c.tipo.toLowerCase();
       if (tipo.includes('pequena')) counts.pequenas++;
       else if (tipo.includes('media') || tipo.includes('média')) counts.medias++;
       else if (tipo.includes('grande')) counts.grandes++;
     });
-    
+
     return counts;
   };
 
@@ -166,7 +166,7 @@ export default function MotoristaApp() {
                   Nome:
                 </span>
                 <span className="font-semibold">
-                  {ordemConcluida.remetente.nome}
+                  {ordemConcluida.remetente.usaName}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -174,7 +174,7 @@ export default function MotoristaApp() {
                   Telefone:
                 </span>
                 <span className="font-semibold">
-                  {ordemConcluida.remetente.phone}
+                  {ordemConcluida.remetente.usaPhone}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -182,7 +182,7 @@ export default function MotoristaApp() {
                   Origem:
                 </span>
                 <span className="font-semibold">
-                  {ordemConcluida.remetente.address}
+                  {ordemConcluida.remetente.usaAddress.rua} {ordemConcluida.remetente.usaAddress.numero}, {ordemConcluida.remetente.usaAddress.cidade} - {ordemConcluida.remetente.usaAddress.estado}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -190,7 +190,7 @@ export default function MotoristaApp() {
                   Destino:
                 </span>
                 <span className="font-semibold">
-                  {ordemConcluida.destinatario.endereco}, {ordemConcluida.destinatario.cidade} - {ordemConcluida.destinatario.estado}
+                  {ordemConcluida.destinatario.brazilAddress.endereco}, {ordemConcluida.destinatario.brazilAddress.cidade} - {ordemConcluida.destinatario.brazilAddress.estado}
                 </span>
               </div>
             </div>
@@ -360,6 +360,15 @@ export default function MotoristaApp() {
               </p>
             </div>
             <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+              <Box className="w-10 h-10 mx-auto text-purple-600 mb-2" />
+              <p className="text-3xl font-bold text-purple-900">
+                {estoque.personalizedItems}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Personalizados
+              </p>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
               <Package className="w-8 h-8 mx-auto text-green-600 mb-2" />
               <p className="text-3xl font-bold text-green-900">
                 {estoque.adhesiveTape}
@@ -401,48 +410,48 @@ export default function MotoristaApp() {
                       </Badge>
                     </div>
                   </CardHeader>
-                <CardContent className="space-y-3 flex-1">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span>
-                      {format(
-                        new Date(agendamento.collectionDate ?? ""),
-                        "dd/MM/yyyy",
-                        { locale: ptBR },
-                      )}{" "}
-                      às {agendamento.collectionTime}
-                    </span>
-                  </div>
+                  <CardContent className="space-y-3 flex-1">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span>
+                        {format(
+                          new Date(agendamento.collectionDate ?? ""),
+                          "dd/MM/yyyy",
+                          { locale: ptBR },
+                        )}{" "}
+                        às {agendamento.collectionTime}
+                      </span>
+                    </div>
 
-                  <div className="flex items-start gap-2 text-sm">
-                    <Home className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <span className="line-clamp-2">
-                      <span className="font-semibold text-xs text-muted-foreground mr-1">COLETA:</span>
-                      {agendamento.address}
-                    </span>
-                  </div>
+                    <div className="flex items-start gap-2 text-sm">
+                      <Home className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <span className="line-clamp-2">
+                        <span className="font-semibold text-xs text-muted-foreground mr-1">COLETA:</span>
+                        {agendamento.address}
+                      </span>
+                    </div>
 
-                  <div className="flex items-start gap-2 text-sm">
-                    <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <span className="line-clamp-2">
-                      <span className="font-semibold text-xs text-muted-foreground mr-1">ENTREGA:</span>
-                      {/* TODO: Adicionar endereço de entrega */}
-                      {"Endereço de entrega a definir"}
-                    </span>
+                    <div className="flex items-start gap-2 text-sm">
+                      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <span className="line-clamp-2">
+                        <span className="font-semibold text-xs text-muted-foreground mr-1">ENTREGA:</span>
+                        {/* TODO: Adicionar endereço de entrega */}
+                        {"Endereço de entrega a definir"}
+                      </span>
+                    </div>
+                  </CardContent>
+
+                  <div className="p-4 pt-0 mt-auto">
+                    <Button
+                      onClick={() => handleIniciarAtendimento(agendamento)}
+                      className="w-full bg-[#1E3A5F] hover:bg-[#2A4A6F] h-12 text-lg"
+                    >
+                      <Truck className="w-5 h-5 mr-2" />
+                      Iniciar Atendimento
+                    </Button>
                   </div>
-                </CardContent>
-                
-                <div className="p-4 pt-0 mt-auto">
-                   <Button
-                    onClick={() => handleIniciarAtendimento(agendamento)}
-                    className="w-full bg-[#1E3A5F] hover:bg-[#2A4A6F] h-12 text-lg"
-                  >
-                    <Truck className="w-5 h-5 mr-2" />
-                    Iniciar Atendimento
-                  </Button>
-                </div>
-              </Card>
-            </motion.div>
+                </Card>
+              </motion.div>
             );
           })}
         </AnimatePresence>

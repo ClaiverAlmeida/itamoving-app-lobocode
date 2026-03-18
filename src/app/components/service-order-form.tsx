@@ -29,6 +29,7 @@ import {
   X,
   ArrowLeft
 } from 'lucide-react';
+
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { toast } from 'sonner';
@@ -72,6 +73,8 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
   const [remetenteCidade, setRemetenteCidade] = useState(cliente?.usaAddress.cidade || '');
   const [remetenteEstado, setRemetenteEstado] = useState(cliente?.usaAddress.estado || '');
   const [remetenteZipCode, setRemetenteZipCode] = useState(cliente?.usaAddress.zipCode || '');
+  const [remetenteNumero, setRemetenteNumero] = useState(cliente?.usaAddress.numero || '');
+  const [remetenteComplemento, setRemetenteComplemento] = useState(cliente?.usaAddress.complemento || '');
   const [remetenteCpfRg, setRemetenteCpfRg] = useState(cliente?.usaCpf || '');
 
   // Estados do formulário - Destinatário (Brasil)
@@ -276,24 +279,29 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
       id: Date.now().toString(),
       agendamentoId,
       remetente: {
-        nome: remetenteNome,
-        telefone: remetenteTel,
-        endereco: remetenteEndereco,
-        nome: remetenteCidade,
-        state: remetenteEstado,
-        cep: remetenteZipCode,
-        cpf: remetenteCpfRg,
-        cpfRg: remetenteCpfRg,
+        usaName: remetenteNome,
+        usaPhone: remetenteTel,
+        usaCpf: remetenteCpfRg as string,
+        usaAddress: {
+          rua: remetenteEndereco,
+          numero: remetenteNumero as string,
+          cidade: remetenteCidade as string,
+          estado: remetenteEstado as string,
+          zipCode: remetenteZipCode as string,
+          complemento: remetenteComplemento as string,
+        },
       },
       destinatario: {
-        nome: destinatarioNome,
-        cpfRg: destinatarioCpfRg,
-        address: destinatarioEndereco,
-        bairro: destinatarioBairro,
-        city: destinatarioCidade,
-        state: destinatarioEstado,
-        cep: destinatarioCep,
-        telefone: destinatarioTelefone,
+        brazilName: destinatarioNome,
+        brazilCpf: destinatarioCpfRg,
+        brazilAddress: {
+          endereco: destinatarioEndereco as string,
+          bairro: destinatarioBairro as string,
+          cidade: destinatarioCidade as string,
+          estado: destinatarioEstado as string,
+          cep: destinatarioCep as string,
+        },
+        brazilPhone: destinatarioTelefone as string,
       },
       caixas: caixas.map(c => ({
         id: c.id,

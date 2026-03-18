@@ -127,24 +127,61 @@ export class AppointmentsService {
     }
   }
 
-  async getAllPeriods(): Promise<{
+  async getAllPeriods(
+    page = 1,
+    limit = 10,
+  ): Promise<{
     success: boolean;
     data?: CreateAppointmentsPeriodsDTO[];
+    pagination?: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
     error?: string;
   }> {
     try {
-      const result = await api.get<
-        AppointmentsPeriodsBackend[] | { data: AppointmentsPeriodsBackend[] }
-      >("/appointments/periods");
-      if (result.success && result.data) {
-        const raw = (result.data as any)?.data ?? result.data;
-        const appointmentsPeriodsBackend = raw as AppointmentsPeriodsBackend[];
-        const appointmentsPeriods = appointmentsPeriodsBackend.map(mapBackendToFrontendPeriods);
-        return { success: true, data: appointmentsPeriods };
+      const result = await api.get<{
+        data: AppointmentsPeriodsBackend[];
+        pagination?: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+          hasNextPage: boolean;
+          hasPreviousPage: boolean;
+        };
+      }>("/appointments/periods", { params: { page, limit } });
+      if (result.success && result.data != null) {
+        const body = result.data as {
+          data?: AppointmentsPeriodsBackend[];
+          pagination?: {
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+            hasNextPage: boolean;
+            hasPreviousPage: boolean;
+          };
+        };
+        const rawList = body.data;
+        if (!Array.isArray(rawList)) {
+          return { success: false, error: "Resposta inválida ao buscar períodos" };
+        }
+        const appointmentsPeriods = rawList.map(mapBackendToFrontendPeriods);
+        return {
+          success: true,
+          data: appointmentsPeriods,
+          pagination: body.pagination,
+        };
       }
-      return { success: false, error: result.error || "Erro ao buscar agendamentos" };
-    } catch (error) {
-      return { success: false, error: error.message || "Erro ao buscar agendamentos" };
+      return { success: false, error: result.error || "Erro ao buscar períodos" };
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Erro ao buscar períodos";
+      return { success: false, error: msg };
     }
   }
 
@@ -178,17 +215,37 @@ export class AppointmentsService {
   async getAllQtdBoxesPerPeriod(startDate: string, endDate: string): Promise<{
     success: boolean;
     data?: { collectionDate: string; qtyBoxes: number }[];
+    semDiaColetaNoPeriodo?: number;
     error?: string;
   }> {
     try {
       const result = await api.get<
         | { collectionDate: string; qtyBoxes: number }[]
-        | { data: { collectionDate: string; qtyBoxes: number }[] }
+        | {
+            data: { collectionDate: string; qtyBoxes: number }[];
+            semDiaColetaNoPeriodo?: number;
+          }
       >("/appointments/qtd-boxes-per-period", { params: { startDate, endDate } });
       if (result.success && result.data) {
         const raw = result.data as any;
-        const list = Array.isArray(raw) ? raw : (raw?.data ?? []);
-        return { success: true, data: list };
+        let list: { collectionDate: string; qtyBoxes: number }[] = [];
+        if (Array.isArray(raw)) {
+          list = raw;
+        } else if (Array.isArray(raw?.data)) {
+          list = raw.data;
+        } else if (raw?.data && typeof raw.data === "object" && Array.isArray(raw.data.data)) {
+          list = raw.data.data;
+        }
+        const semDiaColetaNoPeriodo = Number(
+          raw?.semDiaColetaNoPeriodo ??
+            raw?.data?.semDiaColetaNoPeriodo ??
+            0,
+        );
+        return {
+          success: true,
+          data: list,
+          semDiaColetaNoPeriodo: Number.isFinite(semDiaColetaNoPeriodo) ? semDiaColetaNoPeriodo : 0,
+        };
       }
       return {
         success: false,

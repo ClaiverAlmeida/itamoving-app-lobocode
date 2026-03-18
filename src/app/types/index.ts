@@ -199,24 +199,31 @@ export interface OrdemServicoMotorista {
 
   // Dados do Remetente (USA)
   remetente: {
-    nome: string;
-    address: string;
-    state: string;
-    zipCode: string;
-    phone: string;
-    cpfRg?: string;
+    usaName: string;
+    usaAddress: {
+      rua: string;
+      numero: string;
+      cidade: string;
+      estado: string;
+      zipCode: string;
+      complemento?: string;
+    };
+    usaPhone: string;
+    usaCpf: string;
   };
 
   // Dados do Destinatário (Brasil)
   destinatario: {
-    nome: string;
-    cpfRg: string;
-    endereco: string;
-    bairro: string;
-    cidade: string;
-    estado: string;
-    cep: string;
-    telefone: string;
+    brazilName: string;
+    brazilCpf: string;
+    brazilAddress: {
+      endereco: string;
+      bairro: string;
+      cidade: string;
+      estado: string;
+      cep: string;
+    };
+    brazilPhone: string;
   };
 
   // Caixas e Valores

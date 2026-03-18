@@ -41,7 +41,6 @@ import {
 } from "./ui/alert-dialog";
 import { Calendar } from "./ui/calendar";
 import { Badge } from "./ui/badge";
-import { Alert, AlertDescription } from "./ui/alert";
 import { useData } from "../context/DataContext";
 import { Agendamento, Cliente } from "../types";
 import {
@@ -69,6 +68,8 @@ import {
   Box,
   Edit,
   PanelRightOpen,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -159,13 +160,29 @@ export default function AgendamentosView() {
   const [qtdCaixasPorPeriodo, setQtdCaixasPorPeriodo] = useState<
     { collectionDate: string; qtyBoxes: number }[]
   >([]);
+  const [semDiaColetaNoPeriodo, setSemDiaColetaNoPeriodo] = useState(0);
 
   const clientesAtivos = useMemo(
     () => clientes.filter((c) => c.status === "ACTIVE"),
     [clientes]
   );
 
+  /** Períodos para selects / validações (até 200 itens). */
   const [periodos, setPeriodos] = useState<CreateAppointmentsPeriodsDTO[]>([]);
+  /** Lista paginada do card “Períodos de Coleta”. */
+  const [periodosLista, setPeriodosLista] = useState<CreateAppointmentsPeriodsDTO[]>([]);
+  const [periodosListPagination, setPeriodosListPagination] = useState<{
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  } | null>(null);
+  const [loadingPeriodosLista, setLoadingPeriodosLista] = useState(true);
+
+  const PERIODOS_CARD_PAGE_SIZE = 10;
+  const PERIODOS_SELECT_LIMIT = 200;
   const [selectedPeriod, setSelectedPeriod] = useState<CreateAppointmentsPeriodsDTO | null>(null);
   /** Dia opcional no período: quando null, mostra todos os dias do período; quando definido, filtra por esse dia. */
   const [selectedDayInPeriod, setSelectedDayInPeriod] = useState<Date | null>(null);
@@ -184,19 +201,28 @@ export default function AgendamentosView() {
     carregarAgendamentos();
   }, [carregarAgendamentos]);
 
-  useEffect(() => {
-    (async () => {
-      const result = await appointmentsService.getAllPeriods();
-      if (result.success && result.data) setPeriodos(result.data);
-    })();
+  const carregarPeriodosOpcoes = useCallback(async () => {
+    const result = await appointmentsService.getAllPeriods(1, PERIODOS_SELECT_LIMIT);
+    if (result.success && result.data) setPeriodos(result.data);
   }, []);
 
-  const carregarPeriodos = (async () => {
-    const result = await appointmentsService.getAllPeriods();
-    if (result.success && result.data) {
-      setPeriodos(result.data);
+  const carregarPeriodosLista = useCallback(async (page: number) => {
+    setLoadingPeriodosLista(true);
+    try {
+      const result = await appointmentsService.getAllPeriods(page, PERIODOS_CARD_PAGE_SIZE);
+      if (result.success && result.data) {
+        setPeriodosLista(result.data);
+        setPeriodosListPagination(result.pagination ?? null);
+      }
+    } finally {
+      setLoadingPeriodosLista(false);
     }
-  });
+  }, []);
+
+  useEffect(() => {
+    carregarPeriodosOpcoes();
+    void carregarPeriodosLista(1);
+  }, [carregarPeriodosOpcoes, carregarPeriodosLista]);
 
   // Receber notificações de agendamentos via WebSocket e atualizar a lista
   useEffect(() => {
@@ -246,6 +272,7 @@ export default function AgendamentosView() {
   const carregarQtdCaixasPorPeriodo = async (startDate: string, endDate: string) => {
     if (!startDate?.trim() || !endDate?.trim()) {
       setQtdCaixasPorPeriodo([]);
+      setSemDiaColetaNoPeriodo(0);
       return;
     }
 
@@ -257,20 +284,10 @@ export default function AgendamentosView() {
 
     const result = await appointmentsService.getAllQtdBoxesPerPeriod(startDateISO, endDateISO);
     if (result.success && result.data !== undefined) {
-      const raw = result.data as any;
-      const list: { collectionDate: string; qtyBoxes: number }[] =
-        Array.isArray(raw)
-          ? raw
-          : raw?.data != null
-            ? Array.isArray(raw.data)
-              ? raw.data
-              : [raw.data]
-            : typeof raw === "object" &&
-              raw !== null &&
-              "collectionDate" in raw
-              ? [raw]
-              : [];
-      setQtdCaixasPorPeriodo(list);
+      setQtdCaixasPorPeriodo([...(result.data as { collectionDate: string; qtyBoxes: number }[])]);
+      setSemDiaColetaNoPeriodo(
+        Math.max(0, Number(result.semDiaColetaNoPeriodo ?? 0) || 0),
+      );
     } else if (result.error) {
       toast.error(result.error);
     }
@@ -312,6 +329,7 @@ export default function AgendamentosView() {
     });
     setQtdCaixasPorDia([]);
     setQtdCaixasPorPeriodo([]);
+    setSemDiaColetaNoPeriodo(0);
   };
 
   const resetEditForm = () => {
@@ -399,7 +417,7 @@ export default function AgendamentosView() {
     });
     carregarQtdCaixasPorDia(collectionDate || format(new Date(), "yyyy-MM-dd"), selectedAgendamento?.isPeriodic ?? false, selectedAgendamento?.appointmentPeriodId ?? "");
     if (selectedAgendamento?.isPeriodic && selectedAgendamento?.appointmentPeriodId) {
-      carregarPeriodos();
+      void carregarPeriodosOpcoes();
     }
   };
 
@@ -458,11 +476,12 @@ export default function AgendamentosView() {
     const address = `${cliente.usaAddress.rua}, ${cliente.usaAddress.numero}, ${cliente.usaAddress.cidade}, ${cliente.usaAddress.estado} ${cliente.usaAddress.zipCode}`;
 
     const isPeriodic = Boolean(formData?.isPeriodic);
+    const collectionDate = formData.collectionDate?.trim();
     const comPeriodo = isPeriodic && Boolean(formData.appointmentPeriodId?.trim());
     const payload: CreateAppointmentsDTO = {
       clientId: formData.clientId,
       userId: formData.userId,
-      collectionDate: comPeriodo ? undefined : (formData.collectionDate?.trim() ?? undefined),
+      collectionDate: collectionDate ? collectionDate : undefined,
       collectionTime: formData.collectionTime?.trim() ?? "",
       value: formData?.value ?? 0,
       downPayment: formData?.downPayment ?? 0,
@@ -558,7 +577,10 @@ export default function AgendamentosView() {
 
       if (current.clientId !== original.client?.id) patch.clientId = current.clientId;
       if (current.userId !== original.user?.id) patch.userId = current.userId;
-      if (dateOnly(current.collectionDate) !== origCollectionDate) patch.collectionDate = current.collectionDate;
+      if (dateOnly(current.collectionDate) !== origCollectionDate) {
+        const t = emptyStr(formData.collectionDate);
+        (patch as Record<string, unknown>).collectionDate = t ? t.slice(0, 10) : null;
+      }
       if (timeOnly(current.collectionTime) !== origCollectionTime) patch.collectionTime = current.collectionTime;
       if (current.value !== original.value) patch.value = current.value;
       if (current.downPayment !== original.downPayment) patch.downPayment = current.downPayment;
@@ -570,7 +592,6 @@ export default function AgendamentosView() {
       const origPeriod = original.appointmentPeriodId ?? "";
       if (currPeriod !== origPeriod) {
         patch.appointmentPeriodId = currPeriod || "";
-        if (currPeriod && current.isPeriodic) patch.collectionDate = "";
       }
       return patch;
     }
@@ -664,10 +685,11 @@ export default function AgendamentosView() {
 
     const result = await appointmentsService.createPeriod(payload);
     if (result.success && result.data) {
-      setPeriodos([...periodos, result.data]);
       toast.success("Período de coleta criado com sucesso!");
       resetFormPeriod();
       setIsCreatePeriodicOpen(false);
+      await carregarPeriodosOpcoes();
+      await carregarPeriodosLista(1);
     } else {
       toast.error(result.error ?? "Erro ao criar período de coleta.");
     }
@@ -734,7 +756,8 @@ export default function AgendamentosView() {
       toast.success("Período atualizado com sucesso!");
       setIsDialogEditPeriodOpen(false);
       resetFormPeriod();
-      carregarPeriodos();
+      await carregarPeriodosOpcoes();
+      await carregarPeriodosLista(periodosListPagination?.page ?? 1);
       carregarAgendamentos();
       setSelectedPeriod(result.data);
     } else {
@@ -1003,22 +1026,29 @@ export default function AgendamentosView() {
 
   /** Dias que têm ao mesmo tempo agendamento por grupo (isPeriodic) e agendamento único (!isPeriodic). */
   const getDatesWithGrupoEUnico = useCallback(() => {
+    if (!selectedPeriod?.id) return [];
+    const selectedPid = String(selectedPeriod.id);
+
     const byDate = new Map<string, { grupo: boolean; unico: boolean }>();
     agendamentos.forEach((a) => {
       const d = (a.collectionDate ?? "").slice(0, 10);
       if (d.length < 10) return;
       if (!byDate.has(d)) byDate.set(d, { grupo: false, unico: false });
       const cur = byDate.get(d)!;
-      if (a.isPeriodic) cur.grupo = true;
+      if (a.isPeriodic) {
+        if (String(a.appointmentPeriodId ?? "") === selectedPid) cur.grupo = true;
+      }
       else cur.unico = true;
     });
     return Array.from(byDate.entries())
       .filter(([, v]) => v.grupo && v.unico)
       .map(([d]) => parseLocalDate(d));
-  }, [agendamentos]);
+  }, [agendamentos, selectedPeriod]);
 
   /** Dias em que há agendamento único e a data está dentro do intervalo de algum período (50% período, 50% único). */
   const getDatesUnicoDentroDePeriodo = useCallback(() => {
+    if (!selectedPeriod?.id) return [];
+
     const diasComUnico = new Set<string>();
     agendamentos.forEach((a) => {
       if (a.isPeriodic) return;
@@ -1027,15 +1057,15 @@ export default function AgendamentosView() {
       diasComUnico.add(d);
     });
     const result: Date[] = [];
-    periodos.forEach((p) => {
-      const startStr = toYYYYMMDD(p.startDate);
-      const endStr = toYYYYMMDD(p.endDate);
-      if (!startStr || !endStr) return;
-      diasComUnico.forEach((dayStr) => {
-        if (dayStr >= startStr && dayStr <= endStr) {
-          result.push(parseLocalDate(dayStr));
-        }
-      });
+
+    const startStr = toYYYYMMDD(selectedPeriod.startDate);
+    const endStr = toYYYYMMDD(selectedPeriod.endDate);
+    if (!startStr || !endStr) return [];
+
+    diasComUnico.forEach((dayStr) => {
+      if (dayStr >= startStr && dayStr <= endStr) {
+        result.push(parseLocalDate(dayStr));
+      }
     });
     const seen = new Set<string>();
     return result.filter((d) => {
@@ -1044,7 +1074,7 @@ export default function AgendamentosView() {
       seen.add(key);
       return true;
     });
-  }, [agendamentos, periodos]);
+  }, [agendamentos, selectedPeriod]);
 
   /** Dias com agendamento que não são “grupo + único” nem “único dentro de período” (para não duplicar estilo no calendário). */
   const getDatesWithAgendamentosSomente = useCallback(() => {
@@ -1393,6 +1423,7 @@ export default function AgendamentosView() {
                   resetEditForm();
                   setQtdCaixasPorDia([]);
                   setQtdCaixasPorPeriodo([]);
+                  setSemDiaColetaNoPeriodo(0);
                   setIsPeriodic(false);
                 }
               }}
@@ -1509,13 +1540,16 @@ export default function AgendamentosView() {
                           onCheckedChange={(checked) => {
                             setIsPeriodic(checked);
                             carregarQtdCaixasPorDia(formData.collectionDate, checked, checked ? formData.appointmentPeriodId : "");
-                            carregarPeriodos();
+                            void carregarPeriodosOpcoes();
                             setFormData((prev) => ({
                               ...prev,
                               isPeriodic: checked,
                               ...(checked ? {} : { appointmentPeriodId: "" }),
                             }));
-                            if (!checked) setQtdCaixasPorPeriodo([]);
+                            if (!checked) {
+                              setQtdCaixasPorPeriodo([]);
+                              setSemDiaColetaNoPeriodo(0);
+                            }
                           }}
                         />
                       </div>
@@ -1552,6 +1586,7 @@ export default function AgendamentosView() {
                                         carregarQtdCaixasPorPeriodo(startStr, endStr);
                                       } else {
                                         setQtdCaixasPorPeriodo([]);
+                                        setSemDiaColetaNoPeriodo(0);
                                       }
                                       return { ...prev, appointmentPeriodId: value };
                                     });
@@ -1584,8 +1619,28 @@ export default function AgendamentosView() {
                   </div>
 
                   {formData.isPeriodic && periodos.length > 0 && formData.appointmentPeriodId && (
-                    <AppointmentBoxesPerPeriodAlert items={qtdCaixasPorPeriodo} />
+                    <AppointmentBoxesPerPeriodAlert
+                      items={qtdCaixasPorPeriodo}
+                      extrasSemDiaColeta={semDiaColetaNoPeriodo}
+                    />
                   )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="qtyBoxes">Quantidade de caixas *</Label>
+                    <Input
+                      id="qtyBoxes"
+                      type="number"
+                      required
+                      min={1}
+                      value={formData.qtyBoxes}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          qtyBoxes: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -1619,23 +1674,6 @@ export default function AgendamentosView() {
                         }
                       />
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="qtyBoxes">Quantidade de caixas *</Label>
-                    <Input
-                      id="qtyBoxes"
-                      type="number"
-                      required
-                      min={1}
-                      value={formData.qtyBoxes}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          qtyBoxes: Number(e.target.value),
-                        })
-                      }
-                    />
                   </div>
 
                   <AtendenteSelect
@@ -1700,6 +1738,7 @@ export default function AgendamentosView() {
                         setIsPeriodic(false);
                         setQtdCaixasPorDia([]);
                         setQtdCaixasPorPeriodo([]);
+                        setSemDiaColetaNoPeriodo(0);
                       }}
                     >
                       Cancelar
@@ -1847,9 +1886,17 @@ export default function AgendamentosView() {
             <CardDescription>Clique em um período para ver agendamentos e resumo</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            {periodos.length > 0 ? (
+            {loadingPeriodosLista ? (
+              <div className="flex items-center justify-center py-10 text-muted-foreground">
+                <p className="text-sm">Carregando períodos…</p>
+              </div>
+            ) : periodosListPagination && periodosListPagination.total === 0 ? (
+              <div className="flex items-center justify-center py-10 text-muted-foreground">
+                <p className="text-sm">Nenhum registro de período de coleta encontrado</p>
+              </div>
+            ) : (
               <div className="space-y-3">
-                {periodos.map((periodo) => {
+                {periodosLista.map((periodo) => {
                   const startStr = (periodo.startDate ?? "").slice(0, 10);
                   const endStr = (periodo.endDate ?? "").slice(0, 10);
                   const isSelected = selectedPeriod?.id === periodo.id;
@@ -2051,14 +2098,55 @@ export default function AgendamentosView() {
                             </Button>
                           </div>
                         </div>
+                        {periodo.status && (
+                          <div className="flex justify-end w-fit float-right">
+                            <Badge className={getStatusConfig(periodo.status).bgLight} variant="secondary">
+                              <span className={getStatusConfig(periodo.status).textColor}>
+                                {getStatusConfig(periodo.status).label}
+                              </span>
+                            </Badge>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
                 })}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center py-10 text-muted-foreground">
-                <p className="text-sm">Nenhum registro de período de coleta encontrado</p>
+                {periodosListPagination && periodosListPagination.totalPages > 1 && (
+                  <div className="flex flex-col gap-2 border-t border-slate-200 pt-3 dark:border-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      Página {periodosListPagination.page} de {periodosListPagination.totalPages}
+                      {periodosListPagination.total > 0 && (
+                        <> · {periodosListPagination.total} período(s)</>
+                      )}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!periodosListPagination.hasPreviousPage}
+                        onClick={() =>
+                          void carregarPeriodosLista(periodosListPagination.page - 1)
+                        }
+                      >
+                        <ChevronLeft className="mr-1 h-4 w-4" />
+                        Anterior
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!periodosListPagination.hasNextPage}
+                        onClick={() =>
+                          void carregarPeriodosLista(periodosListPagination.page + 1)
+                        }
+                      >
+                        Próxima
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -2233,8 +2321,8 @@ export default function AgendamentosView() {
                     ...(!selectedPeriod ? { agendado: "calendar-day-agendado" } : {}),
                     ...(selectedPeriod
                       ? {
-                        diaGrupoEUnico: "calendar-day-half-half",
-                        diaUnicoDentroPeriodo: "calendar-day-half-half",
+                        diaGrupoEUnico: "calendar-day-period-interval",
+                        diaUnicoDentroPeriodo: "calendar-day-period-interval",
                         periodInterval: "calendar-day-period-interval",
                         periodAppointmentDay: "calendar-day-period-appointment",
                       }
@@ -2255,14 +2343,14 @@ export default function AgendamentosView() {
                     ...(selectedPeriod
                       ? {
                         diaGrupoEUnico: {
-                          background: "linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%)",
+                          background: "rgba(187, 247, 208, 0.6)",
                           color: "#0f172a",
                           border: "1px solid rgb(255, 255, 255)",
                           fontWeight: "600",
                           borderRadius: "6px",
                         },
                         diaUnicoDentroPeriodo: {
-                          background: "linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%)",
+                          background: "rgba(187, 247, 208, 0.6)",
                           color: "#0f172a",
                           border: "1px solid rgb(255, 255, 255)",
                           fontWeight: "600",
@@ -2377,8 +2465,8 @@ export default function AgendamentosView() {
                               onClick={() => { setSelectedAgendamento(agendamento); setIsSidePanelOpen(true); }}
                             >
                               <CardContent className="p-4">
-                                <div className="flex items-start justify-between">
-                                  <div className="flex items-start gap-3 flex-1">
+                                <div className="flex items-stretch justify-between gap-3">
+                                  <div className="flex min-w-0 flex-1 items-start gap-3">
                                     <div
                                       className={`p-2 rounded-full ${config.color} bg-opacity-20`}
                                     >
@@ -2422,10 +2510,11 @@ export default function AgendamentosView() {
                                       </div>
                                     </div>
                                   </div>
-                                  <div className="flex flex-col gap-2">
+                                  <div className="flex shrink-0 flex-col items-end justify-between self-stretch py-0.5">
                                     <Button
                                       variant="outline"
                                       size="sm"
+                                      className="border-blue-200/90 bg-white text-blue-900 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/90 dark:border-blue-900/50 dark:bg-slate-950 dark:text-blue-200 dark:hover:bg-blue-950/40"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         window.open(
@@ -2434,9 +2523,27 @@ export default function AgendamentosView() {
                                         );
                                       }}
                                     >
-                                      <Navigation className="w-4 h-4 mr-1" />
+                                      <Navigation className="w-4 h-4 mr-1 shrink-0 text-blue-700 dark:text-blue-300" />
                                       Rota
                                     </Button>
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "inline-flex items-center gap-1 border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide shadow-sm",
+                                        agendamento.isPeriodic
+                                          ? "border-indigo-200/90 bg-indigo-50 text-indigo-900 dark:border-indigo-800/50 dark:bg-indigo-950/45 dark:text-indigo-100"
+                                          : "border-slate-300/80 bg-slate-50 text-slate-800 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-200",
+                                      )}
+                                    >
+                                      {agendamento.isPeriodic ? (
+                                        <CalendarIcon className="h-3 w-3 text-indigo-700 dark:text-indigo-300" />
+                                      ) : (
+                                        <Box className="h-3 w-3 text-slate-600 dark:text-slate-400" />
+                                      )}
+                                      {agendamento.isPeriodic
+                                        ? "Periódico"
+                                        : "Único"}
+                                    </Badge>
                                   </div>
                                 </div>
                               </CardContent>
@@ -2665,6 +2772,14 @@ export default function AgendamentosView() {
                           </span>
                         </Badge>
                       )}
+
+                      {selectedPeriod.observations && (
+                        <p className="text-sm text-muted-foreground mt-2 flex items-center gap-1">
+                          <MessageCircle className="w-4 h-4 flex-shrink-0" /> {": "}
+                          {selectedPeriod.observations}
+                        </p>
+                      )}
+
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => { setSelectedPeriod(null); setIsSidePanelOpen(false); }}>
                       <X className="w-5 h-5" />
@@ -2844,31 +2959,29 @@ export default function AgendamentosView() {
                           setIsPeriodic(false);
                           setQtdCaixasPorDia([]);
                           setQtdCaixasPorPeriodo([]);
+                          setSemDiaColetaNoPeriodo(0);
                         }
                       }}
                     >
-                      <DialogTrigger asChild>
-                        <div className="w-[90%] mx-auto flex items-center justify-center p-6 space-y-6">
-                          <Button
-                            variant="outline"
-                            className="w-full"
-                          >
+                      <div className="mt-7 flex w-full justify-center px-6">
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="w-[95%] max-w-md shrink-0">
                             <Edit className="w-4 h-4 mr-2" />
-                            Editar
+                            Editar agendamento
                           </Button>
-                        </div>
-                      </DialogTrigger>
+                        </DialogTrigger>
+                      </div>
                       <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
                         <DialogHeader>
                           <DialogTitle>Editar Agendamento</DialogTitle>
                           <DialogDescription>
-                            Edite os dados do agendamento no sistema
+                            Altere os dados da coleta de caixas
                           </DialogDescription>
                         </DialogHeader>
 
-                        <form onSubmit={(e) => handleEditAgendamento(e, ag)} className="space-y-6">
+                        <form onSubmit={(e) => handleEditAgendamento(e, ag)} className="space-y-4">
                           <div className="space-y-2">
-                            <Label htmlFor="editClientId">Cliente *</Label>
+                            <Label htmlFor="editFormClientId">Cliente *</Label>
                             <Select
                               value={formData.clientId}
                               disabled={!clientesAtivos.length}
@@ -2877,7 +2990,7 @@ export default function AgendamentosView() {
                               }
                               required
                             >
-                              <SelectTrigger>
+                              <SelectTrigger id="editFormClientId">
                                 <SelectValue placeholder="Selecione o cliente" />
                               </SelectTrigger>
                               <SelectContent>
@@ -2901,10 +3014,10 @@ export default function AgendamentosView() {
 
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label htmlFor="editCollectionDate">Data da Coleta {formData.isPeriodic ? '' : '*'}</Label>
+                              <Label htmlFor="editFormCollectionDate">Data da Coleta {formData.isPeriodic ? '' : '*'}</Label>
                               <Input
+                                id="editFormCollectionDate"
                                 type="date"
-                                id="editCollectionDate"
                                 min={minCollectionDateByPeriod ?? dataPickerBlocked()}
                                 max={maxCollectionDateByPeriod}
                                 value={formData.collectionDate}
@@ -2929,9 +3042,9 @@ export default function AgendamentosView() {
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor="editCollectionTime">Horário Previsto</Label>
+                              <Label htmlFor="editFormCollectionTime">Horário Previsto</Label>
                               <Input
-                                id="editCollectionTime"
+                                id="editFormCollectionTime"
                                 type="time"
                                 value={formData.collectionTime}
                                 onChange={(e) =>
@@ -2954,7 +3067,7 @@ export default function AgendamentosView() {
                             <div className="flex items-center justify-between gap-4">
                               <div className="space-y-0.5">
                                 <Label
-                                  htmlFor="isPeriodic"
+                                  htmlFor="editFormIsPeriodic"
                                   className="text-xs font-semibold text-slate-900 dark:text-slate-50"
                                 >
                                   Período de Coleta
@@ -2968,18 +3081,21 @@ export default function AgendamentosView() {
                                   {formData.isPeriodic ? "Ativado" : "Desativado"}
                                 </span>
                                 <Switch
-                                  id="isPeriodic"
+                                  id="editFormIsPeriodic"
                                   checked={formData.isPeriodic}
                                   onCheckedChange={(checked) => {
                                     setIsPeriodic(checked);
                                     carregarQtdCaixasPorDia(formData.collectionDate, checked, checked ? formData.appointmentPeriodId : "");
-                                    carregarPeriodos();
+                                    void carregarPeriodosOpcoes();
                                     setFormData((prev) => ({
                                       ...prev,
                                       isPeriodic: checked,
                                       ...(checked ? {} : { appointmentPeriodId: "" }),
                                     }));
-                                    if (!checked) setQtdCaixasPorPeriodo([]);
+                                    if (!checked) {
+                                      setQtdCaixasPorPeriodo([]);
+                                      setSemDiaColetaNoPeriodo(0);
+                                    }
                                   }}
                                 />
                               </div>
@@ -2997,7 +3113,7 @@ export default function AgendamentosView() {
                                   >
                                     <div className="grid grid-cols-1 gap-3">
                                       <div className="space-y-2">
-                                        <Label htmlFor="appointmentPeriodId">Selecione o Período de Coleta *</Label>
+                                        <Label htmlFor="editFormAppointmentPeriodId">Selecione o Período de Coleta *</Label>
                                         <Select
                                           value={formData.appointmentPeriodId}
                                           onValueChange={(value) => {
@@ -3016,12 +3132,13 @@ export default function AgendamentosView() {
                                                 carregarQtdCaixasPorPeriodo(startStr, endStr);
                                               } else {
                                                 setQtdCaixasPorPeriodo([]);
+                                                setSemDiaColetaNoPeriodo(0);
                                               }
                                               return { ...prev, appointmentPeriodId: value };
                                             });
                                           }}
                                         >
-                                          <SelectTrigger className="w-full">
+                                          <SelectTrigger id="editFormAppointmentPeriodId" className="w-full">
                                             <SelectValue placeholder="Selecione o período de coleta" />
                                           </SelectTrigger>
                                           <SelectContent>
@@ -3048,14 +3165,34 @@ export default function AgendamentosView() {
                           </div>
 
                           {formData.isPeriodic && periodos.length > 0 && formData.appointmentPeriodId && (
-                            <AppointmentBoxesPerPeriodAlert items={qtdCaixasPorPeriodo} />
+                            <AppointmentBoxesPerPeriodAlert
+                              items={qtdCaixasPorPeriodo}
+                              extrasSemDiaColeta={semDiaColetaNoPeriodo}
+                            />
                           )}
+
+                          <div className="space-y-2">
+                            <Label htmlFor="editFormQtyBoxes">Quantidade de caixas *</Label>
+                            <Input
+                              id="editFormQtyBoxes"
+                              type="number"
+                              required
+                              min={1}
+                              value={formData.qtyBoxes}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  qtyBoxes: Number(e.target.value),
+                                })
+                              }
+                            />
+                          </div>
 
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label htmlFor="value">Valor Total *</Label>
+                              <Label htmlFor="editFormValue">Valor Total *</Label>
                               <Input
-                                id="value"
+                                id="editFormValue"
                                 type="number"
                                 required
                                 min={1}
@@ -3069,9 +3206,9 @@ export default function AgendamentosView() {
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="downPayment">Valor do Pagamento Antecipado</Label>
+                              <Label htmlFor="editFormDownPayment">Valor do Pagamento Antecipado</Label>
                               <Input
-                                id="downPayment"
+                                id="editFormDownPayment"
                                 type="number"
                                 min={0.00}
                                 value={formData.downPayment}
@@ -3085,22 +3222,7 @@ export default function AgendamentosView() {
                             </div>
                           </div>
 
-                          <div className="space-y-2">
-                            <Label htmlFor="editQtyBoxes">Quantidade de caixas *</Label>
-                            <Input
-                              id="editQtyBoxes"
-                              type="number"
-                              required
-                              min={1}
-                              value={formData.qtyBoxes}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  qtyBoxes: Number(e.target.value),
-                                })
-                              }
-                            />
-                          </div>
+
                           <AtendenteSelect
                             user={user ? { id: user.id, nome: user.nome } : null}
                             value={formData.userId}
@@ -3111,9 +3233,9 @@ export default function AgendamentosView() {
                             required
                           />
 
-                          {/* Editar Status */}
+                          {/* Definir Status */}
                           <div className="space-y-2">
-                            <Label htmlFor="editStatus">Status *</Label>
+                            <Label htmlFor="editFormSetStatus">Status *</Label>
                             <Select
                               required
                               value={formData.status || undefined}
@@ -3124,7 +3246,7 @@ export default function AgendamentosView() {
                                 });
                               }}
                             >
-                              <SelectTrigger id="editStatus" required aria-required>
+                              <SelectTrigger id="editFormSetStatus" required aria-required>
                                 <SelectValue placeholder="Selecione o status" />
                               </SelectTrigger>
                               <SelectContent>
@@ -3137,9 +3259,9 @@ export default function AgendamentosView() {
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="editObservations">Observações</Label>
+                            <Label htmlFor="editFormObservations">Observações</Label>
                             <Textarea
-                              id="editObservations"
+                              id="editFormObservations"
                               value={formData.observations}
                               onChange={(e) =>
                                 setFormData({
@@ -3161,12 +3283,13 @@ export default function AgendamentosView() {
                                 setIsPeriodic(false);
                                 setQtdCaixasPorDia([]);
                                 setQtdCaixasPorPeriodo([]);
+                                setSemDiaColetaNoPeriodo(0);
                                 setIsEditDialogOpen(false);
                               }}
                             >
                               Cancelar
                             </Button>
-                            <Button type="submit">Salvar Alterações</Button>
+                            <Button type="submit">Salvar alterações</Button>
                           </div>
 
                         </form>
@@ -3174,7 +3297,6 @@ export default function AgendamentosView() {
                       </DialogContent>
                     </Dialog>
 
-                    {/* Content */}
                     <div className="p-6 space-y-6">
                       {/* Endereço */}
                       <div>
