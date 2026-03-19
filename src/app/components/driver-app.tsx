@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -11,7 +11,8 @@ import { Badge } from "./ui/badge";
 import { useData } from "../context/DataContext";
 import { motion, AnimatePresence } from "motion/react";
 import OrdemServicoForm from "./service-order-form";
-import { OrdemServicoMotorista } from "../types";
+import { Estoque, OrdemServicoMotorista } from "../types";
+import type { LucideIcon } from "lucide-react";
 import {
   Truck,
   Package,
@@ -23,19 +24,135 @@ import {
   Box,
   Download,
   Home,
-  FileText
+  FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
+import { stockService, driverAppService } from "../services";
+import { AgendamentoConfirmedBackend } from "../services/driver-app.service";
+
+type TruckStockItem = {
+  label: string;
+  value: number;
+  Icon: LucideIcon;
+  iconBg: string;
+  iconClass: string;
+  valueClass: string;
+};
+
+function formatCollectionDate(dateStr: string | undefined): string {
+  if (!dateStr) return "-";
+
+  // Evita bug de timezone com datas no formato "YYYY-MM-DD" (new Date(...) pode virar "dia -1")
+  const prefix = dateStr.slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(prefix);
+  if (m) {
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    const day = Number(m[3]);
+    const localDate = new Date(year, month - 1, day);
+    return format(localDate, "dd/MM/yyyy", { locale: ptBR });
+  }
+
+  return format(new Date(dateStr), "dd/MM/yyyy", { locale: ptBR });
+}
 
 export default function MotoristaApp() {
-  const { agendamentos, estoque, clientes } = useData();
+  const [agendamentos, setAgendamentos] = useState<AgendamentoConfirmedBackend[]>([]);
+  const [companyAddress, setCompanyAddress] = useState<string>("");
+  const [estoque, setEstoque] = useState<Estoque>({
+    smallBoxes: 0,
+    mediumBoxes: 0,
+    largeBoxes: 0,
+    personalizedItems: 0,
+    adhesiveTape: 0,
+  });
+
+  useEffect(() => {
+    const carregar = async () => {
+      const { getConfirmedAppointments, getCompanyAddress } = driverAppService;
+      const [agendamentosResult, companyAddressResult, estoqueResult] = await Promise.all([
+        getConfirmedAppointments(),
+        getCompanyAddress(),
+        stockService.getAll(),
+      ]);
+
+      if (agendamentosResult.success && agendamentosResult.data) {
+        setAgendamentos(agendamentosResult.data);
+      }
+
+      if (companyAddressResult.success && companyAddressResult.data) {
+        setCompanyAddress(companyAddressResult.data);
+      }
+
+      if (estoqueResult.success && estoqueResult.data) {
+        const arr = (estoqueResult.data as any)?.data;
+        const first = Array.isArray(arr) ? arr[0] : null;
+        if (first) setEstoque(first as Estoque);
+      }
+    };
+
+    void carregar();
+  }, []);
+
   const [viewMode, setViewMode] = useState<"lista" | "form" | "recibo">("lista");
   const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<any>(null);
   const [ordemConcluida, setOrdemConcluida] = useState<OrdemServicoMotorista | null>(null);
 
   // Filter confirmed agendamentos
   const agendamentosConfirmados = agendamentos.filter((a) => a.status === "CONFIRMED");
+
+  const estoqueCaminhaoItens = useMemo<TruckStockItem[]>(
+    () => [
+      {
+        label: "Pequenas",
+        value: estoque.smallBoxes,
+        Icon: Box,
+        iconBg: "bg-red-50 dark:bg-red-950/40",
+        iconClass: "text-red-600 dark:text-red-400",
+        valueClass: "text-red-900 dark:text-red-100",
+      },
+      {
+        label: "Médias",
+        value: estoque.mediumBoxes,
+        Icon: Package,
+        iconBg: "bg-green-50 dark:bg-green-950/40",
+        iconClass: "text-green-600 dark:text-green-400",
+        valueClass: "text-green-900 dark:text-green-100",
+      },
+      {
+        label: "Grandes",
+        value: estoque.largeBoxes,
+        Icon: Box,
+        iconBg: "bg-orange-50 dark:bg-orange-950/40",
+        iconClass: "text-orange-600 dark:text-orange-400",
+        valueClass: "text-orange-900 dark:text-orange-100",
+      },
+      {
+        label: "Personalizados",
+        value: estoque.personalizedItems,
+        Icon: Box,
+        iconBg: "bg-purple-50 dark:bg-purple-950/40",
+        iconClass: "text-purple-600 dark:text-purple-400",
+        valueClass: "text-purple-900 dark:text-purple-100",
+      },
+      {
+        label: "Fitas",
+        value: estoque.adhesiveTape,
+        Icon: Package,
+        iconBg: "bg-blue-50 dark:bg-blue-950/40",
+        iconClass: "text-blue-600 dark:text-blue-400",
+        valueClass: "text-blue-900 dark:text-blue-100",
+      },
+    ],
+    [
+      estoque.smallBoxes,
+      estoque.mediumBoxes,
+      estoque.largeBoxes,
+      estoque.personalizedItems,
+      estoque.adhesiveTape,
+    ],
+  );
 
   const handleIniciarAtendimento = (agendamento: any) => {
     setAgendamentoSelecionado(agendamento);
@@ -190,7 +307,7 @@ export default function MotoristaApp() {
                   Destino:
                 </span>
                 <span className="font-semibold">
-                  {ordemConcluida.destinatario.brazilAddress.endereco}, {ordemConcluida.destinatario.brazilAddress.cidade} - {ordemConcluida.destinatario.brazilAddress.estado}
+                  {ordemConcluida.destinatario.brazilAddress.rua}, {ordemConcluida.destinatario.brazilAddress.cidade} - {ordemConcluida.destinatario.brazilAddress.estado}
                 </span>
               </div>
             </div>
@@ -318,66 +435,44 @@ export default function MotoristaApp() {
           </p>
         </div>
         <Badge className="text-lg px-4 py-2 bg-[#F5A623]">
-          {agendamentosConfirmados.length} ordens
+          {agendamentosConfirmados.length} {agendamentosConfirmados.length === 1 ? "ordem" : "ordens"}
         </Badge>
       </div>
 
-      {/* Estoque Disponível */}
-      <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-[#1E3A5F]">
-            <Package className="w-6 h-6" />
-            Estoque Disponível no Caminhão
+      {/* Estoque Disponível — 5 tipos: grade 2 cols (mobile) → 3 (tablet) → 5 (desktop) */}
+      <Card className="overflow-hidden border-blue-200 bg-gradient-to-br from-blue-50 via-white to-blue-50/80 dark:from-blue-950/30 dark:via-background dark:to-blue-950/20 dark:border-blue-900/50">
+        <CardHeader className="pb-2 sm:pb-4">
+          <CardTitle className="flex flex-wrap items-center gap-2 text-lg sm:text-xl text-[#1E3A5F] dark:text-blue-100">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600/10 dark:bg-blue-400/15">
+              <Package className="h-5 w-5 sm:h-6 sm:w-6" />
+            </span>
+            Estoque disponível no caminhão
           </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Quantidades por tipo de item no veículo
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-              <Box className="w-8 h-8 mx-auto text-blue-600 mb-2" />
-              <p className="text-3xl font-bold text-blue-900">
-                {estoque.smallBoxes}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Pequenas
-              </p>
-            </div>
-            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-              <Package className="w-8 h-8 mx-auto text-orange-600 mb-2" />
-              <p className="text-3xl font-bold text-orange-900">
-                {estoque.mediumBoxes}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Médias
-              </p>
-            </div>
-            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-              <Box className="w-10 h-10 mx-auto text-purple-600 mb-2" />
-              <p className="text-3xl font-bold text-purple-900">
-                {estoque.largeBoxes}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Grandes
-              </p>
-            </div>
-            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-              <Box className="w-10 h-10 mx-auto text-purple-600 mb-2" />
-              <p className="text-3xl font-bold text-purple-900">
-                {estoque.personalizedItems}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Personalizados
-              </p>
-            </div>
-            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-              <Package className="w-8 h-8 mx-auto text-green-600 mb-2" />
-              <p className="text-3xl font-bold text-green-900">
-                {estoque.adhesiveTape}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Fitas
-              </p>
-            </div>
-          </div>
+        <CardContent className="pt-0">
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+            {estoqueCaminhaoItens.map(({ label, value, Icon, iconBg, iconClass, valueClass }) => (
+              <li
+                key={label}
+                className="flex min-w-0 flex-col items-center rounded-xl border border-slate-200/80 bg-white p-3 text-center shadow-sm transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-900/60 sm:p-4"
+              >
+                <div
+                  className={`mb-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg sm:h-12 sm:w-12 ${iconBg}`}
+                >
+                  <Icon className={`h-6 w-6 sm:h-7 sm:w-7 ${iconClass}`} strokeWidth={2} />
+                </div>
+                <p className={`text-2xl font-bold tabular-nums sm:text-3xl ${valueClass}`}>
+                  {value}
+                </p>
+                <p className="mt-1 line-clamp-2 text-xs font-medium leading-tight text-muted-foreground sm:text-sm">
+                  {label}
+                </p>
+              </li>
+            ))}
+          </ul>
         </CardContent>
       </Card>
 
@@ -385,7 +480,6 @@ export default function MotoristaApp() {
       <div className="grid gap-4 md:grid-cols-2">
         <AnimatePresence>
           {agendamentosConfirmados.map((agendamento, index) => {
-            const cliente = clientes.find(c => c.id === agendamento.client?.id);
             return (
               <motion.div
                 key={agendamento.id}
@@ -398,28 +492,34 @@ export default function MotoristaApp() {
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="text-lg">
-                          {agendamento.client?.name}
+                          {agendamento.client?.usaName}
                         </CardTitle>
                         <CardDescription className="flex items-center gap-1 mt-1">
                           <Phone className="w-3 h-3" />
-                          {cliente?.usaPhone ?? ""}
+                          {agendamento.client.usaPhone ?? ""}
                         </CardDescription>
                       </div>
-                      <Badge variant="outline" className="text-[#1E3A5F] border-[#1E3A5F]">
-                        Agendado
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className="text-[#1E3A5F] border-[#1E3A5F]">
+                          {agendamento.status === "CONFIRMED" ? "Confirmado" : "Pendente"}
+                        </Badge>
+                        <Badge variant="outline" className={`${agendamento.isPeriodic ? "bg-green-50 text-green-600 border-green-600" : "bg-blue-50 text-blue-600 border-blue-600"}`}>
+                          {agendamento.isPeriodic ? "Periódico" : "Único"}
+                        </Badge>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3 flex-1">
                     <div className="flex items-center gap-2 text-sm">
                       <Calendar className="w-4 h-4 text-muted-foreground" />
                       <span>
-                        {format(
-                          new Date(agendamento.collectionDate ?? ""),
-                          "dd/MM/yyyy",
-                          { locale: ptBR },
-                        )}{" "}
-                        às {agendamento.collectionTime}
+                        {formatCollectionDate(agendamento.collectionDate)}{" "}
+
+                        {
+                          agendamento.collectionTime
+                            ? `às ${agendamento.collectionTime}`
+                            : '- Sem horário de coleta'
+                        }
                       </span>
                     </div>
 
@@ -427,7 +527,7 @@ export default function MotoristaApp() {
                       <Home className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                       <span className="line-clamp-2">
                         <span className="font-semibold text-xs text-muted-foreground mr-1">COLETA:</span>
-                        {agendamento.address}
+                        {agendamento.client.usaAddress.rua} {agendamento.client.usaAddress.numero}, {agendamento.client.usaAddress.cidade} - {agendamento.client.usaAddress.estado}
                       </span>
                     </div>
 
@@ -435,8 +535,7 @@ export default function MotoristaApp() {
                       <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                       <span className="line-clamp-2">
                         <span className="font-semibold text-xs text-muted-foreground mr-1">ENTREGA:</span>
-                        {/* TODO: Adicionar endereço de entrega */}
-                        {"Endereço de entrega a definir"}
+                        {companyAddress}
                       </span>
                     </div>
                   </CardContent>

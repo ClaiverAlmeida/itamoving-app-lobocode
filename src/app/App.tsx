@@ -38,6 +38,7 @@ import {
   BellRing,
   Trash,
   Eye,
+  Settings,
 } from 'lucide-react';
 import { Badge } from './components/ui/badge';
 import { Card, CardContent } from './components/ui/card';
@@ -50,6 +51,7 @@ import {
 } from './components/ui/popover';
 import { useNotifications } from './hooks/useNotifications';
 import { notificationsService } from './services/notifications.service';
+import ConfiguracoesView from './components/configurations';
 
 const STORAGE_KEY = 'itamoving_last_route';
 
@@ -64,7 +66,8 @@ type View =
   | 'atendimentos'
   | 'precos'
   | 'rh'
-  | 'motorista';
+  | 'motorista'
+  | 'configuracoes';
 
 /** Rotas em português (URL) -> view interno */
 const PATH_TO_VIEW: Record<string, View> = {
@@ -79,6 +82,7 @@ const PATH_TO_VIEW: Record<string, View> = {
   atendimentos: 'atendimentos',
   rh: 'rh',
   motorista: 'motorista',
+  configuracoes: 'configuracoes',
 };
 
 const VIEW_TO_PATH: Record<View, string> = {
@@ -93,6 +97,7 @@ const VIEW_TO_PATH: Record<View, string> = {
   atendimentos: 'atendimentos',
   rh: 'rh',
   motorista: 'motorista',
+  configuracoes: 'configuracoes',
 };
 
 function pathToView(pathname: string): View {
@@ -158,6 +163,7 @@ function MainApp() {
       { id: 'atendimentos' as View, label: 'Atendimentos', icon: Headset, module: 'atendimentos' as const },
       { id: 'rh' as View, label: 'RH', icon: UserCog, module: 'rh' as const },
       { id: 'motorista' as View, label: 'Motorista', icon: Truck, module: 'motorista' as const },
+      { id: 'configuracoes' as View, label: 'Configurações', icon: Settings, module: 'configuracoes' as const },
     ];
 
     // Filtrar menu baseado nas permissões
@@ -192,6 +198,7 @@ function MainApp() {
       case 'atendimentos': return hasPermission('atendimentos', 'read') ? <AtendimentosView /> : <AcessoNegado />;
       case 'rh': return hasPermission('rh', 'read') ? <RHView /> : <AcessoNegado />;
       case 'motorista': return hasPermission('motorista', 'read') ? <MotoristaApp /> : <AcessoNegado />;
+      case 'configuracoes': return hasPermission('configuracoes', 'read') ? <ConfiguracoesView /> : <AcessoNegado />;
       default: return <DashboardView onNavigate={setActiveView} />;
     }
   };
@@ -482,6 +489,15 @@ function MainApp() {
                 </PopoverContent>
               </Popover>
 
+              {/* Configurações */}
+              {user!.role.includes('admin') && (
+                <div>
+                  <Button variant="ghost" size="icon" className="relative" onClick={() => setActiveView('configuracoes')}>
+                    <Settings className="w-5 h-5 stroke-2 fill-none outline-none" />
+                  </Button>
+                </div>
+              )}
+
               {user?.avatar ? (
                 <img src={user.avatar} alt={user.nome} className="w-8 h-8 lg:w-10 lg:h-10 rounded-full shadow-lg" />
               ) : (
@@ -506,7 +522,7 @@ function MainApp() {
   );
 }
 
-function AcessoNegado() {
+export function AcessoNegado() {
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <Card className="max-w-md">

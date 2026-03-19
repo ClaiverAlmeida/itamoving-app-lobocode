@@ -261,7 +261,7 @@ export default function RHView() {
         login: formUsuario.login,
         password: formUsuario.password ?? undefined,
         phone: formUsuario.phone,
-        cpf: formUsuario.cpf,
+        cpf: formUsuario.cpf === "" ? undefined : formUsuario.cpf,
         birthDate: formUsuario.birthDate,
         hireDate: formUsuario.hireDate,
         terminationDate: formUsuario.terminationDate === "" ? undefined : formUsuario.terminationDate,
@@ -288,7 +288,7 @@ export default function RHView() {
       if (current.login !== undefined && current.login !== original.login) patch.login = current.login;
       if (optChanged(current.password, original.password)) patch.password = current.password;
       if (current.phone !== original.phone) patch.phone = current.phone;
-      if (current.cpf !== original.cpf) patch.cpf = current.cpf;
+      if (optChanged(current.cpf, original.cpf)) patch.cpf = current.cpf;
       if (current.birthDate !== original.birthDate) patch.birthDate = current.birthDate;
       if (current.hireDate !== original.hireDate) patch.hireDate = current.hireDate;
       if (optChanged(current.terminationDate, original.terminationDate)) patch.terminationDate = current.terminationDate;

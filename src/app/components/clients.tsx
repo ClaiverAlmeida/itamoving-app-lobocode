@@ -1185,6 +1185,24 @@ export default function ClientesView() {
                       </div>
                     </div>
 
+                    <div className="space-y-2">
+                      <Label htmlFor="brazilPhone">Telefone Brasil *</Label>
+                      <Input
+                        id="brazilPhone"
+                        value={formData.brazilPhone}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            brazilPhone: formatNumberTelephoneBrasil(
+                              e.target.value,
+                            ),
+                          })
+                        }
+                        placeholder="+55 11 98765-4321"
+                        required
+                      />
+                    </div>
+
                     <div className="grid grid-cols-3 gap-4">
                       <div className="col-span-2 space-y-2">
                         <Label htmlFor="ruaBrasil">Rua (Brasil) *</Label>
@@ -1299,24 +1317,6 @@ export default function ClientesView() {
                           </p>
                         )}
                       </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="brazilPhone">Telefone Brasil *</Label>
-                      <Input
-                        id="brazilPhone"
-                        value={formData.brazilPhone}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            brazilPhone: formatNumberTelephoneBrasil(
-                              e.target.value,
-                            ),
-                          })
-                        }
-                        placeholder="+55 11 98765-4321"
-                        required
-                      />
                     </div>
 
                     <div className="space-y-2">
@@ -2147,7 +2147,7 @@ export default function ClientesView() {
                                           ? "Excluído"
                                           : atividade.tipo === "agendamento"
                                             ? "Agendado"
-                                          : "Atualizado"}{" "}
+                                            : "Atualizado"}{" "}
                                     por: {atividade.owner.name}
                                   </p>
                                 </div>

@@ -70,6 +70,7 @@ import {
   PanelRightOpen,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -186,6 +187,8 @@ export default function AgendamentosView() {
   const [selectedPeriod, setSelectedPeriod] = useState<CreateAppointmentsPeriodsDTO | null>(null);
   /** Dia opcional no período: quando null, mostra todos os dias do período; quando definido, filtra por esse dia. */
   const [selectedDayInPeriod, setSelectedDayInPeriod] = useState<Date | null>(null);
+  /** Legenda de cores do calendário: inicia fechada. */
+  const [calendarLegendOpen, setCalendarLegendOpen] = useState(false);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
   const [confirmEditPeriodOpen, setConfirmEditPeriodOpen] = useState(false);
   const pendingEditPeriodPayloadRef = useRef<UpdateAppointmentsPeriodsDTO | null>(null);
@@ -515,6 +518,11 @@ export default function AgendamentosView() {
   const handleEditAgendamento = async (e: React.FormEvent, agendamento: Agendamento) => {
     e.preventDefault();
 
+    if (!agendamento) {
+      toast.error("Agendamento não encontrado");
+      return;
+    }
+
     const cliente = clientes.find((c) => c.id === formData.clientId);
     if (!cliente) {
       toast.error("Cliente não encontrado");
@@ -530,11 +538,6 @@ export default function AgendamentosView() {
 
     if (formData.isPeriodic && !periodoSelecionado) {
       toast.error("Nenhum Período de Coleta selecionado.");
-      return;
-    }
-
-    if (!formData.status?.trim()) {
-      toast.error("Selecione o status do agendamento.");
       return;
     }
 
@@ -908,11 +911,15 @@ export default function AgendamentosView() {
     );
   }, [filteredAgendamentos, selectedDate]);
 
-  /** Agendamentos do período selecionado (quando usuário clica em um período). Inclui todos do período, inclusive sem data de coleta. */
+  /**
+   * Agendamentos **periódicos** do período selecionado. Únicos (!isPeriodic) não entram na visão do período,
+   * mesmo com o mesmo appointmentPeriodId — não são coletas do período.
+   */
   const agendamentosDoPeriodo = useMemo(() => {
     if (!selectedPeriod?.id) return [];
     return agendamentos.filter((agendamento) => {
       if ((agendamento.appointmentPeriodId ?? "") !== selectedPeriod.id) return false;
+      if (!agendamento.isPeriodic) return false;
       const matchesSearch =
         agendamento.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         agendamento.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -951,16 +958,27 @@ export default function AgendamentosView() {
     return dates;
   }, [selectedPeriod?.startDate, selectedPeriod?.endDate]);
 
-  /** Dias que têm agendamento dentro do período selecionado (para destacar no calendário ao clicar no período). */
+  /**
+   * Dias com coleta **periódica** do período no calendário (roxo+verde).
+   * Só datas dentro do intervalo [start, end] do período — fora do intervalo não destaca como dia do período.
+   */
   const getDatesWithAppointmentsInPeriod = useCallback(() => {
     if (!selectedPeriod?.id || agendamentosDoPeriodo.length === 0) return [];
     const dateSet = new Set<string>();
     agendamentosDoPeriodo.forEach((a) => {
+      if (!a.isPeriodic) return;
       const d = (a.collectionDate ?? "").slice(0, 10);
-      if (d.length === 10) dateSet.add(d);
+      if (d.length !== 10) return;
+      if (!isCollectionDateInPeriod(d, selectedPeriod)) return;
+      dateSet.add(d);
     });
     return Array.from(dateSet).map((d) => parseLocalDate(d));
-  }, [selectedPeriod?.id, agendamentosDoPeriodo]);
+  }, [
+    selectedPeriod?.id,
+    selectedPeriod?.startDate,
+    selectedPeriod?.endDate,
+    agendamentosDoPeriodo,
+  ]);
 
   const somaCaixasDosDia = useMemo(() => {
     return agendamentosDosDia.reduce((acc, a) => acc + a.qtyBoxes, 0);
@@ -1024,7 +1042,10 @@ export default function AgendamentosView() {
       .map((d) => parseLocalDate(d));
   }, [agendamentos]);
 
-  /** Dias que têm ao mesmo tempo agendamento por grupo (isPeriodic) e agendamento único (!isPeriodic). */
+  /**
+   * Dias com periódico do período **e** único no mesmo dia — só se a data da coleta periódica
+   * estiver dentro do intervalo [start, end] do período (fora do intervalo não “participa” do período).
+   */
   const getDatesWithGrupoEUnico = useCallback(() => {
     if (!selectedPeriod?.id) return [];
     const selectedPid = String(selectedPeriod.id);
@@ -1036,7 +1057,9 @@ export default function AgendamentosView() {
       if (!byDate.has(d)) byDate.set(d, { grupo: false, unico: false });
       const cur = byDate.get(d)!;
       if (a.isPeriodic) {
-        if (String(a.appointmentPeriodId ?? "") === selectedPid) cur.grupo = true;
+        if (String(a.appointmentPeriodId ?? "") === selectedPid) {
+          if (isCollectionDateInPeriod(d, selectedPeriod)) cur.grupo = true;
+        }
       }
       else cur.unico = true;
     });
@@ -1069,7 +1092,7 @@ export default function AgendamentosView() {
     });
     const seen = new Set<string>();
     return result.filter((d) => {
-      const key = d.toISOString().slice(0, 10);
+      const key = format(d, "yyyy-MM-dd");
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -1079,15 +1102,15 @@ export default function AgendamentosView() {
   /** Dias com agendamento que não são “grupo + único” nem “único dentro de período” (para não duplicar estilo no calendário). */
   const getDatesWithAgendamentosSomente = useCallback(() => {
     const grupoEUnicoSet = new Set(
-      getDatesWithGrupoEUnico().map((d) => d.toISOString().slice(0, 10)),
+      getDatesWithGrupoEUnico().map((d) => format(d, "yyyy-MM-dd")),
     );
     const unicoDentroPeriodoSet = new Set(
-      getDatesUnicoDentroDePeriodo().map((d) => d.toISOString().slice(0, 10)),
+      getDatesUnicoDentroDePeriodo().map((d) => format(d, "yyyy-MM-dd")),
     );
     const all = getDatesWithAgendamentos();
     const seen = new Set<string>();
     return all.filter((d) => {
-      const key = d.toISOString().slice(0, 10);
+      const key = format(d, "yyyy-MM-dd");
       if (grupoEUnicoSet.has(key)) return false;
       if (unicoDentroPeriodoSet.has(key)) return false;
       if (seen.has(key)) return false;
@@ -1106,6 +1129,24 @@ export default function AgendamentosView() {
     });
     return Array.from(dateSet).map((d) => parseLocalDate(d));
   }, [agendamentos]);
+
+  /**
+   * Dia atual com qualquer agendamento: 50% roxo | 50% laranja no calendário.
+   * Se um período estiver aberto e hoje estiver **dentro** do intervalo do período, não aplica (fica com as regras CSS do período: laranja+roxo / roxo+verde).
+   */
+  /** Meio roxo / meio laranja só na visão sem período. Com período selecionado (intervalo), nunca tratar hoje como “único”. */
+  const getDatesHojeComAgendamentoHalf = useCallback(() => {
+    if (selectedPeriod?.id) return [];
+
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    const temAgendamentoHoje = filteredAgendamentos.some((a) => {
+      const d = (a.collectionDate ?? "").slice(0, 10);
+      return d.length === 10 && d === todayStr;
+    });
+    if (!temAgendamentoHoje) return [];
+
+    return [parseLocalDate(todayStr)];
+  }, [filteredAgendamentos, selectedPeriod?.id]);
 
   /** Conjunto de datas que usam o gradiente 50% roxo / 50% verde (para não aplicar outros modificadores em cima). */
   const datesHalfHalfSet = useMemo(() => {
@@ -1876,6 +1917,94 @@ export default function AgendamentosView() {
           </div>
         </div>
 
+        {/* Legenda do Calendário de Agendamentos (colapsável; inicia fechada) */}
+        <div className="mt-4 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-950">
+          <button
+            type="button"
+            onClick={() => setCalendarLegendOpen((v) => !v)}
+            className="flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/80 cursor-pointer"
+            aria-expanded={calendarLegendOpen}
+            aria-controls="calendar-legend-panel"
+            id="calendar-legend-toggle"
+          >
+            <Label
+              htmlFor="calendar-legend-toggle"
+              className="pointer-events-none text-sm font-semibold text-slate-700 dark:text-slate-200"
+            >
+              Legenda do Calendário de Agendamentos
+            </Label>
+            <ChevronDown
+              className={cn(
+                "h-5 w-5 shrink-0 text-slate-600 transition-transform duration-300 ease-out motion-reduce:transition-none dark:text-slate-400",
+                calendarLegendOpen && "rotate-180",
+              )}
+              aria-hidden
+            />
+          </button>
+
+          <div
+            className={cn(
+              "grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none",
+              calendarLegendOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+            )}
+          >
+            <div id="calendar-legend-panel" className="min-h-0 overflow-hidden px-4">
+              <motion.div
+                initial={false}
+                animate={{ opacity: calendarLegendOpen ? 1 : 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="border-t border-slate-100 pb-4 pt-3 dark:border-slate-800"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-sm" style={{ background: "rgba(249, 115, 22, 0.6)" }} />
+                    <span className="text-sm text-slate-700 dark:text-slate-200">Dia Atual</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-sm" style={{ background: "rgba(187, 247, 208, 0.6)" }} />
+                    <span className="text-sm text-slate-700 dark:text-slate-200">Intervalo do Período de Coleta</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-sm" style={{ background: "rgba(139, 92, 246, 0.6)" }} />
+                    <span className="text-sm text-slate-700 dark:text-slate-200">Agendamento Único</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-5 h-5 rounded-sm"
+                      style={{ background: "linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(249, 115, 22, 0.6) 50%, rgba(249, 115, 22, 0.6) 100%)" }}
+                    />
+                    <span className="text-sm text-slate-700 dark:text-slate-200">Dia Atual com Agendamento Único</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-5 h-5 rounded-sm"
+                      style={{ background: "linear-gradient(90deg, rgba(249, 115, 22, 0.6) 0%, rgba(249, 115, 22, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%)" }}
+                    />
+                    <span className="text-sm text-slate-700 dark:text-slate-200">Dia Atual dentro do Período de Coleta</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-5 h-5 rounded-sm"
+                      style={{ background: "linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%)" }}
+                    />
+                    <span className="text-sm text-slate-700 dark:text-slate-200">Agendamento Periódico do Período de Coleta</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-sm border border-slate-900/60 dark:border-slate-200/70 bg-transparent" />
+                    <span className="text-sm text-slate-700 dark:text-slate-200">Dia Selecionado</span>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+
         {/* Card de Períodos de Coleta - embaixo da barra de pesquisa, em cima do calendário */}
         <Card className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 border-slate-200 dark:border-slate-700">
           <CardHeader className="p-0 pb-3">
@@ -2316,6 +2445,7 @@ export default function AgendamentosView() {
                         periodAppointmentDay: getDatesWithAppointmentsInPeriodNoHalfHalf(),
                       }
                       : {}),
+                    hojeUnicoHalf: getDatesHojeComAgendamentoHalf(),
                   }}
                   modifiersClassNames={{
                     ...(!selectedPeriod ? { agendado: "calendar-day-agendado" } : {}),
@@ -2327,6 +2457,7 @@ export default function AgendamentosView() {
                         periodAppointmentDay: "calendar-day-period-appointment",
                       }
                       : {}),
+                    hojeUnicoHalf: "calendar-day-today-unico-half",
                   }}
                   modifiersStyles={{
                     ...(!selectedPeriod
@@ -2376,6 +2507,14 @@ export default function AgendamentosView() {
                         },
                       }
                       : {}),
+                    hojeUnicoHalf: {
+                      background:
+                        "linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(249, 115, 22, 0.6) 50%, rgba(249, 115, 22, 0.6) 100%)",
+                      color: "#fff",
+                      fontWeight: "600",
+                      borderRadius: "6px",
+                      border: "1px solid rgb(255, 255, 255)",
+                    },
                   }}
                 />
               </CardContent>

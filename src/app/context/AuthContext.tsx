@@ -25,6 +25,7 @@ export interface Permission {
   rh: { read: boolean; write: boolean };
   rotas: { read: boolean; write: boolean };
   motorista: { read: boolean; write: boolean };
+  configuracoes: { read: boolean; write: boolean };
 }
 
 interface AuthContextType {
@@ -49,6 +50,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission> = {
     rh: { read: true, write: true },
     rotas: { read: true, write: true },
     motorista: { read: true, write: true },
+    configuracoes: { read: true, write: true },
   },
   comercial: {
     clientes: { read: true, write: true },
@@ -61,6 +63,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission> = {
     rh: { read: false, write: false },
     rotas: { read: true, write: false },
     motorista: { read: false, write: false },
+    configuracoes: { read: false, write: false },
   },
   logistico: {
     clientes: { read: false, write: false },
@@ -73,6 +76,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission> = {
     rh: { read: false, write: false },
     rotas: { read: true, write: true },
     motorista: { read: false, write: false },
+    configuracoes: { read: false, write: false },
   },
   motorista: {
     clientes: { read: false, write: false },
@@ -85,6 +89,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission> = {
     rh: { read: false, write: false },
     rotas: { read: true, write: false },
     motorista: { read: true, write: true },
+    configuracoes: { read: false, write: false },
   },
 };
 

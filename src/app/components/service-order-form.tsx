@@ -1,10 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { useData } from '../context/DataContext';
-import { OrdemServicoMotorista } from '../types';
+import { OrdemServicoMotorista, PrecoProduto } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'motion/react';
 import {
@@ -34,6 +34,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { toast } from 'sonner';
 
+import { productsService } from '../services';
+
 interface OrdemServicoFormProps {
   agendamentoId: string;
   agendamento: any;
@@ -44,50 +46,67 @@ interface OrdemServicoFormProps {
 
 interface Caixa {
   id: string;
-  tipo: string;
-  numero: string;
-  valor: number;
-  peso: number;
+  type: string;
+  number: string;
+  value: number;
+  weight: number;
 }
 
+// TODO:
+// Get para produtos 
+
 export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, onSave, embedded = false }: OrdemServicoFormProps) {
-  const { clientes, addOrdemServicoMotorista, precosProdutos } = useData();
+  const { addOrdemServicoMotorista } = useData();
   const { user } = useAuth();
   const canvasClienteRef = useRef<HTMLCanvasElement>(null);
   const canvasAgenteRef = useRef<HTMLCanvasElement>(null);
   const [isDrawingCliente, setIsDrawingCliente] = useState(false);
   const [isDrawingAgente, setIsDrawingAgente] = useState(false);
 
-  // Filtrar opções de caixa
-  const opcoesCaixa = precosProdutos.filter(p => p.type === 'BOX' && p.active);
+  const [precosProdutos, setPrecosProdutos] = useState<PrecoProduto[]>([]);
 
-  // Buscar cliente relacionado ao agendamento
-  const cliente = clientes.find(c => c.id === agendamento.clienteId);
+  const carregarProdutos = async () => {
+    productsService.getAll().then((result) => {
+      if (result.success && result.data) {
+        setPrecosProdutos(result.data);
+      }
+    });
+  }
+
+  // Filtrar opções de caixa
+  const opcoesCaixa = precosProdutos.filter(
+    (p) =>
+      (
+        p.type === 'SMALL_BOX' ||
+        p.type === 'MEDIUM_BOX' ||
+        p.type === 'LARGE_BOX' ||
+        p.type === 'PERSONALIZED_ITEM' ||
+        p.type === 'TAPE_ADHESIVE'
+      ) &&
+      p.active,
+  );
 
   // Estados do formulário - Remetente (USA)
-  const [remetenteNome, setRemetenteNome] = useState(cliente?.usaNome || '');
-  const [remetenteTel, setRemetenteTel] = useState(cliente?.usaPhone || '');
-  const [remetenteEndereco, setRemetenteEndereco] = useState(
-    cliente ? `${cliente.usaAddress.rua}, ${cliente.usaAddress.numero}` : ''
-  );
-  const [remetenteCidade, setRemetenteCidade] = useState(cliente?.usaAddress.cidade || '');
-  const [remetenteEstado, setRemetenteEstado] = useState(cliente?.usaAddress.estado || '');
-  const [remetenteZipCode, setRemetenteZipCode] = useState(cliente?.usaAddress.zipCode || '');
-  const [remetenteNumero, setRemetenteNumero] = useState(cliente?.usaAddress.numero || '');
-  const [remetenteComplemento, setRemetenteComplemento] = useState(cliente?.usaAddress.complemento || '');
-  const [remetenteCpfRg, setRemetenteCpfRg] = useState(cliente?.usaCpf || '');
+  const [remetenteNome, setRemetenteNome] = useState(agendamento.client.usaName || '');
+  const [remetenteTel, setRemetenteTel] = useState(agendamento.client.usaPhone || '');
+  const [remetenteEndereco, setRemetenteEndereco] = useState(agendamento.client.usaAddress.rua || '');
+  const [remetenteCidade, setRemetenteCidade] = useState(agendamento.client.usaAddress.cidade || '');
+  const [remetenteEstado, setRemetenteEstado] = useState(agendamento.client.usaAddress.estado || '');
+  const [remetenteZipCode, setRemetenteZipCode] = useState(agendamento.client.usaAddress.zipCode || '');
+  const [remetenteNumero, setRemetenteNumero] = useState(agendamento.client.usaAddress.numero || '');
+  const [remetenteComplemento, setRemetenteComplemento] = useState(agendamento.client.usaAddress.complemento || '');
+  const [remetenteCpfRg, setRemetenteCpfRg] = useState(agendamento.client.usaCpf || '');
 
   // Estados do formulário - Destinatário (Brasil)
-  const [destinatarioNome, setDestinatarioNome] = useState(cliente?.brazilNome || '');
-  const [destinatarioCpfRg, setDestinatarioCpfRg] = useState(cliente?.brazilCpf || '');
-  const [destinatarioEndereco, setDestinatarioEndereco] = useState(cliente?.brazilAddress.endereco || '');
-  const [destinatarioBairro, setDestinatarioBairro] = useState('');
-  const [destinatarioCidade, setDestinatarioCidade] = useState(cliente?.brazilAddress.cidade || '');
-  const [destinatarioEstado, setDestinatarioEstado] = useState(cliente?.brazilAddress.estado || '');
-  const [destinatarioCep, setDestinatarioCep] = useState(cliente?.brazilAddress.cep || '');
-  const [destinatarioTelefone, setDestinatarioTelefone] = useState(
-    cliente?.brazilPhone || ''
-  );
+  const [destinatarioNome, setDestinatarioNome] = useState(agendamento.client.brazilName || '');
+  const [destinatarioCpfRg, setDestinatarioCpfRg] = useState(agendamento.client.brazilCpf || '');
+  const [destinatarioEndereco, setDestinatarioEndereco] = useState(agendamento.client.brazilAddress.rua || '');
+  const [destinatarioCidade, setDestinatarioCidade] = useState(agendamento.client.brazilAddress.cidade || '');
+  const [destinatarioEstado, setDestinatarioEstado] = useState(agendamento.client.brazilAddress.estado || '');
+  const [destinatarioCep, setDestinatarioCep] = useState(agendamento.client.brazilAddress.cep || '');
+  const [destinatarioTelefone, setDestinatarioTelefone] = useState(agendamento.client.brazilPhone || '');
+  const [destinatarioNumero, setDestinatarioNumero] = useState(agendamento.client.brazilAddress.numero || '');
+  const [destinatarioComplemento, setDestinatarioComplemento] = useState(agendamento.client.brazilAddress.complemento || '');
 
   // Estados para caixas
   const [caixas, setCaixas] = useState<Caixa[]>([]);
@@ -100,25 +119,34 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
   const [valorPago, setValorPago] = useState('0.00');
 
   // Calcular valor total das caixas
-  const valorTotalCaixas = caixas.reduce((sum, c) => sum + c.valor, 0);
+  const valorTotalCaixas = caixas.reduce((sum, c) => sum + c.value, 0);
+
+  const renumerarCaixas = (lista: Caixa[]) =>
+    lista.map((caixa, index) => ({
+      ...caixa,
+      number: `A${index + 1}`,
+    }));
 
   // Adicionar caixa
   const adicionarCaixa = () => {
-    setCaixas([
-      ...caixas,
-      {
-        id: Date.now().toString(),
-        tipo: '',
-        numero: '',
-        valor: 0,
-        peso: 0,
-      },
-    ]);
+    carregarProdutos();
+    setCaixas((prev) =>
+      renumerarCaixas([
+        ...prev,
+        {
+          id: Date.now().toString(),
+          type: '',
+          number: '',
+          value: 0,
+          weight: 0,
+        },
+      ]),
+    );
   };
 
   // Remover caixa
   const removerCaixa = (id: string) => {
-    setCaixas(caixas.filter(c => c.id !== id));
+    setCaixas((prev) => renumerarCaixas(prev.filter((c) => c.id !== id)));
   };
 
   // Atualizar caixa
@@ -129,10 +157,11 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
       const novaCaixa = { ...c, [campo]: valor };
 
       // Se alterou o tipo, busca o preço
-      if (campo === 'tipo') {
+      if (campo === 'type') {
         const produto = opcoesCaixa.find(p => p.size === valor || p.name === valor);
         if (produto) {
-          novaCaixa.valor = produto.salePrice;
+          novaCaixa.value = produto.salePrice;
+          novaCaixa.weight = produto.maxWeight ?? 0;
         }
       }
 
@@ -281,33 +310,34 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
       remetente: {
         usaName: remetenteNome,
         usaPhone: remetenteTel,
-        usaCpf: remetenteCpfRg as string,
+        usaCpf: remetenteCpfRg,
         usaAddress: {
           rua: remetenteEndereco,
-          numero: remetenteNumero as string,
-          cidade: remetenteCidade as string,
-          estado: remetenteEstado as string,
-          zipCode: remetenteZipCode as string,
-          complemento: remetenteComplemento as string,
+          numero: remetenteNumero,
+          cidade: remetenteCidade,
+          estado: remetenteEstado,
+          zipCode: remetenteZipCode,
+          complemento: remetenteComplemento,
         },
       },
       destinatario: {
         brazilName: destinatarioNome,
         brazilCpf: destinatarioCpfRg,
         brazilAddress: {
-          endereco: destinatarioEndereco as string,
-          bairro: destinatarioBairro as string,
-          cidade: destinatarioCidade as string,
-          estado: destinatarioEstado as string,
-          cep: destinatarioCep as string,
+          rua: destinatarioEndereco,
+          cidade: destinatarioCidade,
+          estado: destinatarioEstado,
+          cep: destinatarioCep,
+          complemento: destinatarioComplemento,
+          numero: destinatarioNumero,
         },
-        brazilPhone: destinatarioTelefone as string,
+        brazilPhone: destinatarioTelefone,
       },
-      caixas: caixas.map(c => ({
+      boxes: caixas.map(c => ({
         id: c.id,
-        tipo: c.tipo,
-        numero: c.numero,
-        valor: c.valor,
+        type: c.type,
+        number: c.number,
+        value: c.value,
       })),
       assinaturaCliente,
       assinaturaAgente,
@@ -398,75 +428,102 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="remetenteNome">Remetente *</Label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="remetenteNome">Nome *</Label>
                 <Input
                   id="remetenteNome"
                   value={remetenteNome}
                   onChange={(e) => setRemetenteNome(e.target.value)}
                   placeholder="Nome completo"
+                  required
                 />
               </div>
-              <div>
+              <div className="space-y-2">
+                <Label htmlFor="remetenteCpfRg">CPF/RG</Label>
+                <Input
+                  id="remetenteCpfRg"
+                  value={remetenteCpfRg}
+                  onChange={(e) => setRemetenteCpfRg(e.target.value)}
+                  placeholder="123.456.789-00"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="remetenteTel">Telefone *</Label>
                 <Input
                   id="remetenteTel"
                   value={remetenteTel}
                   onChange={(e) => setRemetenteTel(e.target.value)}
                   placeholder="+1 (305) 555-0000"
+                  required
                 />
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="remetenteEndereco">Endereço *</Label>
-              <Input
-                id="remetenteEndereco"
-                value={remetenteEndereco}
-                onChange={(e) => setRemetenteEndereco(e.target.value)}
-                placeholder="Rua, número"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="remetenteEndereco">Endereço *</Label>
+                <Input
+                  id="remetenteEndereco"
+                  value={remetenteEndereco}
+                  onChange={(e) => setRemetenteEndereco(e.target.value)}
+                  placeholder="Rua, número"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="remetenteNumero">Número *</Label>
+                <Input
+                  id="remetenteNumero"
+                  value={remetenteNumero}
+                  onChange={(e) => setRemetenteNumero(e.target.value)}
+                  placeholder="123"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="remetenteComplemento">Complemento</Label>
+                <Input
+                  id="remetenteComplemento"
+                  value={remetenteComplemento}
+                  onChange={(e) => setRemetenteComplemento(e.target.value)}
+                  placeholder="123"
+                  required
+                />
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="md:col-span-2">
-                <Label htmlFor="remetenteCidade">Cidade</Label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ">
+              <div className="space-y-2">
+                <Label htmlFor="remetenteCidade">Cidade *</Label>
                 <Input
                   id="remetenteCidade"
                   value={remetenteCidade}
                   onChange={(e) => setRemetenteCidade(e.target.value)}
                   placeholder="Miami"
+                  required
                 />
               </div>
-              <div>
-                <Label htmlFor="remetenteEstado">Estado</Label>
+              <div className="space-y-2">
+                <Label htmlFor="remetenteEstado">Estado *</Label>
                 <Input
                   id="remetenteEstado"
                   value={remetenteEstado}
                   onChange={(e) => setRemetenteEstado(e.target.value)}
                   placeholder="FL"
+                  required
                 />
               </div>
-              <div>
-                <Label htmlFor="remetenteZipCode">ZIP Code</Label>
+              <div className="space-y-2">
+                <Label htmlFor="remetenteZipCode">ZIP Code *</Label>
                 <Input
                   id="remetenteZipCode"
                   value={remetenteZipCode}
                   onChange={(e) => setRemetenteZipCode(e.target.value)}
                   placeholder="33101"
+                  required
                 />
               </div>
-            </div>
-
-            <div>
-              <Label htmlFor="remetenteCpfRg">CPF/RG</Label>
-              <Input
-                id="remetenteCpfRg"
-                value={remetenteCpfRg}
-                onChange={(e) => setRemetenteCpfRg(e.target.value)}
-                placeholder="123.456.789-00"
-              />
             </div>
           </CardContent>
         </Card>
@@ -480,18 +537,19 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
                 <Label htmlFor="destinatarioNome">Nome *</Label>
                 <Input
                   id="destinatarioNome"
                   value={destinatarioNome}
                   onChange={(e) => setDestinatarioNome(e.target.value)}
                   placeholder="Nome completo"
+                  required
                 />
               </div>
-              <div>
-                <Label htmlFor="destinatarioCpfRg">CPF/RG *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="destinatarioCpfRg">CPF/RG</Label>
                 <Input
                   id="destinatarioCpfRg"
                   value={destinatarioCpfRg}
@@ -499,65 +557,80 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
                   placeholder="000.000.000-00"
                 />
               </div>
-            </div>
-
-            <div>
-              <Label htmlFor="destinatarioEndereco">Endereço *</Label>
-              <Input
-                id="destinatarioEndereco"
-                value={destinatarioEndereco}
-                onChange={(e) => setDestinatarioEndereco(e.target.value)}
-                placeholder="Rua, número"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="destinatarioBairro">Bairro</Label>
-                <Input
-                  id="destinatarioBairro"
-                  value={destinatarioBairro}
-                  onChange={(e) => setDestinatarioBairro(e.target.value)}
-                  placeholder="Nome do bairro"
-                />
-              </div>
-              <div>
-                <Label htmlFor="destinatarioCidade">Cidade</Label>
-                <Input
-                  id="destinatarioCidade"
-                  value={destinatarioCidade}
-                  onChange={(e) => setDestinatarioCidade(e.target.value)}
-                  placeholder="São Paulo"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="destinatarioEstado">Estado</Label>
-                <Input
-                  id="destinatarioEstado"
-                  value={destinatarioEstado}
-                  onChange={(e) => setDestinatarioEstado(e.target.value)}
-                  placeholder="SP"
-                />
-              </div>
-              <div>
-                <Label htmlFor="destinatarioCep">CEP</Label>
-                <Input
-                  id="destinatarioCep"
-                  value={destinatarioCep}
-                  onChange={(e) => setDestinatarioCep(e.target.value)}
-                  placeholder="00000-000"
-                />
-              </div>
-              <div>
-                <Label htmlFor="destinatarioTelefone">Telefone</Label>
+              <div className="space-y-2">
+                <Label htmlFor="destinatarioTelefone">Telefone *</Label>
                 <Input
                   id="destinatarioTelefone"
                   value={destinatarioTelefone}
                   onChange={(e) => setDestinatarioTelefone(e.target.value)}
                   placeholder="+55 11 00000-0000"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="destinatarioEndereco">Endereço *</Label>
+                <Input
+                  id="destinatarioEndereco"
+                  value={destinatarioEndereco}
+                  onChange={(e) => setDestinatarioEndereco(e.target.value)}
+                  placeholder="Rua, número"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="destinatarioNumero">Número *</Label>
+                <Input
+                  id="destinatarioNumero"
+                  value={destinatarioNumero}
+                  onChange={(e) => setDestinatarioNumero(e.target.value)}
+                  placeholder="123"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="destinatarioComplemento">Complemento</Label>
+                <Input
+                  id="destinatarioComplemento"
+                  value={destinatarioComplemento}
+                  onChange={(e) => setDestinatarioComplemento(e.target.value)}
+                  placeholder="Apto 101"
+                />
+              </div>
+            </div>
+
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="destinatarioCidade">Cidade *</Label>
+                <Input
+                  id="destinatarioCidade"
+                  value={destinatarioCidade}
+                  onChange={(e) => setDestinatarioCidade(e.target.value)}
+                  placeholder="São Paulo"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="destinatarioEstado">Estado *</Label>
+                <Input
+                  id="destinatarioEstado"
+                  value={destinatarioEstado}
+                  onChange={(e) => setDestinatarioEstado(e.target.value)}
+                  placeholder="SP"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="destinatarioCep">CEP *</Label>
+                <Input
+                  id="destinatarioCep"
+                  value={destinatarioCep}
+                  onChange={(e) => setDestinatarioCep(e.target.value)}
+                  placeholder="00000-000"
+                  required
                 />
               </div>
             </div>
@@ -593,11 +666,11 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
               <div className="space-y-3">
                 {/* Cabeçalho da tabela */}
                 <div className="hidden md:grid md:grid-cols-12 gap-3 text-sm font-semibold text-muted-foreground border-b pb-2">
-                  <div className="col-span-4">Tipo da Caixa</div>
-                  <div className="col-span-2">Nº</div>
-                  <div className="col-span-2">Peso (kg)</div>
-                  <div className="col-span-3">Valor (R$)</div>
-                  <div className="col-span-1"></div>
+                  <div className="col-span-4 text-center">Tipo da Caixa</div>
+                  <div className="col-span-2 text-center">Nº</div>
+                  <div className="col-span-2 text-center">Peso (kg)</div>
+                  <div className="col-span-3 text-center">Valor (R$)</div>
+                  <div className="col-span-1 text-center"></div>
                 </div>
 
                 {/* Linhas de caixas */}
@@ -611,8 +684,8 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
                     <div className="md:col-span-4">
                       <Label className="md:hidden mb-2">Tipo da Caixa</Label>
                       <Select
-                        value={caixa.tipo}
-                        onValueChange={(valor) => atualizarCaixa(caixa.id, 'tipo', valor)}
+                        value={caixa.type}
+                        onValueChange={(valor) => atualizarCaixa(caixa.id, 'type', valor)}
                       >
                         <SelectTrigger className="bg-white">
                           <SelectValue placeholder="Selecione o tipo" />
@@ -629,17 +702,18 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
                     <div className="md:col-span-2">
                       <Label className="md:hidden mb-2">Número</Label>
                       <Input
-                        value={caixa.numero}
-                        onChange={(e) => atualizarCaixa(caixa.id, 'numero', e.target.value)}
-                        placeholder="001"
+                        value={caixa.number}
+                        onChange={(e) => atualizarCaixa(caixa.id, 'number', e.target.value)}
+                        placeholder="A1, A2, A3, etc."
+                        readOnly
                       />
                     </div>
                     <div className="md:col-span-2">
                       <Label className="md:hidden mb-2">Peso (kg)</Label>
                       <Input
                         type="number"
-                        value={caixa.peso}
-                        onChange={(e) => atualizarCaixa(caixa.id, 'peso', parseFloat(e.target.value) || 0)}
+                        value={caixa.weight}
+                        onChange={(e) => atualizarCaixa(caixa.id, 'weight', parseFloat(e.target.value) || 0)}
                         placeholder="0.0"
                         step="0.1"
                       />
@@ -650,13 +724,14 @@ export default function OrdemServicoForm({ agendamentoId, agendamento, onClose, 
                         <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">R$</span>
                         <Input
                           type="number"
-                          value={caixa.valor}
+                          value={caixa.value}
                           onChange={(e) =>
-                            atualizarCaixa(caixa.id, 'valor', parseFloat(e.target.value) || 0)
+                            atualizarCaixa(caixa.id, 'value', parseFloat(e.target.value) || 0)
                           }
                           placeholder="0.00"
                           step="0.01"
                           className="pl-8"
+                          disabled={!opcoesCaixa.find(p => p.type === caixa.type || p.name === caixa.type)?.variablePrice}
                         />
                       </div>
                     </div>

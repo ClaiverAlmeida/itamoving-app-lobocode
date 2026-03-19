@@ -14,3 +14,7 @@ export { appointmentsService } from "./appointments.service";
 export { containersServices } from "./containers.service";
 // Serviço de Funcionários - Usuários (RH)
 export { usersService } from "./hr/users.service";
+// Serviço de Configurações da Empresa
+export { configurationsService } from "./configurations.service";
+// Serviço de Driver App
+export { driverAppService } from "./driver-app.service";

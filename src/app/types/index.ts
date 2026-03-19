@@ -217,21 +217,22 @@ export interface OrdemServicoMotorista {
     brazilName: string;
     brazilCpf: string;
     brazilAddress: {
-      endereco: string;
-      bairro: string;
+      rua: string;
       cidade: string;
       estado: string;
       cep: string;
+      complemento?: string;
+      numero?: string;
     };
     brazilPhone: string;
   };
 
   // Caixas e Valores
-  caixas: {
+  boxes: {
     id: string;
-    tipo: string; // tipo da caixa
-    numero: string;
-    valor: number;
+    type: string; // tipo da caixa
+    number: string;
+    value: number;
   }[];
 
   // Assinaturas e Data
