@@ -476,7 +476,7 @@ export default function AgendamentosView() {
       }
     }
 
-    const address = `${cliente.usaAddress.rua}, ${cliente.usaAddress.numero}, ${cliente.usaAddress.cidade}, ${cliente.usaAddress.estado} ${cliente.usaAddress.zipCode}`;
+    const address = `${cliente.usaAddress.rua}, ${cliente.usaAddress.numero} - ${cliente.usaAddress.complemento}, ${cliente.usaAddress.cidade}, ${cliente.usaAddress.estado} ${cliente.usaAddress.zipCode} - ${cliente.usaAddress.bairro}`;
 
     const isPeriodic = Boolean(formData?.isPeriodic);
     const collectionDate = formData.collectionDate?.trim();

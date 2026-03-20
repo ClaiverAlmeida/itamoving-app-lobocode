@@ -24,6 +24,7 @@ export interface CreateClientsDTO {
   brazilAddress: {
     rua: string;
     numero: string;
+    bairro: string;
     cidade: string;
     estado: string;
     cep: string;
@@ -116,6 +117,7 @@ function mapBackendToFrontend(client: ClientBackend): Cliente {
   const brazilAddress = client.brazilAddress as any;
   const enderecoBrasil = {
     rua: brazilAddress?.rua || brazilAddress?.street || brazilAddress?.address || "",
+    bairro: brazilAddress?.bairro || brazilAddress?.neighborhood || "",
     numero: brazilAddress?.numero || brazilAddress?.number || brazilAddress?.num || "",
     cidade: brazilAddress?.cidade || brazilAddress?.city || "",
     estado: brazilAddress?.estado || brazilAddress?.state || "",

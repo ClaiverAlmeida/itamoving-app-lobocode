@@ -194,11 +194,11 @@ export interface Avaliacao {
 }
 
 export interface OrdemServicoMotorista {
-  id: string;
-  agendamentoId: string;
+  id?: string;
+  appointmentId: string;
 
   // Dados do Remetente (USA)
-  remetente: {
+  sender: {
     usaName: string;
     usaAddress: {
       rua: string;
@@ -213,11 +213,12 @@ export interface OrdemServicoMotorista {
   };
 
   // Dados do Destinatário (Brasil)
-  destinatario: {
+  recipient: {
     brazilName: string;
     brazilCpf: string;
     brazilAddress: {
       rua: string;
+      bairro: string;
       cidade: string;
       estado: string;
       cep: string;
@@ -233,19 +234,26 @@ export interface OrdemServicoMotorista {
     type: string; // tipo da caixa
     number: string;
     value: number;
+    /** Itens adicionais dentro desta caixa (ordem de serviço) */
+    items?: {
+      name: string;
+      quantity: number;
+      weight: number;
+      observations?: string;
+    }[];
   }[];
 
   // Assinaturas e Data
-  assinaturaCliente?: string;
-  assinaturaAgente?: string;
-  dataAssinatura: string;
+  clientSignature: string;
+  agentSignature: string;
+  signatureDate: string;
 
   // Motorista e Status
-  motoristaNome: string;
-  motoristaId: string;
-  status: "pendente" | "em_andamento" | "concluida";
-  valorCobrado?: number;
+  driverName: string;
+  userId: string;
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
+  chargedValue: number;
 
   // Observações
-  observacoes?: string;
+  observations?: string;
 }

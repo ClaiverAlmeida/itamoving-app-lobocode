@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { configurationsService, Company, CompanyBackend } from '../services/configurations.service';
+import { configurationsService, Company, CompanyBackend, UpdateCompanyDTO } from '../services/configurations.service';
 
 export default function ConfiguracoesView() {
     const { hasPermission } = useAuth();
@@ -93,7 +93,7 @@ export default function ConfiguracoesView() {
             if (!initial || !form || isSaving) return;
             setIsSaving(true);
 
-            const payload: Company = {
+            const current = {
                 name: form.name,
                 website: form.website,
                 address: form.address,
@@ -103,7 +103,24 @@ export default function ConfiguracoesView() {
                 contactPhone: form.contactPhone,
             };
 
-            const result = await configurationsService.update(initial.id, payload);
+            const original = initial!;
+            const patch: UpdateCompanyDTO = {};
+
+            if (current.name !== original.name) patch.name = current.name;
+            if (current.website !== original.website) patch.website = current.website;
+            if (current.address !== original.address) patch.address = current.address;
+            if (current.country !== original.country) patch.country = current.country;
+            if (current.contactName !== original.contactName) patch.contactName = current.contactName;
+            if (current.contactEmail !== original.contactEmail) patch.contactEmail = current.contactEmail;
+            if (current.contactPhone !== original.contactPhone) patch.contactPhone = current.contactPhone;
+
+
+            if (Object.keys(patch).length === 0) {
+                toast.info("Nenhum campo alterado.");
+                return;
+            }
+
+            const result = await configurationsService.update(initial.id, patch as Company);
             if (!result.success) {
                 toast.error(result.error ?? 'Falha ao salvar configurações.');
                 return;
@@ -228,19 +245,19 @@ export default function ConfiguracoesView() {
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label htmlFor="name">Nome</Label>
-                                            <Input
-                                                id="name"
-                                                value={form?.name ?? ''}
-                                                onChange={handleFormChange('name')}
-                                            />
+                                                <Input
+                                                    id="name"
+                                                    value={form?.name ?? ''}
+                                                    onChange={handleFormChange('name')}
+                                                />
                                             </div>
 
                                             <div className="space-y-2">
                                                 <Label htmlFor="website">Website</Label>
                                                 <Input
                                                     id="website"
-                                                value={form?.website ?? ''}
-                                                onChange={handleFormChange('website')}
+                                                    value={form?.website ?? ''}
+                                                    onChange={handleFormChange('website')}
                                                 />
                                             </div>
 
@@ -248,8 +265,8 @@ export default function ConfiguracoesView() {
                                                 <Label htmlFor="address">Endereço</Label>
                                                 <Input
                                                     id="address"
-                                                value={form?.address ?? ''}
-                                                onChange={handleFormChange('address')}
+                                                    value={form?.address ?? ''}
+                                                    onChange={handleFormChange('address')}
                                                 />
                                             </div>
 
@@ -257,8 +274,8 @@ export default function ConfiguracoesView() {
                                                 <Label htmlFor="country">País</Label>
                                                 <Input
                                                     id="country"
-                                                value={form?.country ?? ''}
-                                                onChange={handleFormChange('country')}
+                                                    value={form?.country ?? ''}
+                                                    onChange={handleFormChange('country')}
                                                 />
                                             </div>
                                         </div>
@@ -273,19 +290,19 @@ export default function ConfiguracoesView() {
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                             <div className="space-y-2">
                                                 <Label htmlFor="contactName">Nome de Contato</Label>
-                                            <Input
-                                                id="contactName"
-                                                value={form?.contactName ?? ''}
-                                                onChange={handleFormChange('contactName')}
-                                            />
+                                                <Input
+                                                    id="contactName"
+                                                    value={form?.contactName ?? ''}
+                                                    onChange={handleFormChange('contactName')}
+                                                />
                                             </div>
 
                                             <div className="space-y-2">
                                                 <Label htmlFor="contactEmail">Email</Label>
                                                 <Input
                                                     id="contactEmail"
-                                                value={form?.contactEmail ?? ''}
-                                                onChange={handleFormChange('contactEmail')}
+                                                    value={form?.contactEmail ?? ''}
+                                                    onChange={handleFormChange('contactEmail')}
                                                     type="email"
                                                 />
                                             </div>
@@ -294,27 +311,27 @@ export default function ConfiguracoesView() {
                                                 <Label htmlFor="contactPhone">Telefone</Label>
                                                 <Input
                                                     id="contactPhone"
-                                                value={form?.contactPhone ?? ''}
-                                                onChange={handleFormChange('contactPhone')}
+                                                    value={form?.contactPhone ?? ''}
+                                                    onChange={handleFormChange('contactPhone')}
                                                 />
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 pt-2">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={handleCancel}
-                                        disabled={!isDirty || isSaving}
-                                        className="w-full sm:w-auto"
-                                    >
-                                        Cancelar
-                                    </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleCancel}
+                                            disabled={!isDirty || isSaving}
+                                            className="w-full sm:w-auto"
+                                        >
+                                            Cancelar
+                                        </Button>
                                         <Button
                                             type="submit"
-                                        disabled={!isDirty || isSaving}
-                                        className="w-full sm:w-auto"
+                                            disabled={!isDirty || isSaving}
+                                            className="w-full sm:w-auto"
                                         >
                                             <Save className="w-4 h-4 mr-2" />
                                             Salvar Alterações

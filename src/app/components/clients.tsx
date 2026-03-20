@@ -206,6 +206,7 @@ export default function ClientesView() {
     brazilPhone: "",
     brazilAddress: {
       rua: "",
+      bairro: "",
       numero: "",
       cidade: "",
       estado: "",
@@ -234,6 +235,7 @@ export default function ClientesView() {
       brazilPhone: "",
       brazilAddress: {
         rua: "",
+        bairro: "",
         numero: "",
         cidade: "",
         estado: "",
@@ -258,6 +260,7 @@ export default function ClientesView() {
     };
     const brAddr = cliente.brazilAddress as {
       rua?: string;
+      bairro?: string;
       numero?: string;
       cidade?: string;
       estado?: string;
@@ -281,6 +284,7 @@ export default function ClientesView() {
       brazilPhone: cliente.brazilPhone ?? "",
       brazilAddress: {
         rua: brAddr?.rua ?? "",
+        bairro: brAddr?.bairro ?? "",
         numero: brAddr?.numero ?? "",
         cidade: brAddr?.cidade ?? "",
         estado: brAddr?.estado ?? "",
@@ -313,6 +317,7 @@ export default function ClientesView() {
       brazilPhone: trim(formData.brazilPhone),
       brazilAddress: {
         rua: trim(formData.brazilAddress.rua),
+        bairro: trim(formData.brazilAddress.bairro),
         numero: trim(formData.brazilAddress.numero),
         cidade: trim(formData.brazilAddress.cidade),
         estado: trim(formData.brazilAddress.estado),
@@ -361,6 +366,7 @@ export default function ClientesView() {
           brazilAddress: {
             ...prev.brazilAddress,
             rua: data.logradouro || "",
+            bairro: data.bairro,
             cidade: data.localidade || "",
             estado: estadoValido,
             cep: cepExibir,
@@ -446,6 +452,7 @@ export default function ClientesView() {
     };
     const origBrAddr = original.brazilAddress as {
       rua?: string;
+      bairro?: string;
       numero?: string;
       cidade?: string;
       estado?: string;
@@ -483,6 +490,7 @@ export default function ClientesView() {
 
     const brazilDestChanged =
       current.brazilAddress.rua !== (origBrAddr?.rua ?? "") ||
+      current.brazilAddress.bairro !== (origBrAddr?.bairro ?? "") ||
       current.brazilAddress.numero !== (origBrAddr?.numero ?? "") ||
       current.brazilAddress.cidade !== (origBrAddr?.cidade ?? "") ||
       current.brazilAddress.estado !== (origBrAddr?.estado ?? "") ||
@@ -941,7 +949,7 @@ export default function ClientesView() {
                   Novo Cliente
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg grid grid-cols-1">
                 <DialogHeader>
                   <DialogTitle>
                     {editingCliente ? "Editar Cliente" : "Novo Cliente"}
@@ -958,7 +966,7 @@ export default function ClientesView() {
                       Dados do Cliente (USA)
                     </h3>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="usaName">Nome Completo (USA) *</Label>
                         <Input
@@ -991,7 +999,7 @@ export default function ClientesView() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="usaPhone">Telefone USA *</Label>
+                        <Label htmlFor="usaPhone">Telefone (USA) *</Label>
                         <Input
                           id="usaPhone"
                           value={formData.usaPhone}
@@ -1019,8 +1027,26 @@ export default function ClientesView() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="col-span-2 space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="zipCode">ZIP Code (USA) *</Label>
+                        <Input
+                          id="zipCode"
+                          value={formData.usaAddress.zipCode}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              usaAddress: {
+                                ...formData.usaAddress,
+                                zipCode: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="33101"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <Label htmlFor="ruaUSA">Rua (USA) *</Label>
                         <Input
                           id="ruaUSA"
@@ -1037,7 +1063,6 @@ export default function ClientesView() {
                           required
                         />
                       </div>
-
                       <div className="space-y-2">
                         <Label htmlFor="numeroUSA">Número (USA) *</Label>
                         <Input
@@ -1057,7 +1082,23 @@ export default function ClientesView() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="complementoUSA">Complemento (USA)</Label>
+                        <Input
+                          id="complementoUSA"
+                          value={formData.usaAddress.complemento}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              usaAddress: {
+                                ...formData.usaAddress,
+                                complemento: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="cidadeUSA">Cidade (USA) *</Label>
                         <Input
@@ -1103,42 +1144,6 @@ export default function ClientesView() {
                           </SelectContent>
                         </Select>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="zipCode">ZIP Code *</Label>
-                        <Input
-                          id="zipCode"
-                          value={formData.usaAddress.zipCode}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              usaAddress: {
-                                ...formData.usaAddress,
-                                zipCode: e.target.value,
-                              },
-                            })
-                          }
-                          placeholder="33101"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="complementoUSA">Complemento (USA)</Label>
-                      <Input
-                        id="complementoUSA"
-                        value={formData.usaAddress.complemento}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            usaAddress: {
-                              ...formData.usaAddress,
-                              complemento: e.target.value,
-                            },
-                          })
-                        }
-                      />
                     </div>
                   </div>
 
@@ -1148,7 +1153,7 @@ export default function ClientesView() {
                       Destinatário no Brasil
                     </h3>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="brazilName">
                           Nome Recebedor (Brasil) *
@@ -1183,28 +1188,56 @@ export default function ClientesView() {
                           maxLength={14}
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="brazilPhone">Telefone (Brasil) *</Label>
+                        <Input
+                          id="brazilPhone"
+                          value={formData.brazilPhone}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              brazilPhone: formatNumberTelephoneBrasil(
+                                e.target.value,
+                              ),
+                            })
+                          }
+                          placeholder="+55 11 98765-4321"
+                          required
+                        />
+                      </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="brazilPhone">Telefone Brasil *</Label>
-                      <Input
-                        id="brazilPhone"
-                        value={formData.brazilPhone}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            brazilPhone: formatNumberTelephoneBrasil(
-                              e.target.value,
-                            ),
-                          })
-                        }
-                        placeholder="+55 11 98765-4321"
-                        required
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="col-span-2 space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="cep">CEP (Brasil) *</Label>
+                        <Input
+                          id="cep"
+                          value={formData.brazilAddress.cep}
+                          onChange={(e) => {
+                            const formatted = formatCepBrasil(e.target.value);
+                            setFormData((prev) => ({
+                              ...prev,
+                              brazilAddress: {
+                                ...prev.brazilAddress,
+                                cep: formatted,
+                              },
+                            }));
+                            if (formatted.replace(/\D/g, "").length === 8) {
+                              handleCepBrasilChange(formatted);
+                            }
+                          }}
+                          placeholder="01234-567"
+                          maxLength={9}
+                          required
+                          disabled={loadingCep}
+                        />
+                        {loadingCep && (
+                          <p className="text-xs text-muted-foreground">
+                            Buscando endereço...
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
                         <Label htmlFor="ruaBrasil">Rua (Brasil) *</Label>
                         <Input
                           id="ruaBrasil"
@@ -1239,9 +1272,44 @@ export default function ClientesView() {
                           required
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="complementoBrasil">
+                          Complemento (Brasil)
+                        </Label>
+                        <Input
+                          id="complementoBrasil"
+                          value={formData.brazilAddress.complemento}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              brazilAddress: {
+                                ...formData.brazilAddress,
+                                complemento: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="bairroBrasil">Bairro (Brasil) *</Label>
+                        <Input
+                          id="bairroBrasil"
+                          value={formData.brazilAddress.bairro}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              brazilAddress: {
+                                ...formData.brazilAddress,
+                                bairro: e.target.value,
+                              },
+                            })
+                          }
+                          required
+                        />
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="cidadeBrasil">Cidade (Brasil) *</Label>
                         <Input
@@ -1259,7 +1327,6 @@ export default function ClientesView() {
                           required
                         />
                       </div>
-
                       <div className="space-y-2">
                         <Label htmlFor="estadoBrasil">Estado (Brasil) *</Label>
                         <Select
@@ -1287,55 +1354,6 @@ export default function ClientesView() {
                           </SelectContent>
                         </Select>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="cep">CEP Brasil *</Label>
-                        <Input
-                          id="cep"
-                          value={formData.brazilAddress.cep}
-                          onChange={(e) => {
-                            const formatted = formatCepBrasil(e.target.value);
-                            setFormData((prev) => ({
-                              ...prev,
-                              brazilAddress: {
-                                ...prev.brazilAddress,
-                                cep: formatted,
-                              },
-                            }));
-                            if (formatted.replace(/\D/g, "").length === 8) {
-                              handleCepBrasilChange(formatted);
-                            }
-                          }}
-                          placeholder="01234-567"
-                          maxLength={9}
-                          required
-                          disabled={loadingCep}
-                        />
-                        {loadingCep && (
-                          <p className="text-xs text-muted-foreground">
-                            Buscando endereço...
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="complementoBrasil">
-                        Complemento (Brasil)
-                      </Label>
-                      <Input
-                        id="complementoBrasil"
-                        value={formData.brazilAddress.complemento}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            brazilAddress: {
-                              ...formData.brazilAddress,
-                              complemento: e.target.value,
-                            },
-                          })
-                        }
-                      />
                     </div>
 
                     <div className="flex items-center justify-between rounded-lg border p-4">
@@ -2039,10 +2057,8 @@ export default function ClientesView() {
                       Endereço
                     </p>
                     <p className="font-semibold">
-                      {(selectedCliente.brazilAddress as { rua?: string }).rua},{" "}
-                      {
-                        (selectedCliente.brazilAddress as { numero?: string })
-                          .numero
+                      {(selectedCliente.brazilAddress as { rua?: string }).rua},{" "} {
+                        (selectedCliente.brazilAddress as { numero?: string }).numero
                       }
                       {(
                         selectedCliente.brazilAddress as {
@@ -2050,6 +2066,8 @@ export default function ClientesView() {
                         }
                       ).complemento &&
                         `, ${(selectedCliente.brazilAddress as { complemento?: string }).complemento}`}
+                      {(selectedCliente.brazilAddress as { bairro?: string }).bairro &&
+                        ` - ${(selectedCliente.brazilAddress as { bairro?: string }).bairro}`}
                     </p>
                     <p className="text-muted-foreground">
                       {

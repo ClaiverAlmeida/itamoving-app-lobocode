@@ -59,7 +59,6 @@ function formatCollectionDate(dateStr: string | undefined): string {
 
 export default function MotoristaApp() {
   const [agendamentos, setAgendamentos] = useState<AgendamentoConfirmedBackend[]>([]);
-  const [companyAddress, setCompanyAddress] = useState<string>("");
   const [estoque, setEstoque] = useState<Estoque>({
     smallBoxes: 0,
     mediumBoxes: 0,
@@ -70,19 +69,13 @@ export default function MotoristaApp() {
 
   useEffect(() => {
     const carregar = async () => {
-      const { getConfirmedAppointments, getCompanyAddress } = driverAppService;
-      const [agendamentosResult, companyAddressResult, estoqueResult] = await Promise.all([
-        getConfirmedAppointments(),
-        getCompanyAddress(),
+      const [agendamentosResult, estoqueResult] = await Promise.all([
+        driverAppService.getConfirmedAppointments(),
         stockService.getAll(),
       ]);
 
       if (agendamentosResult.success && agendamentosResult.data) {
         setAgendamentos(agendamentosResult.data);
-      }
-
-      if (companyAddressResult.success && companyAddressResult.data) {
-        setCompanyAddress(companyAddressResult.data);
       }
 
       if (estoqueResult.success && estoqueResult.data) {
@@ -178,11 +171,11 @@ export default function MotoristaApp() {
       pequenas: 0,
       medias: 0,
       grandes: 0,
-      total: ordem.caixas.length
+      total: ordem.boxes.length
     };
 
-    ordem.caixas.forEach(c => {
-      const tipo = c.tipo.toLowerCase();
+    ordem.boxes.forEach(c => {
+      const tipo = c.type.toLowerCase();
       if (tipo.includes('pequena')) counts.pequenas++;
       else if (tipo.includes('media') || tipo.includes('média')) counts.medias++;
       else if (tipo.includes('grande')) counts.grandes++;
@@ -370,7 +363,7 @@ export default function MotoristaApp() {
                 Valor Pago em Espécie:
               </span>
               <span className="text-2xl font-bold text-green-700">
-                {ordemConcluida.valorCobrado ? ordemConcluida.valorCobrado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "R$ 0,00"}
+                {ordemConcluida.valorCobrado ? ordemConcluida.valorCobrado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "$ 0,00"}
               </span>
             </div>
           </div>
@@ -446,10 +439,10 @@ export default function MotoristaApp() {
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600/10 dark:bg-blue-400/15">
               <Package className="h-5 w-5 sm:h-6 sm:w-6" />
             </span>
-            Estoque disponível no caminhão
+            Estoque disponível
           </CardTitle>
           <CardDescription className="text-xs sm:text-sm">
-            Quantidades por tipo de item no veículo
+            Quantidades por tipo de item no estoque
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
@@ -535,7 +528,7 @@ export default function MotoristaApp() {
                       <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                       <span className="line-clamp-2">
                         <span className="font-semibold text-xs text-muted-foreground mr-1">ENTREGA:</span>
-                        {companyAddress}
+                        {agendamento.company.address}
                       </span>
                     </div>
                   </CardContent>

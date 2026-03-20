@@ -30,6 +30,7 @@ export interface AgendamentoConfirmedBackend {
         };
         brazilAddress: {
             rua: string;
+            bairro: string;
             numero: string;
             cidade: string;
             estado: string;
@@ -39,6 +40,10 @@ export interface AgendamentoConfirmedBackend {
         brazilName: string;
         brazilCpf: string;
         brazilPhone: string;
+    };
+    company: {
+        address: string;
+        contactPhone: string;
     };
     status: "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED";
 }
@@ -58,25 +63,6 @@ export class DriverAppService {
             return { success: false, error: result.error ?? "Erro ao buscar agendamentos confirmados do dia" };
         } catch (error: any) {
             return { success: false, error: error.message ?? "Erro ao buscar agendamentos confirmados do dia" };
-        }
-    }
-
-    async getCompanyAddress(): Promise<{
-        success: boolean;
-        data?: string;
-        error?: string;
-    }> {
-        try {
-            const result = await api.get('/companies/address');
-            if (result.success && result.data) {
-                const raw = (result.data as any)?.data ?? result.data;
-                const address = (raw as any)?.address;
-                return { success: true, data: typeof address === "string" ? address : "" };
-            }
-            return { success: false, error: result.error ?? "Erro ao buscar endereço da empresa" };
-        }
-        catch (error: any) {
-            return { success: false, error: error.message ?? "Erro ao buscar endereço da empresa" };
         }
     }
 }

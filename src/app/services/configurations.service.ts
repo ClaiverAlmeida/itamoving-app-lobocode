@@ -1,6 +1,6 @@
 import { api } from "./api.service";
 
-export type Company = {
+export interface Company {
     name: string;
     website: string;
     address: string;
@@ -10,10 +10,11 @@ export type Company = {
     contactPhone: string;
 };
 
+export type UpdateCompanyDTO = Partial<Company>;
+
 export interface CompanyBackend {
     id: string;
     name: string;
-    cnpj: string;
     website: string;
     address: string;
     country: string;
