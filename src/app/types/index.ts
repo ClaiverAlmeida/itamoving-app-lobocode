@@ -229,13 +229,14 @@ export interface OrdemServicoMotorista {
   };
 
   // Caixas e Valores
-  boxes: {
+  driverServiceOrderProducts: {
     id: string;
-    type: string; // tipo da caixa
     number: string;
+    type: string; // tipo da caixa
+    weight: number;
     value: number;
     /** Itens adicionais dentro desta caixa (ordem de serviço) */
-    items?: {
+    driverServiceOrderProductsItems?: {
       name: string;
       quantity: number;
       weight: number;

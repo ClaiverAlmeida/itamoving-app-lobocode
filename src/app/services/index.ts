@@ -1,3 +1,4 @@
+
 export { api } from "./api.service";
 
 // Serviço de Clients
@@ -18,3 +19,5 @@ export { usersService } from "./hr/users.service";
 export { configurationsService } from "./configurations.service";
 // Serviço de Driver App
 export { driverAppService } from "./driver-app.service";
+// Serviço de Service Order Form
+export { serviceOrderFormService } from "./service-order-form.service";

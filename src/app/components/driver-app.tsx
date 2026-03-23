@@ -171,10 +171,10 @@ export default function MotoristaApp() {
       pequenas: 0,
       medias: 0,
       grandes: 0,
-      total: ordem.boxes.length
+      total: ordem.driverServiceOrderProducts.length
     };
 
-    ordem.boxes.forEach(c => {
+    ordem.driverServiceOrderProducts.forEach(c => {
       const tipo = c.type.toLowerCase();
       if (tipo.includes('pequena')) counts.pequenas++;
       else if (tipo.includes('media') || tipo.includes('média')) counts.medias++;
@@ -256,7 +256,7 @@ export default function MotoristaApp() {
                   Data:
                 </span>
                 <span className="font-semibold ml-2">
-                  {format(new Date(ordemConcluida.dataAssinatura), "dd/MM/yyyy 'às' HH:mm", {
+                  {format(new Date(ordemConcluida.signatureDate), "dd/MM/yyyy 'às' HH:mm", {
                     locale: ptBR,
                   })}
                 </span>
@@ -276,7 +276,7 @@ export default function MotoristaApp() {
                   Nome:
                 </span>
                 <span className="font-semibold">
-                  {ordemConcluida.remetente.usaName}
+                  {ordemConcluida.sender.usaName}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -284,7 +284,7 @@ export default function MotoristaApp() {
                   Telefone:
                 </span>
                 <span className="font-semibold">
-                  {ordemConcluida.remetente.usaPhone}
+                  {ordemConcluida.sender.usaPhone}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -292,7 +292,7 @@ export default function MotoristaApp() {
                   Origem:
                 </span>
                 <span className="font-semibold">
-                  {ordemConcluida.remetente.usaAddress.rua} {ordemConcluida.remetente.usaAddress.numero}, {ordemConcluida.remetente.usaAddress.cidade} - {ordemConcluida.remetente.usaAddress.estado}
+                  {ordemConcluida.sender.usaAddress.rua} {ordemConcluida.sender.usaAddress.numero}, {ordemConcluida.sender.usaAddress.cidade} - {ordemConcluida.sender.usaAddress.estado}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -300,7 +300,7 @@ export default function MotoristaApp() {
                   Destino:
                 </span>
                 <span className="font-semibold">
-                  {ordemConcluida.destinatario.brazilAddress.rua}, {ordemConcluida.destinatario.brazilAddress.cidade} - {ordemConcluida.destinatario.brazilAddress.estado}
+                  {ordemConcluida.recipient.brazilAddress.rua}, {ordemConcluida.recipient.brazilAddress.cidade} - {ordemConcluida.recipient.brazilAddress.estado}
                 </span>
               </div>
             </div>
@@ -363,7 +363,7 @@ export default function MotoristaApp() {
                 Valor Pago em Espécie:
               </span>
               <span className="text-2xl font-bold text-green-700">
-                {ordemConcluida.valorCobrado ? ordemConcluida.valorCobrado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "$ 0,00"}
+                {ordemConcluida.chargedValue ? ordemConcluida.chargedValue.toLocaleString("pt-BR", { style: "currency", currency: "USD" }) : "$ 0,00"}
               </span>
             </div>
           </div>
@@ -373,10 +373,10 @@ export default function MotoristaApp() {
             <h3 className="font-semibold text-[#1E3A5F] mb-3">
               Assinatura do Cliente:
             </h3>
-            {ordemConcluida.assinaturaCliente && (
+            {ordemConcluida.clientSignature && (
               <div className="border border-border rounded-lg p-4 bg-gray-50">
                 <img
-                  src={ordemConcluida.assinaturaCliente}
+                  src={ordemConcluida.clientSignature}
                   alt="Assinatura"
                   className="h-24 mx-auto"
                 />
@@ -406,7 +406,7 @@ export default function MotoristaApp() {
   if (viewMode === "form" && agendamentoSelecionado) {
     return (
       <OrdemServicoForm
-        agendamentoId={agendamentoSelecionado.id}
+        appointmentId={agendamentoSelecionado.id}
         agendamento={agendamentoSelecionado}
         onClose={handleFormClose}
         onSave={handleFormSave}
@@ -492,12 +492,12 @@ export default function MotoristaApp() {
                           {agendamento.client.usaPhone ?? ""}
                         </CardDescription>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-col justify-center">
                         <Badge variant="outline" className="text-[#1E3A5F] border-[#1E3A5F]">
-                          {agendamento.status === "CONFIRMED" ? "Confirmado" : "Pendente"}
+                          {agendamento.status === "CONFIRMED" ? "Agendamento Confirmado" : "Agendamento Pendente"}
                         </Badge>
                         <Badge variant="outline" className={`${agendamento.isPeriodic ? "bg-green-50 text-green-600 border-green-600" : "bg-blue-50 text-blue-600 border-blue-600"}`}>
-                          {agendamento.isPeriodic ? "Periódico" : "Único"}
+                          {agendamento.isPeriodic ? "Agendamento Periódico" : "Agendamento Único"}
                         </Badge>
                       </div>
                     </div>

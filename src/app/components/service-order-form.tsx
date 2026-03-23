@@ -35,35 +35,8 @@ import { ptBR } from 'date-fns/locale/pt-BR';
 import { toast } from 'sonner';
 
 import { productsService } from '../services';
-
-interface OrdemServicoFormProps {
-  appointmentId: string;
-  agendamento: any;
-  onClose: () => void;
-  onSave?: (ordem: OrdemServicoMotorista) => void;
-  embedded?: boolean;
-}
-
-interface Caixa {
-  id: string;
-  type: string;
-  number: string;
-  value: number;
-  weight: number;
-}
-
-interface Item {
-  id: string;
-  /** Caixa à qual o item pertence */
-  caixaId: string;
-  name: string;
-  quantity: number;
-  weight: number;
-  observations?: string;
-}
-
-// TODO:
-// Get para produtos 
+import { Caixa, Item, OrdemServicoFormProps, serviceOrderFormService } from '../services/service-order-form.service';
+import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from './stock';
 
 export default function OrdemServicoForm({ appointmentId, agendamento, onClose, onSave, embedded = false }: OrdemServicoFormProps) {
   const { addOrdemServicoMotorista } = useData();
@@ -72,7 +45,6 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
   const canvasAgenteRef = useRef<HTMLCanvasElement>(null);
   const [isDrawingCliente, setIsDrawingCliente] = useState(false);
   const [isDrawingAgente, setIsDrawingAgente] = useState(false);
-
   const [precosProdutos, setPrecosProdutos] = useState<PrecoProduto[]>([]);
 
   const carregarProdutos = async () => {
@@ -155,6 +127,13 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
     const valorValido = Number.isFinite(Number(c.value)) && Number(c.value) > 0;
     const pesoValido = Number.isFinite(Number(c.weight)) && Number(c.weight) > 0;
     return tipoValido && numeroValido && valorValido && pesoValido;
+  };
+
+  const isFitaAdesivaDaCaixa = (caixa: Caixa) => {
+    const produtoDaCaixa = opcoesCaixa.find(
+      (p) => p.type === caixa.type || p.name === caixa.type || p.size === caixa.type,
+    );
+    return produtoDaCaixa?.type === 'TAPE_ADHESIVE';
   };
 
   // Adicionar caixa
@@ -396,7 +375,7 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
   }, [appointmentId]);
 
   // Salvar ordem de serviço
-  const salvarOrdemServico = () => {
+  const salvarOrdemServico = async () => {
     // Validações básicas
     if (!remetenteNome || !remetenteTel || !remetenteEndereco || !remetenteNumero || !remetenteCidade || !remetenteEstado || !remetenteZipCode || !remetenteComplemento) {
       toast.error('Preencha todos os campos obrigatórios do remetente');
@@ -409,14 +388,37 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
     }
 
     if (caixas.length === 0) {
-      toast.error('Adicione pelo menos uma caixa');
+      toast.error('Adicione pelo menos uma caixa ou produto');
       return;
     }
 
     const caixaInvalida = caixas.some((c) => !caixaTemTodosCamposPreenchidos(c));
 
     if (caixaInvalida) {
-      toast.error('Preencha todos os campos das caixas antes de salvar');
+      toast.error('Preencha todos os campos das caixas ou produtos antes de salvar');
+      return;
+    }
+
+    const caixaSemItensObrigatorios = caixas.some((c) => {
+      if (isFitaAdesivaDaCaixa(c)) return false;
+      const itensDaCaixa = itens.filter((i) => i.caixaId === c.id);
+      return itensDaCaixa.length === 0;
+    });
+
+    if (caixaSemItensObrigatorios) {
+      toast.error('Cada caixa precisa ter ao menos 1 item (fita adesiva não exige itens)');
+      return;
+    }
+
+    const itemInvalido = itens.some((i) => {
+      const nameValido = Boolean(String(i.name ?? '').trim());
+      const quantidadeValida = Number.isFinite(Number(i.quantity)) && Number(i.quantity) > 0;
+      const pesoValido = Number.isFinite(Number(i.weight)) && Number(i.weight) > 0;
+      return !nameValido || !quantidadeValida || !pesoValido;
+    });
+
+    if (itemInvalido) {
+      toast.error('Preencha todos os campos dos itens antes de salvar');
       return;
     }
 
@@ -430,9 +432,12 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
       return;
     }
 
+    if (Number(valorPago) <= 0) {
+      toast.error('O valor pago deve ser maior que 0');
+      return;
+    }
 
     const payload: OrdemServicoMotorista = {
-      // id: Date.now().toString(),
       appointmentId,
       sender: {
         usaName: remetenteNome,
@@ -461,12 +466,13 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
         },
         brazilPhone: destinatarioTelefone,
       },
-      boxes: caixas.map((c) => ({
+      driverServiceOrderProducts: caixas.map((c) => ({
         id: c.id,
         type: c.type,
         number: c.number,
         value: c.value,
-        items: itens
+        weight: c.weight,
+        driverServiceOrderProductsItems: itens
           .filter((i) => i.caixaId === c.id)
           .map((i) => ({
             name: i.name,
@@ -492,8 +498,11 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
       onSave(payload);
     }
 
-    toast.success('Ordem de serviço salva com sucesso!');
-    onClose();
+    const result = await serviceOrderFormService.create(payload);
+    if (result.success && result.data) {
+      toast.success('Ordem de serviço salva com sucesso!');
+      onClose();
+    }
   };
 
   const FormContent = (
@@ -785,13 +794,13 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
           </CardContent>
         </Card>
 
-        {/* Seção Caixas */}
+        {/* Seção Produtos e Valores */}
         <Card>
           <CardHeader className="bg-orange-50">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-[#1E3A5F]">
                 <Package className="w-5 h-5" />
-                Caixas e Valores
+                Produtos e Valores
               </CardTitle>
               <Button
                 onClick={adicionarCaixa}
@@ -799,7 +808,7 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
                 className="bg-[#F5A623] hover:bg-[#E59400]"
               >
                 <Plus className="w-4 h-4 mr-1" />
-                Adicionar Caixa
+                Adicionar Caixa ou Produto
               </Button>
             </div>
           </CardHeader>
@@ -807,15 +816,14 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
             {caixas.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Nenhuma caixa adicionada</p>
-                <p className="text-sm">Clique em "Adicionar Caixa" para começar</p>
+                <p>Nenhuma caixa ou produto adicionado</p>
+                <p className="text-sm">Clique em "Adicionar Caixa ou Produto" para começar</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {/* Cabeçalho da tabela */}
-                <div className="hidden md:grid md:grid-cols-14 gap-3 text-sm font-semibold text-muted-foreground border-b pb-2">
-                  <div className="col-span-5 text-center">Tipo da Caixa</div>
-                  <div className="col-span-1 text-center">Quantidade de Caixas</div>
+                <div className="hidden md:grid md:grid-cols-13 gap-3 text-sm font-semibold text-muted-foreground border-b pb-2">
+                  <div className="col-span-5 text-center">Tipo da Caixa ou Produto</div>
                   <div className="col-span-2 text-center">Nº</div>
                   <div className="col-span-2 text-center">Peso (kg)</div>
                   <div className="col-span-3 text-center">Valor ($)</div>
@@ -825,9 +833,11 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
                 {/* Linhas de caixas */}
                 {caixas.map((caixa) => {
                   const itensDaCaixa = itens.filter((i) => i.caixaId === caixa.id);
-                  const qtdItens = itensDaCaixa.length;
                   const pesoItensDaCaixa = itensDaCaixa.reduce((acc, item) => acc + item.weight, 0).toFixed(2);
+                  const pesoTotalCaixa = caixa.weight ? parseFloat(caixa.weight.toFixed(2)) : 0;
+                  const isGreaterThanPesoTotalCaixa = (Number(pesoItensDaCaixa) > Number(pesoTotalCaixa)) ? "text-red-500" : "";
                   const podeAdicionarItens = caixaTemTodosCamposPreenchidos(caixa);
+                  const isFitaAdesiva = isFitaAdesivaDaCaixa(caixa);
                   return (
                     <motion.div
                       key={caixa.id}
@@ -835,10 +845,10 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
                       animate={{ opacity: 1, y: 0 }}
                       className="rounded-xl border border-border bg-gray-50/90 p-3 shadow-sm space-y-3"
                     >
-                      <div className="grid grid-cols-1 md:grid-cols-14 gap-3 items-end">
+                      <div className="grid grid-cols-1 md:grid-cols-13 gap-3 items-end">
                         <div className="md:col-span-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-2">
                           <div className="flex-1 min-w-0 space-y-1">
-                            <Label className="md:hidden">Tipo da Caixa</Label>
+                            <Label className="md:hidden">Tipo da Caixa ou Produto</Label>
                             <Select
                               value={caixa.type}
                               onValueChange={(valor) => atualizarCaixa(caixa.id, 'type', valor)}
@@ -849,33 +859,30 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
                               <SelectContent>
                                 {opcoesCaixa.map((opcao) => (
                                   <SelectItem key={opcao.id} value={opcao.size || opcao.name}>
-                                    {opcao.name}
+                                    {`${opcao.name} - ${ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[opcao.type]]}`}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            disabled={!podeAdicionarItens}
-                            className="shrink-0 rounded-sm bg-[#F5A623] hover:bg-[#E59400] whitespace-nowrap disabled:opacity-50 disabled:pointer-events-none"
-                            title={
-                              podeAdicionarItens
-                                ? 'Adicionar itens nesta caixa'
-                                : 'Preencha tipo, número, peso e valor da caixa antes de adicionar itens'
-                            }
-                            onClick={() => adicionarItens(caixa.id)}
-                          >
-                            <Plus className="w-5 h-5" />
-                            Itens
-                          </Button>
-                        </div>
-                        <div className="md:col-span-1 flex items-center justify-center bg-white border border-border rounded-lg h-8 w-full">
-                          {/* TODO - Adicionar a quantidade de caixas */}
-                          <span className="text-sm font-semibold text-muted-foreground tabular-nums">
-                            CAIXAS
-                          </span>
+
+                          {!isFitaAdesiva && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={!podeAdicionarItens}
+                              className="shrink-0 rounded-sm bg-[#F5A623] hover:bg-[#E59400] whitespace-nowrap disabled:opacity-50 disabled:pointer-events-none"
+                              title={
+                                podeAdicionarItens
+                                  ? 'Adicionar itens nesta caixa'
+                                  : 'Preencha tipo, número, peso e valor da caixa antes de adicionar itens'
+                              }
+                              onClick={() => adicionarItens(caixa.id)}
+                            >
+                              <Plus className="w-5 h-5" />
+                              Itens
+                            </Button>
+                          )}
                         </div>
                         <div className="md:col-span-2">
                           <Label className="md:hidden mb-2">Número</Label>
@@ -1030,8 +1037,8 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
                               <p className="text-sm text-muted-foreground">{itensDaCaixa.length}</p>
                             </div>
                             <div className="flex flex-inline gap-2">
-                              <p className="text-sm text-muted-foreground font-semibold">Peso Total dos Itens:</p>
-                              <p className="text-sm text-muted-foreground">{pesoItensDaCaixa} kg</p>
+                              <p className={`text-sm text-muted-foreground font-semibold ${isGreaterThanPesoTotalCaixa}`}>Peso Total dos Itens:</p>
+                              <p className={`text-sm text-muted-foreground ${isGreaterThanPesoTotalCaixa}`}>{pesoItensDaCaixa} kg</p>
                             </div>
                           </div>
                         </div>
