@@ -87,9 +87,14 @@ interface HistoricoPaginado {
 
 type ViewMode = "grid" | "list";
 
+/** Origem do registro no histórico (define ícone: cliente vs agendamento). */
+type OrigemHistorico = "client" | "appointment" | "container" | "legacy";
+
 interface ClienteAtividade {
   id: string;
   tipo: "cadastro" | "agendamento" | "container" | "atualizacao" | "exclusao";
+  /** Cliente: User/Edit/Lixeira. Agendamento: sempre calendário, com cor por ação. */
+  origem: OrigemHistorico;
   descricao: string;
   owner: {
     id: string;
@@ -97,6 +102,21 @@ interface ClienteAtividade {
   };
   data: Date;
 }
+
+/** Cores do badge do histórico (cliente vs agendamento usam paletas distintas). */
+const ATIVIDADE_COLOR_CLASSES: Record<
+  string,
+  { bg: string; icon: string }
+> = {
+  blue: { bg: "bg-blue-100", icon: "text-blue-600" },
+  green: { bg: "bg-green-100", icon: "text-green-600" },
+  purple: { bg: "bg-purple-100", icon: "text-purple-600" },
+  red: { bg: "bg-red-100", icon: "text-red-600" },
+  orange: { bg: "bg-orange-100", icon: "text-orange-600" },
+  emerald: { bg: "bg-emerald-100", icon: "text-emerald-600" },
+  cyan: { bg: "bg-cyan-100", icon: "text-cyan-600" },
+  rose: { bg: "bg-rose-100", icon: "text-rose-600" },
+};
 
 export default function ClientesView() {
   const { user } = useAuth();
@@ -141,17 +161,30 @@ export default function ClientesView() {
     const entityType = (item.entityType ?? "").toLowerCase();
     const actionType = (item.actionType ?? "").toLowerCase();
     let tipo: ClienteAtividade["tipo"] = "atualizacao";
+    let origem: OrigemHistorico = "client";
     if (entityType === "client" && actionType === "created") tipo = "cadastro";
     else if (entityType === "client" && actionType === "updated")
       tipo = "atualizacao";
     else if (entityType === "client" && actionType === "deleted")
       tipo = "exclusao";
-    else if (entityType === "appointment" || entityType === "agendamento")
-      tipo = "agendamento";
-    else if (entityType === "container") tipo = "container";
+    else if (entityType === "appointment" || entityType === "agendamento") {
+      origem = "appointment";
+      tipo =
+        actionType === "created"
+          ? "cadastro"
+          : actionType === "updated"
+            ? "atualizacao"
+            : actionType === "deleted"
+              ? "exclusao"
+              : "atualizacao";
+    } else if (entityType === "container") {
+      tipo = "container";
+      origem = "container";
+    }
     return {
       id: item.id,
       tipo,
+      origem,
       owner: item.owner,
       descricao: item.message,
       data: new Date(item.createdAt),
@@ -753,33 +786,43 @@ export default function ClientesView() {
     return { total, novosUltimaSemana, estadosUnicos, cidadesBrasilUnicas };
   }, [filteredClientes]);
 
-  const getAtividadeIcon = (tipo: ClienteAtividade["tipo"]) => {
-    switch (tipo) {
+  const getAtividadeIcon = (a: ClienteAtividade) => {
+    if (a.origem === "appointment" || a.tipo === "agendamento") return Calendar;
+    if (a.origem === "container") return Package;
+    switch (a.tipo) {
       case "cadastro":
         return User;
-      case "agendamento":
-        return Calendar;
       case "container":
         return Package;
       case "atualizacao":
         return Edit;
       case "exclusao":
         return Trash2;
+      default:
+        return Edit;
     }
   };
 
-  const getAtividadeColor = (tipo: ClienteAtividade["tipo"]) => {
-    switch (tipo) {
+  /** Cliente: azul/laranja/vermelho. Agendamento: esmeralda/ciano/rosa (distinto do cliente). */
+  const getAtividadeColor = (a: ClienteAtividade): keyof typeof ATIVIDADE_COLOR_CLASSES => {
+    if (a.origem === "appointment") {
+      if (a.tipo === "cadastro") return "emerald";
+      if (a.tipo === "atualizacao") return "cyan";
+      if (a.tipo === "exclusao") return "rose";
+      return "cyan";
+    }
+    if (a.tipo === "agendamento") return "green";
+    switch (a.tipo) {
       case "cadastro":
         return "blue";
-      case "agendamento":
-        return "green";
       case "container":
         return "purple";
       case "atualizacao":
         return "orange";
       case "exclusao":
         return "red";
+      default:
+        return "orange";
     }
   };
 
@@ -2113,33 +2156,18 @@ export default function ClientesView() {
                       <>
                         {historicoPorCliente[selectedCliente.id].items.map(
                           (atividade) => {
-                            const Icon = getAtividadeIcon(atividade.tipo);
-                            const color = getAtividadeColor(atividade.tipo);
+                            const Icon = getAtividadeIcon(atividade);
+                            const colorKey = getAtividadeColor(atividade);
+                            const colorStyles =
+                              ATIVIDADE_COLOR_CLASSES[colorKey] ??
+                              ATIVIDADE_COLOR_CLASSES.orange;
                             const linhaAtividade = (
                               <>
                                 <div
-                                  className={`p-2 rounded-full flex-shrink-0 ${color === "blue"
-                                    ? "bg-blue-100"
-                                    : color === "green"
-                                      ? "bg-green-100"
-                                      : color === "purple"
-                                        ? "bg-purple-100"
-                                        : color === "red"
-                                          ? "bg-red-100"
-                                          : "bg-orange-100"
-                                    }`}
+                                  className={`p-2 rounded-full flex-shrink-0 ${colorStyles.bg}`}
                                 >
                                   <Icon
-                                    className={`w-4 h-4 ${color === "blue"
-                                      ? "text-blue-600"
-                                      : color === "green"
-                                        ? "text-green-600"
-                                        : color === "purple"
-                                          ? "text-purple-600"
-                                          : color === "red"
-                                            ? "text-red-600"
-                                            : "text-orange-600"
-                                      }`}
+                                    className={`w-4 h-4 ${colorStyles.icon}`}
                                   />
                                 </div>
                                 <div className="flex-1 min-w-0 space-y-2">

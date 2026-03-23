@@ -1,17 +1,17 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "./ui/card";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { useData } from "../context/DataContext";
+} from "../ui/card";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { useData } from "../../context/DataContext";
 import { motion, AnimatePresence } from "motion/react";
 import OrdemServicoForm from "./service-order-form";
-import { Estoque, OrdemServicoMotorista } from "../types";
+import { Estoque, OrdemServicoMotorista } from "../../types";
 import type { LucideIcon } from "lucide-react";
 import {
   Truck,
@@ -28,8 +28,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { stockService, driverAppService } from "../services";
-import { AgendamentoConfirmedBackend } from "../services/driver-app.service";
+import { stockService, driverAppService } from "../../services";
+import { AgendamentoConfirmedBackend } from "../../services/driver-service-order/driver-app.service";
 
 type TruckStockItem = {
   label: string;
@@ -67,6 +67,9 @@ export default function MotoristaApp() {
     adhesiveTape: 0,
   });
 
+  /** Permite chamar `carregar` de fora do `useEffect` (ex.: após salvar ordem) sem `useCallback`. */
+  const carregarAgendamentosEEstoqueRef = useRef<() => Promise<void>>(async () => { });
+
   useEffect(() => {
     const carregar = async () => {
       const [agendamentosResult, estoqueResult] = await Promise.all([
@@ -85,6 +88,7 @@ export default function MotoristaApp() {
       }
     };
 
+    carregarAgendamentosEEstoqueRef.current = carregar;
     void carregar();
   }, []);
 
@@ -162,6 +166,8 @@ export default function MotoristaApp() {
     setViewMode("recibo");
   };
 
+  const RECIBO_PRINT_ID = "recibo-impressao";
+
   const imprimirRecibo = () => {
     window.print();
   };
@@ -189,6 +195,41 @@ export default function MotoristaApp() {
 
     return (
       <div className="space-y-6 print:bg-white">
+        <style>{`
+          @media print {
+            @page {
+              margin: 10mm;
+            }
+            html,
+            body {
+              height: auto !important;
+              overflow: visible !important;
+              background: white !important;
+            }
+            /* Oculta tudo; só o bloco #${RECIBO_PRINT_ID} fica visível */
+            body * {
+              visibility: hidden;
+            }
+            #${RECIBO_PRINT_ID},
+            #${RECIBO_PRINT_ID} * {
+              visibility: visible;
+            }
+            #${RECIBO_PRINT_ID} {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              max-width: 100% !important;
+              margin: 0 auto !important;
+              padding: 2rem !important;
+              box-shadow: none !important;
+              border: 2px solid #1e3a5f !important;
+              background: white !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+        `}</style>
         <div className="flex items-center justify-between print:hidden">
           <Button
             variant="outline"
@@ -209,6 +250,7 @@ export default function MotoristaApp() {
         </div>
 
         <motion.div
+          id={RECIBO_PRINT_ID}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white border-2 border-[#1E3A5F] rounded-lg p-8 max-w-3xl mx-auto"
@@ -227,7 +269,7 @@ export default function MotoristaApp() {
               Mudanças Internacionais EUA-Brasil
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Miami, FL - São Paulo, SP | Tel: (305) 555-0199
+              Miami, FL - São Paulo, SP | {agendamentoSelecionado?.company.contactPhone}
             </p>
           </div>
 
@@ -410,6 +452,7 @@ export default function MotoristaApp() {
         agendamento={agendamentoSelecionado}
         onClose={handleFormClose}
         onSave={handleFormSave}
+        onAgendamentosAtualizados={() => void carregarAgendamentosEEstoqueRef.current()}
         embedded={true}
       />
     );

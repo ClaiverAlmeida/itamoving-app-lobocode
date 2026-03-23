@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { useData } from '../context/DataContext';
-import { OrdemServicoMotorista, PrecoProduto } from '../types';
-import { useAuth } from '../context/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { useData } from '../../context/DataContext';
+import { OrdemServicoMotorista, PrecoProduto } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 import { motion } from 'motion/react';
 import {
   Select,
@@ -13,7 +13,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from "../ui/select";
 import {
   Truck,
   Plus,
@@ -34,12 +34,11 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { toast } from 'sonner';
 
-import { productsService } from '../services';
-import { Caixa, Item, OrdemServicoFormProps, serviceOrderFormService } from '../services/service-order-form.service';
-import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from './stock';
+import { productsService } from '../../services';
+import { Caixa, Item, OrdemServicoFormProps, serviceOrderFormService } from '../../services/driver-service-order/service-order-form.service';
+import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from '../stock';
 
-export default function OrdemServicoForm({ appointmentId, agendamento, onClose, onSave, embedded = false }: OrdemServicoFormProps) {
-  const { addOrdemServicoMotorista } = useData();
+export default function OrdemServicoForm({ appointmentId, agendamento, onClose, onSave, onAgendamentosAtualizados, embedded = false }: OrdemServicoFormProps) {
   const { user } = useAuth();
   const canvasClienteRef = useRef<HTMLCanvasElement>(null);
   const canvasAgenteRef = useRef<HTMLCanvasElement>(null);
@@ -129,12 +128,17 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
     return tipoValido && numeroValido && valorValido && pesoValido;
   };
 
-  const isFitaAdesivaDaCaixa = (caixa: Caixa) => {
+  const obterTipoProdutoDaCaixa = (caixa: Caixa) => {
     const produtoDaCaixa = opcoesCaixa.find(
       (p) => p.type === caixa.type || p.name === caixa.type || p.size === caixa.type,
     );
-    return produtoDaCaixa?.type === 'TAPE_ADHESIVE';
+    return produtoDaCaixa?.type;
   };
+
+  const isFitaAdesiva = (caixa: Caixa) => obterTipoProdutoDaCaixa(caixa) === 'TAPE_ADHESIVE';
+
+  const isCaixaPersonalizada = (caixa: Caixa) =>
+    obterTipoProdutoDaCaixa(caixa) === 'PERSONALIZED_ITEM';
 
   // Adicionar caixa
   const adicionarCaixa = async () => {
@@ -170,7 +174,6 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
       ]),
     );
   };
-
 
   // Atualizar caixa
   const atualizarCaixa = (id: string, campo: keyof Caixa, valor: string | number) => {
@@ -400,13 +403,13 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
     }
 
     const caixaSemItensObrigatorios = caixas.some((c) => {
-      if (isFitaAdesivaDaCaixa(c)) return false;
+      if (isFitaAdesiva(c) || isCaixaPersonalizada(c)) return false;
       const itensDaCaixa = itens.filter((i) => i.caixaId === c.id);
       return itensDaCaixa.length === 0;
     });
 
     if (caixaSemItensObrigatorios) {
-      toast.error('Cada caixa precisa ter ao menos 1 item (fita adesiva não exige itens)');
+      toast.error('Cada caixa precisa ter ao menos 1 item (fita adesiva e caixa personalizada não exigem itens)');
       return;
     }
 
@@ -490,18 +493,12 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
       chargedValue: parseFloat(valorPago),
     };
 
-    addOrdemServicoMotorista(payload);
-
-    console.log(payload);
-
-    if (onSave) {
-      onSave(payload);
-    }
-
     const result = await serviceOrderFormService.create(payload);
     if (result.success && result.data) {
-      toast.success('Ordem de serviço salva com sucesso!');
       onClose();
+      void Promise.resolve(onAgendamentosAtualizados?.()).catch(() => {});
+      if (onSave) onSave(result.data);
+      toast.success('Ordem de serviço salva com sucesso!');
     }
   };
 
@@ -837,7 +834,7 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
                   const pesoTotalCaixa = caixa.weight ? parseFloat(caixa.weight.toFixed(2)) : 0;
                   const isGreaterThanPesoTotalCaixa = (Number(pesoItensDaCaixa) > Number(pesoTotalCaixa)) ? "text-red-500" : "";
                   const podeAdicionarItens = caixaTemTodosCamposPreenchidos(caixa);
-                  const isFitaAdesiva = isFitaAdesivaDaCaixa(caixa);
+                  const fitaAdesiva = isFitaAdesiva(caixa);
                   return (
                     <motion.div
                       key={caixa.id}
@@ -866,7 +863,7 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
                             </Select>
                           </div>
 
-                          {!isFitaAdesiva && (
+                          {!fitaAdesiva && (
                             <Button
                               type="button"
                               size="sm"

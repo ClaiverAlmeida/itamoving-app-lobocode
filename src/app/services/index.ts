@@ -18,6 +18,6 @@ export { usersService } from "./hr/users.service";
 // Serviço de Configurações da Empresa
 export { configurationsService } from "./configurations.service";
 // Serviço de Driver App
-export { driverAppService } from "./driver-app.service";
+export { driverAppService } from "./driver-service-order/driver-app.service";
 // Serviço de Service Order Form
-export { serviceOrderFormService } from "./service-order-form.service";
+export { serviceOrderFormService } from "./driver-service-order/service-order-form.service";

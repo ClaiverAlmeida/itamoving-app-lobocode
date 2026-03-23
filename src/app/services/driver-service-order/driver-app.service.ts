@@ -1,4 +1,4 @@
-import { api } from "./api.service";
+import { api } from "../api.service";
 
 export interface AgendamentoConfirmedBackend {
     id?: string;
@@ -44,6 +44,9 @@ export interface AgendamentoConfirmedBackend {
     company: {
         address: string;
         contactPhone: string;
+    };
+    serviceOrder: {
+        status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
     };
     status: "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED";
 }

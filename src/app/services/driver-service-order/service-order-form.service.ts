@@ -1,11 +1,13 @@
-import { api } from "./api.service";
-import { OrdemServicoMotorista, PrecoProduto } from '../types';
+import { api } from "../api.service";
+import { OrdemServicoMotorista } from '../../types';
 
 export interface OrdemServicoFormProps {
     appointmentId: string;
     agendamento: any;
     onClose: () => void;
     onSave?: (ordem: OrdemServicoMotorista) => void;
+    /** Recarrega lista de agendamentos (e estoque) no app após salvar a ordem */
+    onAgendamentosAtualizados?: () => void | Promise<void>;
     embedded?: boolean;
 }
 
@@ -36,7 +38,7 @@ export class ServiceOrderFormService {
                 const serviceOrder = raw as OrdemServicoMotorista;
                 return { success: true, data: serviceOrder };
             }
-            return { success: false, error: result.error || "Erro ao criar ordem de serviço" }; s
+            return { success: false, error: result.error || "Erro ao criar ordem de serviço" };
         } catch (error) {
             return { success: false, error: error.message || "Erro ao criar ordem de serviço" };
         }

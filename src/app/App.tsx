@@ -14,7 +14,7 @@ import AtendimentosView from './components/services';
 import PrecosView from './components/prices';
 import RHView from './components/hr';
 import Login from './components/login';
-import MotoristaApp from './components/driver-app';
+import MotoristaApp from './components/driver-service-order/driver-app';
 import { DataProvider } from './context/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import {
