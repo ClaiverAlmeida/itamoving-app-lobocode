@@ -26,6 +26,7 @@ import { ptBR } from "date-fns/locale/pt-BR";
 import { stockService, driverAppService } from "../../services";
 import { AgendamentoConfirmedBackend } from "../../services/driver-service-order/driver-app.service";
 import { DeliveryReceipt } from "./delivery-receipt";
+import { useNavigate } from "react-router-dom";
 
 type TruckStockItem = {
   label: string;
@@ -54,6 +55,7 @@ function formatCollectionDate(dateStr: string | undefined): string {
 }
 
 export default function MotoristaApp() {
+  const navigate = useNavigate();
   const [agendamentos, setAgendamentos] = useState<AgendamentoConfirmedBackend[]>([]);
   const [estoque, setEstoque] = useState<Estoque>({
     smallBoxes: 0,
@@ -167,10 +169,7 @@ export default function MotoristaApp() {
       <DeliveryReceipt
         ordem={ordemConcluida}
         companyContactPhone={agendamentoSelecionado?.company?.contactPhone}
-        onBack={() => {
-          setViewMode("lista");
-          setOrdemConcluida(null);
-        }}
+        onShowOrdersScreen={() => navigate("/ordem-de-servico")}
         onPrint={() => window.print()}
       />
     );

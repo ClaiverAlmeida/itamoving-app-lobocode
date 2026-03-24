@@ -1,5 +1,4 @@
 import * as React from "react";
-import { motion } from "motion/react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { Truck, CheckCircle, User, Box, Download } from "lucide-react";
@@ -22,7 +21,7 @@ export type DeliveryReceiptProps = {
   printElementId?: string;
   className?: string;
   /** Barra de ações (voltar / imprimir). Se omitido, não renderiza. */
-  onBack?: () => void;
+  onShowOrdersScreen?: () => void;
   onPrint?: () => void;
   backLabel?: string;
   printLabel?: string;
@@ -33,15 +32,15 @@ export function DeliveryReceipt({
   companyContactPhone,
   printElementId = DEFAULT_DELIVERY_RECEIPT_PRINT_ID,
   className,
-  onBack,
+  onShowOrdersScreen,
   onPrint,
-  backLabel = "← Voltar para Início",
+  backLabel = "← Ver Minhas Ordens",
   printLabel = "Imprimir Recibo",
 }: DeliveryReceiptProps) {
   const { rows: reciboRows, summary: reciboSummary, totalUnidades } =
     summarizeOrdemForRecibo(ordem);
 
-  const showToolbar = Boolean(onBack || onPrint);
+  const showToolbar = Boolean(onShowOrdersScreen || onPrint);
 
   return (
     <div className={`space-y-4 sm:space-y-6 print:bg-white min-w-0 ${className ?? ""}`}>
@@ -56,24 +55,27 @@ export function DeliveryReceipt({
             overflow: visible !important;
             background: white !important;
           }
+          /* Esconder o resto da página; só o recibo (evita PDF em branco com motion/transform/scroll) */
           body * {
             visibility: hidden;
           }
           #${printElementId},
           #${printElementId} * {
-            visibility: visible;
+            visibility: visible !important;
           }
           #${printElementId} {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+            position: relative !important;
+            left: auto !important;
+            top: auto !important;
+            transform: none !important;
+            width: 100% !important;
             max-width: 100% !important;
             margin: 0 auto !important;
             padding: 2rem !important;
             box-shadow: none !important;
             border: 2px solid #1e3a5f !important;
             background: white !important;
+            overflow: visible !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
@@ -82,12 +84,12 @@ export function DeliveryReceipt({
 
       {showToolbar ? (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 print:hidden">
-          {onBack ? (
+          {onShowOrdersScreen ? (
             <Button
               variant="outline"
               className="w-full sm:w-auto"
               type="button"
-              onClick={onBack}
+              onClick={onShowOrdersScreen}
             >
               {backLabel}
             </Button>
@@ -107,10 +109,9 @@ export function DeliveryReceipt({
         </div>
       ) : null}
 
-      <motion.div
+      {/* div nativo (não motion): id estável para @media print; motion aplicava transform e gerava PDF em branco */}
+      <div
         id={printElementId}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
         className="bg-white border-2 border-[#1E3A5F] rounded-lg p-4 sm:p-8 max-w-3xl mx-auto min-w-0"
       >
         <div className="text-center border-b-2 border-[#1E3A5F] pb-6 mb-6">
@@ -204,30 +205,29 @@ export function DeliveryReceipt({
           <div className="overflow-x-auto -mx-1">
             <table className="w-full text-sm min-w-[280px]">
               <thead className="border-b">
-                <tr className="text-left">
-                  <th className="pb-2 pr-2">Nº</th>
-                  <th className="pb-2 pr-2">Tipo da caixa</th>
-                  <th className="pb-2 text-right whitespace-nowrap">Peso (kg)</th>
+                <tr className="text-center">
+                  <th className="pb-2 pr-2 text-center">Nº</th>
+                  <th className="pb-2 pr-2 text-center">Tipo do Produto</th>
+                  <th className="pb-2 text-center whitespace-nowrap">Peso (kg)</th>
+                  <th className="pb-2 text-center whitespace-nowrap">Valor (USD)</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {reciboRows.map((row) => (
                   <tr key={row.key}>
-                    <td className="py-2 pr-2 align-top font-medium whitespace-nowrap">
+                    <td className="py-2 pr-2 align-top font-medium whitespace-nowrap text-center">
                       {row.number}
                     </td>
-                    <td className="py-2 pr-2 align-top">
+                    <td className="py-2 pr-2 align-top text-center">
                       <div className="font-medium">{row.tipoPrincipal}</div>
-                      {row.mostrarTipoCadastro ? (
-                        <div className="text-xs text-muted-foreground mt-0.5 break-all">
-                          Cadastro: {row.tipoCadastro}
-                        </div>
-                      ) : null}
                     </td>
-                    <td className="py-2 align-top text-right whitespace-nowrap">
+                    <td className="py-2 align-top text-center whitespace-nowrap">
                       {row.weight != null
                         ? Number(row.weight).toFixed(2)
                         : "—"}
+                    </td>
+                    <td>
+                      <div className="text-center whitespace-nowrap">{row.value}</div>
                     </td>
                   </tr>
                 ))}
@@ -269,9 +269,9 @@ export function DeliveryReceipt({
             <span className="text-xl sm:text-2xl font-bold text-green-700">
               {ordem.chargedValue
                 ? ordem.chargedValue.toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "USD",
-                  })
+                  style: "currency",
+                  currency: "USD",
+                })
                 : "$ 0,00"}
             </span>
           </div>
@@ -302,7 +302,7 @@ export function DeliveryReceipt({
             Este documento comprova a entrega e pagamento dos serviços prestados.
           </p>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

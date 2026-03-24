@@ -1,5 +1,12 @@
 import { api } from "../api.service";
 import { OrdemServicoMotorista } from '../../types';
+import {
+    extractDriverServiceOrderList,
+    mapDriverServiceOrderApiToView,
+    type OrdemServicoView,
+} from "./driver-service-order.mapper";
+
+export type { OrdemServicoView };
 
 export interface OrdemServicoFormProps {
     appointmentId: string;
@@ -9,6 +16,11 @@ export interface OrdemServicoFormProps {
     /** Recarrega lista de agendamentos (e estoque) no app após salvar a ordem */
     onAgendamentosAtualizados?: () => void | Promise<void>;
     embedded?: boolean;
+    /**
+     * Quando definido, o formulário pré-preenche com a ordem existente (edição / back-office).
+     * `onSave` recebe o payload final; a tela pode persistir sem chamar a API de create.
+     */
+    existingOrdem?: OrdemServicoMotorista;
 }
 
 export interface Caixa {
@@ -29,7 +41,46 @@ export interface Item {
     observations?: string;
 }
 
+export type UpdateOrdemServicoDTO = Partial<OrdemServicoMotorista>;
+
 export class ServiceOrderFormService {
+    /**
+     * Lista ordens (resposta paginada `{ data, pagination }` ou array) e normaliza para o modelo do app.
+     */
+    async getAll(): Promise<{ success: boolean; data?: OrdemServicoView[]; error?: string }> {
+        try {
+            const result = await api.get<unknown>("/driver-service-order", { useCache: false });
+            if (result.success && result.data != null) {
+                const list = extractDriverServiceOrderList(result.data);
+                const mapped = list
+                    .map((row) => mapDriverServiceOrderApiToView(row))
+                    .filter((o): o is OrdemServicoView => o != null);
+                return { success: true, data: mapped };
+            }
+            return { success: false, error: result.error || "Erro ao buscar ordens de serviço" };
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : "Erro ao buscar ordens de serviço";
+            return { success: false, error: msg };
+        }
+    }
+
+    /** Ordem completa (caixas e itens) para edição — mesmo payload do GET por id. */
+    async getById(id: string): Promise<{ success: boolean; data?: OrdemServicoView; error?: string }> {
+        try {
+            const result = await api.get<unknown>(`/driver-service-order/${id}`, { useCache: false });
+            if (result.success && result.data != null) {
+                const raw = (result.data as { data?: unknown })?.data ?? result.data;
+                const mapped = mapDriverServiceOrderApiToView(raw);
+                if (mapped) return { success: true, data: mapped };
+                return { success: false, error: "Resposta inválida da ordem de serviço" };
+            }
+            return { success: false, error: result.error || "Erro ao buscar ordem de serviço" };
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : "Erro ao buscar ordem de serviço";
+            return { success: false, error: msg };
+        }
+    }
+
     async create(data: OrdemServicoMotorista): Promise<{ success: boolean; data?: OrdemServicoMotorista; error?: string }> {
         try {
             const result = await api.post<OrdemServicoMotorista | { data: OrdemServicoMotorista }>("/driver-service-order", data);

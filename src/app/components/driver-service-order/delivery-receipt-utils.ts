@@ -91,8 +91,8 @@ export type ReciboRow = {
   number: string;
   tipoPrincipal: string;
   tipoCadastro: string;
-  mostrarTipoCadastro: boolean;
   weight: number | undefined;
+  value: string;
 };
 
 export function summarizeOrdemForRecibo(ordem: OrdemServicoMotorista) {
@@ -111,18 +111,16 @@ export function summarizeOrdemForRecibo(ordem: OrdemServicoMotorista) {
     const category = classifyDriverProductType(rawType);
     if (category) summary[category] += 1;
 
-    const categoriaNome = category ? RECIBO_CATEGORY_LABEL[category] : null;
-    const tipoPrincipal = categoriaNome ?? (rawType || "—");
+  const tipoPrincipal = `${rawType}`;
+    const valor = `$${Number(p.value ?? 0).toFixed(2)}`;
 
     return {
       key: String(p.id ?? `box-${idx}`),
       number: p.number ?? String(idx + 1),
       tipoPrincipal,
       tipoCadastro: rawType || "—",
-      mostrarTipoCadastro: Boolean(
-        rawType && categoriaNome && rawType !== categoriaNome,
-      ),
       weight: p.weight,
+      value: valor,
     };
   });
 
