@@ -302,7 +302,7 @@ export function ProdutosTab() {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <CardTitle>Tabela de Produtos</CardTitle>
               <CardDescription>Gerencie preços e produtos</CardDescription>
@@ -319,12 +319,12 @@ export function ProdutosTab() {
               }}
             >
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-[#F5A623] to-[#1E3A5F] hover:opacity-90">
+                <Button className="bg-gradient-to-r from-[#F5A623] to-[#1E3A5F] hover:opacity-90 w-full sm:w-auto">
                   <Plus className="w-4 h-4 mr-2" />
                   Novo Produto
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+              <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
                 <DialogHeader className="flex-shrink-0">
                   <DialogTitle>Novo Produto</DialogTitle>
                   <DialogDescription>
@@ -333,7 +333,7 @@ export function ProdutosTab() {
                 </DialogHeader>
                 <div className="overflow-y-auto flex-1 min-h-0 pr-1 -mx-1">
                   <form onSubmit={handleSubmitProduto} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="tipo">Tipo *</Label>
                         <Select
@@ -433,7 +433,7 @@ export function ProdutosTab() {
                         </>
                       )}
 
-                      <div className="space-y-2 col-span-2">
+                      <div className="space-y-2 col-span-1 sm:col-span-2">
                         <Label className="text-base font-semibold">
                           Preços
                         </Label>
@@ -479,42 +479,45 @@ export function ProdutosTab() {
                         />
                       </div>
 
-                      <div className="space-y-2 flex items-center gap-2 pt-5">
-                        <Switch
-                          id="precoVariavel"
-                          checked={formProduto.variablePrice || false}
-                          onCheckedChange={(checked) =>
-                            setFormProduto({
-                              ...formProduto,
-                              variablePrice: checked,
-                            })
-                          }
-                        />
-                        <Label htmlFor="precoVariavel">Preço Variável</Label>
-                      </div>
+                      <div className="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id="precoVariavel"
+                            checked={formProduto.variablePrice || false}
+                            onCheckedChange={(checked) =>
+                              setFormProduto({
+                                ...formProduto,
+                                variablePrice: checked,
+                              })
+                            }
+                          />
+                          <Label htmlFor="precoVariavel">Preço Variável</Label>
+                        </div>
 
-                      <div className="space-y-2 flex items-center gap-2 pt-5">
-                        <Switch
-                          id="ativoProduto"
-                          checked={formProduto.active}
-                          onCheckedChange={(checked) =>
-                            setFormProduto({ ...formProduto, active: checked })
-                          }
-                        />
-                        <Label htmlFor="ativoProduto">Produto Ativo</Label>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id="ativoProduto"
+                            checked={formProduto.active}
+                            onCheckedChange={(checked) =>
+                              setFormProduto({ ...formProduto, active: checked })
+                            }
+                          />
+                          <Label htmlFor="ativoProduto">Produto Ativo</Label>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex justify-end gap-2 pt-4 border-t sticky bottom-0 bg-background">
+                    <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t sticky bottom-0 bg-background">
                       <Button
                         type="button"
                         variant="outline"
+                        className="w-full sm:w-auto"
                         onClick={() => setIsProdutoDialogOpen(false)}
                       >
                         Cancelar
                       </Button>
                       <Button
                         type="submit"
-                        className="bg-gradient-to-r from-[#F5A623] to-[#1E3A5F]"
+                        className="bg-gradient-to-r from-[#F5A623] to-[#1E3A5F] w-full sm:w-auto"
                       >
                         Cadastrar
                       </Button>
@@ -526,7 +529,7 @@ export function ProdutosTab() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -540,12 +543,13 @@ export function ProdutosTab() {
               variant="outline"
               size="icon"
               onClick={handleExportProdutos}
+              className="w-full sm:w-10"
             >
               <Download className="w-4 h-4" />
             </Button>
           </div>
 
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
@@ -677,7 +681,7 @@ export function ProdutosTab() {
             </Table>
           </div>
           {paginationProduto && paginationProduto.totalPages > 1 && (
-            <div className="flex items-center justify-between gap-4 pt-4 border-t">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-4 border-t">
               <p className="text-sm text-muted-foreground">
                 Página {paginationProduto.page} de{" "}
                 {paginationProduto.totalPages}
@@ -685,10 +689,11 @@ export function ProdutosTab() {
                   <> · {paginationProduto.total} registro(s)</>
                 )}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   disabled={!paginationProduto.hasPreviousPage}
                   onClick={() => setPageProduto((p) => Math.max(1, p - 1))}
                 >
@@ -698,6 +703,7 @@ export function ProdutosTab() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   disabled={!paginationProduto.hasNextPage}
                   onClick={() =>
                     setPageProduto((p) =>
@@ -719,7 +725,7 @@ export function ProdutosTab() {
         open={isEditProdutoDialogOpen}
         onOpenChange={setIsEditProdutoDialogOpen}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Editar Produto</DialogTitle>
             <DialogDescription>
@@ -728,7 +734,7 @@ export function ProdutosTab() {
           </DialogHeader>
           <div className="overflow-y-auto flex-1 min-h-0 pr-1 -mx-1">
             <form onSubmit={handleEditProduto} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="editTipo">Tipo *</Label>
                   <Select
@@ -817,7 +823,7 @@ export function ProdutosTab() {
                   </>
                 )}
 
-                <div className="space-y-2 col-span-2">
+                <div className="space-y-2 col-span-1 sm:col-span-2">
                   <Label className="text-base font-semibold">Preços</Label>
                 </div>
                 <div className="space-y-2">
@@ -855,39 +861,42 @@ export function ProdutosTab() {
                   />
                 </div>
 
-                <div className="space-y-2 flex items-center gap-2 pt-5">
-                  <Switch
-                    id="editVariablePrice"
-                    checked={formProduto.variablePrice || false}
-                    onCheckedChange={(checked) =>
-                      setFormProduto({ ...formProduto, variablePrice: checked })
-                    }
-                  />
-                  <Label htmlFor="editVariablePrice">Preço Variável</Label>
-                </div>
+                <div className="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="editVariablePrice"
+                      checked={formProduto.variablePrice || false}
+                      onCheckedChange={(checked) =>
+                        setFormProduto({ ...formProduto, variablePrice: checked })
+                      }
+                    />
+                    <Label htmlFor="editVariablePrice">Preço Variável</Label>
+                  </div>
 
-                <div className="space-y-2 flex items-center gap-2 pt-5">
-                  <Switch
-                    id="editActiveProduto"
-                    checked={formProduto.active}
-                    onCheckedChange={(checked) =>
-                      setFormProduto({ ...formProduto, active: checked })
-                    }
-                  />
-                  <Label htmlFor="editActiveProduto">Produto Ativo</Label>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="editActiveProduto"
+                      checked={formProduto.active}
+                      onCheckedChange={(checked) =>
+                        setFormProduto({ ...formProduto, active: checked })
+                      }
+                    />
+                    <Label htmlFor="editActiveProduto">Produto Ativo</Label>
+                  </div>
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-4 border-t sticky bottom-0 bg-background">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t sticky bottom-0 bg-background">
                 <Button
                   type="button"
                   variant="outline"
+                  className="w-full sm:w-auto"
                   onClick={() => setIsEditProdutoDialogOpen(false)}
                 >
                   Cancelar
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-gradient-to-r from-[#F5A623] to-[#1E3A5F]"
+                  className="bg-gradient-to-r from-[#F5A623] to-[#1E3A5F] w-full sm:w-auto"
                 >
                   Salvar Alterações
                 </Button>

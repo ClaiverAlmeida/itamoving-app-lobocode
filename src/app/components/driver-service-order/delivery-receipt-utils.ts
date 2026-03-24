@@ -1,0 +1,130 @@
+import type { OrdemServicoMotorista } from "../../types";
+
+export type ReciboBoxCategory =
+  | "pequena"
+  | "media"
+  | "grande"
+  | "fita"
+  | "personalizada";
+
+export const RECIBO_CATEGORY_LABEL: Record<ReciboBoxCategory, string> = {
+  pequena: "Pequena",
+  media: "Média",
+  grande: "Grande",
+  fita: "Fita adesiva",
+  personalizada: "Personalizada",
+};
+
+function stripDiacritics(s: string): string {
+  return s.normalize("NFD").replace(/\p{M}/gu, "");
+}
+
+export function classifyDriverProductType(type: string): ReciboBoxCategory | null {
+  const raw = String(type ?? "").trim();
+  if (!raw) return null;
+
+  const up = raw.toUpperCase().replace(/\s+/g, "_");
+  const key = stripDiacritics(raw).toLowerCase();
+
+  if (up === "TAPE_ADHESIVE") return "fita";
+  if (up === "PERSONALIZED_ITEM") return "personalizada";
+  if (up === "SMALL_BOX") return "pequena";
+  if (up === "MEDIUM_BOX") return "media";
+  if (up === "LARGE_BOX") return "grande";
+
+  if (
+    up.includes("TAPE_ADHESIVE") ||
+    /\bfita\b/i.test(raw) ||
+    /\btape\b/i.test(raw) ||
+    /adesiv/i.test(key)
+  ) {
+    return "fita";
+  }
+  if (up.includes("PERSONALIZED") || /personaliz/i.test(key)) {
+    return "personalizada";
+  }
+  if (
+    /\bsmall\b/i.test(raw) ||
+    key === "pequena" ||
+    /\bpequen/i.test(key) ||
+    /\bcx\.?\s*pequen/i.test(key) ||
+    /\bcaixa\s+pequen/i.test(key)
+  ) {
+    return "pequena";
+  }
+  if (
+    /\bmedium\b/i.test(raw) ||
+    key === "media" ||
+    /\bm(e|é)dia\b/i.test(raw) ||
+    /\bcaixa\s+m(e|é)dia\b/i.test(raw)
+  ) {
+    return "media";
+  }
+  if (
+    /\blarge\b/i.test(raw) ||
+    key === "grande" ||
+    /\bgrand/i.test(key) ||
+    /\bcaixa\s+grand/i.test(raw)
+  ) {
+    return "grande";
+  }
+
+  return null;
+}
+
+/** Resposta da API pode vir em camelCase ou snake_case. */
+export function getOrdemProductsList(
+  ordem: OrdemServicoMotorista,
+): OrdemServicoMotorista["driverServiceOrderProducts"] {
+  const fromCamel = ordem.driverServiceOrderProducts;
+  const fromSnake = (
+    ordem as unknown as {
+      driver_service_order_products?: OrdemServicoMotorista["driverServiceOrderProducts"];
+    }
+  ).driver_service_order_products;
+  const list = fromCamel ?? fromSnake ?? [];
+  return Array.isArray(list) ? list : [];
+}
+
+export type ReciboRow = {
+  key: string;
+  number: string;
+  tipoPrincipal: string;
+  tipoCadastro: string;
+  mostrarTipoCadastro: boolean;
+  weight: number | undefined;
+};
+
+export function summarizeOrdemForRecibo(ordem: OrdemServicoMotorista) {
+  const summary: Record<ReciboBoxCategory, number> = {
+    pequena: 0,
+    media: 0,
+    grande: 0,
+    fita: 0,
+    personalizada: 0,
+  };
+
+  const products = getOrdemProductsList(ordem);
+
+  const rows: ReciboRow[] = products.map((p, idx) => {
+    const rawType = String(p?.type ?? "").trim();
+    const category = classifyDriverProductType(rawType);
+    if (category) summary[category] += 1;
+
+    const categoriaNome = category ? RECIBO_CATEGORY_LABEL[category] : null;
+    const tipoPrincipal = categoriaNome ?? (rawType || "—");
+
+    return {
+      key: String(p.id ?? `box-${idx}`),
+      number: p.number ?? String(idx + 1),
+      tipoPrincipal,
+      tipoCadastro: rawType || "—",
+      mostrarTipoCadastro: Boolean(
+        rawType && categoriaNome && rawType !== categoriaNome,
+      ),
+      weight: p.weight,
+    };
+  });
+
+  return { rows, summary, totalUnidades: products.length };
+}

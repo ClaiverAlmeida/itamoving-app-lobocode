@@ -49,7 +49,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1E3A5F] via-[#2A4A6F] to-[#1E3A5F] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1E3A5F] via-[#2A4A6F] to-[#1E3A5F] p-3 sm:p-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 lg:left-20 w-48 h-48 lg:w-72 lg:h-72 bg-[#F5A623] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
         <div className="absolute top-40 right-10 lg:right-20 w-48 h-48 lg:w-72 lg:h-72 bg-[#5DADE2] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
@@ -62,7 +62,7 @@ export default function Login() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-5xl relative z-10"
       >
-        <div className="text-center mb-6 lg:mb-8 px-4">
+        <div className="text-center mb-5 sm:mb-6 lg:mb-8 px-2 sm:px-4">
           <motion.div
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -77,7 +77,7 @@ export default function Login() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="text-3xl lg:text-4xl font-bold text-white mb-2"
+            className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2"
           >
             ITAMOVING
           </motion.h1>
@@ -85,7 +85,7 @@ export default function Login() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="text-[#5DADE2] text-base lg:text-lg"
+            className="text-[#5DADE2] text-sm sm:text-base lg:text-lg"
           >
             Sistema de Gerenciamento de Mudanças Internacionais
           </motion.p>
@@ -99,7 +99,7 @@ export default function Login() {
             transition={{ delay: 0.5 }}
           >
             <Card className="shadow-2xl border-0">
-              <CardHeader className="space-y-1 p-5 lg:p-6">
+              <CardHeader className="space-y-1 p-4 sm:p-5 lg:p-6">
                 <CardTitle className="text-xl lg:text-2xl flex items-center gap-2">
                   <Lock className="w-5 h-5 lg:w-6 lg:h-6 text-[#1E3A5F]" />
                   Login
@@ -108,7 +108,7 @@ export default function Login() {
                   Entre com suas credenciais para acessar o sistema
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-5 lg:p-6 pt-0">
+              <CardContent className="p-4 sm:p-5 lg:p-6 pt-0">
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm">Email</Label>
@@ -192,7 +192,7 @@ export default function Login() {
             transition={{ delay: 0.6 }}
           >
             <Card className="shadow-2xl border-0">
-              <CardHeader className="space-y-1 p-5 lg:p-6">
+              <CardHeader className="space-y-1 p-4 sm:p-5 lg:p-6">
                 <CardTitle className="text-xl lg:text-2xl flex items-center gap-2">
                   <Shield className="w-5 h-5 lg:w-6 lg:h-6 text-[#F5A623]" />
                   Acesso Rápido Demo
@@ -201,7 +201,7 @@ export default function Login() {
                   Clique para fazer login com um usuário de demonstração
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2.5 lg:space-y-3 p-5 lg:p-6 pt-0">
+              <CardContent className="space-y-2.5 lg:space-y-3 p-4 sm:p-5 lg:p-6 pt-0">
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Button
                     onClick={() => quickLogin('admin@itamoving.com', 'Admin123@Senha')}
@@ -210,8 +210,8 @@ export default function Login() {
                   >
                     <UserCircle className="w-5 h-5 mr-2 lg:mr-3 flex-shrink-0" />
                     <div className="flex-1 text-left min-w-0">
-                      <div className="font-semibold text-sm lg:text-base truncate">Admin Master</div>
-                      <div className="text-xs opacity-90 truncate">Acesso total ao sistema</div>
+                      <div className="font-semibold text-sm lg:text-base break-words">Admin Master</div>
+                      <div className="text-xs opacity-90 break-words">Acesso total ao sistema</div>
                     </div>
                     <Badge className="bg-white/20 text-white border-0 text-xs flex-shrink-0 ml-2">Admin</Badge>
                   </Button>
@@ -225,8 +225,8 @@ export default function Login() {
                   >
                     <UserCircle className="w-5 h-5 mr-2 lg:mr-3 flex-shrink-0" />
                     <div className="flex-1 text-left min-w-0">
-                      <div className="font-semibold text-sm lg:text-base truncate">Carlos Vendas</div>
-                      <div className="text-xs opacity-90 truncate">Clientes, Agendamentos, Atendimentos</div>
+                      <div className="font-semibold text-sm lg:text-base break-words">Carlos Vendas</div>
+                      <div className="text-xs opacity-90 break-words">Clientes, Agendamentos, Atendimentos</div>
                     </div>
                     <Badge className="bg-white/20 text-white border-0 text-xs flex-shrink-0 ml-2">Comercial</Badge>
                   </Button>
@@ -240,8 +240,8 @@ export default function Login() {
                   >
                     <UserCircle className="w-5 h-5 mr-2 lg:mr-3 flex-shrink-0" />
                     <div className="flex-1 text-left min-w-0">
-                      <div className="font-semibold text-sm lg:text-base truncate">Raquel Logística</div>
-                      <div className="text-xs opacity-90 truncate">Agendamentos, Containers, Rotas</div>
+                      <div className="font-semibold text-sm lg:text-base break-words">Raquel Logística</div>
+                      <div className="text-xs opacity-90 break-words">Agendamentos, Containers, Rotas</div>
                     </div>
                     <Badge className="bg-white/20 text-white border-0 text-xs flex-shrink-0 ml-2">Logístico</Badge>
                   </Button>
@@ -255,8 +255,8 @@ export default function Login() {
                   >
                     <UserCircle className="w-5 h-5 mr-2 lg:mr-3 flex-shrink-0" />
                     <div className="flex-1 text-left min-w-0">
-                      <div className="font-semibold text-sm lg:text-base truncate">João Motorista</div>
-                      <div className="text-xs opacity-90 truncate">Ordens de Serviço, Recibos</div>
+                      <div className="font-semibold text-sm lg:text-base break-words">João Motorista</div>
+                      <div className="text-xs opacity-90 break-words">Ordens de Serviço, Recibos</div>
                     </div>
                     <Badge className="bg-white/20 text-white border-0 text-xs flex-shrink-0 ml-2">Motorista</Badge>
                   </Button>
@@ -268,10 +268,10 @@ export default function Login() {
                     <div className="text-sm text-blue-900 min-w-0">
                       <p className="font-semibold mb-1 text-xs lg:text-sm">Credenciais de Demonstração:</p>
                       <ul className="text-xs space-y-0.5 lg:space-y-1 opacity-90">
-                        <li className="truncate">• Admin: admin@itamoving.com / Admin123@Senha</li>
-                        <li className="truncate">• Comercial: comercial@itamoving.com / Comercial123@Senha</li>
-                        <li className="truncate">• Logístico: raquel@itamoving.com / raquel123</li>
-                        <li className="truncate">• Motorista: motorista@itamoving.com / Motorista123@Senha</li>
+                        <li className="break-all">• Admin: admin@itamoving.com / Admin123@Senha</li>
+                        <li className="break-all">• Comercial: comercial@itamoving.com / Comercial123@Senha</li>
+                        <li className="break-all">• Logístico: raquel@itamoving.com / raquel123</li>
+                        <li className="break-all">• Motorista: motorista@itamoving.com / Motorista123@Senha</li>
                       </ul>
                     </div>
                   </div>

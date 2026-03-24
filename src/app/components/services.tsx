@@ -277,7 +277,9 @@ const DraggableCard = ({ lead, onSelect, onStatusChange }: DraggableCardProps) =
 
   return (
     <motion.div
-      ref={drag}
+      ref={(node) => {
+        drag(node);
+      }}
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: isDragging ? 0.5 : 1, y: 0 }}
@@ -319,7 +321,7 @@ const DraggableCard = ({ lead, onSelect, onStatusChange }: DraggableCardProps) =
         {/* Rota */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
           <MapPin className="w-3 h-3 flex-shrink-0" />
-          <span className="truncate">{lead.origem} → {lead.destino}</span>
+          <span className="break-words">{lead.origem} → {lead.destino}</span>
         </div>
 
         {/* Última Mensagem */}
@@ -384,7 +386,9 @@ const DroppableColumn = ({ status, children, onDrop, count, totalValue }: Droppa
 
   return (
     <div
-      ref={drop}
+      ref={(node) => {
+        drop(node);
+      }}
       className={`flex-shrink-0 w-80 transition-all duration-200 ${
         isOver ? 'scale-105' : ''
       }`}
@@ -540,7 +544,7 @@ export default function AtendimentosView() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="space-y-4 lg:space-y-6">
+      <div className="space-y-4 lg:space-y-6 overflow-x-hidden">
         {/* Header com Métricas */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -550,21 +554,21 @@ export default function AtendimentosView() {
                 Gerenciamento de leads do WhatsApp Bot
               </p>
             </div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:flex-wrap">
               <Button
                 variant={showFilters ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex-1 sm:flex-none"
+                className="w-full sm:w-auto"
               >
                 <Filter className="w-4 h-4 mr-2" />
                 Filtros
               </Button>
-              <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto">
                 <Download className="w-4 h-4 mr-2" />
                 Exportar
               </Button>
-              <div className="flex gap-1 border border-border rounded-lg p-1 bg-muted/30">
+              <div className="col-span-2 flex gap-1 border border-border rounded-lg p-1 bg-muted/30 sm:col-span-1">
                 <Button
                   variant={viewMode === 'kanban' ? 'default' : 'ghost'}
                   size="sm"
@@ -589,45 +593,45 @@ export default function AtendimentosView() {
 
           {/* Métricas Principais */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4">
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs lg:text-sm font-medium text-blue-900">Total de Leads</span>
                 <UsersIcon className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
               </div>
-              <p className="text-2xl lg:text-3xl font-bold text-blue-900">{statistics.total}</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-900">{statistics.total}</p>
               <p className="text-xs text-blue-700 mt-1">Todos os status</p>
             </Card>
 
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs lg:text-sm font-medium text-green-900">Valor Total</span>
                 <DollarSign className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
               </div>
-              <p className="text-2xl lg:text-3xl font-bold text-green-900">{formatCurrency(statistics.totalValor)}</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-900 break-words">{formatCurrency(statistics.totalValor)}</p>
               <p className="text-xs text-green-700 mt-1">Pipeline completo</p>
             </Card>
 
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs lg:text-sm font-medium text-purple-900">Taxa de Conversão</span>
                 <TrendingUp className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
               </div>
-              <p className="text-2xl lg:text-3xl font-bold text-purple-900">{statistics.taxaConversao.toFixed(1)}%</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-900">{statistics.taxaConversao.toFixed(1)}%</p>
               <p className="text-xs text-purple-700 mt-1">Leads fechados</p>
             </Card>
 
-            <Card className="p-4 lg:p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+            <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs lg:text-sm font-medium text-orange-900">Ticket Médio</span>
                 <BarChart3 className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" />
               </div>
-              <p className="text-2xl lg:text-3xl font-bold text-orange-900">{formatCurrency(statistics.ticketMedio)}</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-orange-900 break-words">{formatCurrency(statistics.ticketMedio)}</p>
               <p className="text-xs text-orange-700 mt-1">Valor médio/lead</p>
             </Card>
           </div>
 
           {/* Barra de Busca e Filtros */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -742,7 +746,7 @@ export default function AtendimentosView() {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex justify-between items-center pt-4 border-t border-slate-200">
+                  <div className="mt-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-4 border-t border-slate-200">
                     <div className="text-xs text-slate-600">
                       {filteredLeads.length} lead(s) encontrado(s)
                     </div>
@@ -797,6 +801,72 @@ export default function AtendimentosView() {
           </div>
         )}
 
+        {/* Visualização em Lista */}
+        {viewMode === 'list' && (
+          <div className="space-y-3">
+            {filteredLeads.map((lead) => {
+              const config = statusConfig[lead.status];
+              return (
+                <Card
+                  key={lead.id}
+                  className="p-3 sm:p-4 hover:shadow-md transition-all cursor-pointer border-l-4"
+                  style={{ borderLeftColor: config.color.replace('bg-', '#').replace('500', '600') }}
+                  onClick={() => setSelectedLead(lead)}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold break-words">{lead.nome}</h3>
+                        <Badge className={config.color}>{config.label}</Badge>
+                        {lead.prioridade && (
+                          <Badge variant="outline" className={prioridadeConfig[lead.prioridade].color}>
+                            {prioridadeConfig[lead.prioridade].label}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <p className="text-sm text-muted-foreground break-words">
+                        {lead.origem} → {lead.destino}
+                      </p>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        "{lead.ultimaMensagem}"
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                      {lead.valorEstimado && (
+                        <span className="font-semibold text-green-600">
+                          {formatCurrency(lead.valorEstimado)}
+                        </span>
+                      )}
+                      <select
+                        value={lead.status}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) =>
+                          handleStatusChange(lead.id, e.target.value as Lead['status'])
+                        }
+                        className="px-2 py-1 text-xs border border-border rounded-md bg-white"
+                      >
+                        {(Object.keys(statusConfig) as Lead['status'][]).map((status) => (
+                          <option key={status} value={status}>
+                            {statusConfig[status].label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+
+            {filteredLeads.length === 0 && (
+              <Card className="p-6 text-center text-muted-foreground">
+                Nenhum lead encontrado.
+              </Card>
+            )}
+          </div>
+        )}
+
         {/* Painel Lateral - Detalhes do Lead */}
         <AnimatePresence>
           {selectedLead && (
@@ -808,11 +878,11 @@ export default function AtendimentosView() {
               className="fixed inset-y-0 right-0 w-full lg:w-[600px] bg-white shadow-2xl border-l border-border z-50 overflow-y-auto"
             >
               {/* Header */}
-              <div className="sticky top-0 bg-white border-b border-border p-6 z-10">
+              <div className="sticky top-0 bg-white border-b border-border p-4 sm:p-6 z-10">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h2 className="text-xl font-bold text-foreground">{selectedLead.nome}</h2>
+                    <h2 className="text-lg sm:text-xl font-bold text-foreground break-words">{selectedLead.nome}</h2>
                       {selectedLead.prioridade && (
                         <Badge className={prioridadeConfig[selectedLead.prioridade].bg}>
                           <span className={prioridadeConfig[selectedLead.prioridade].color}>
@@ -856,7 +926,7 @@ export default function AtendimentosView() {
                 </div>
 
                 {/* Informações de Contato */}
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Phone className="w-4 h-4" />
                     <span>{selectedLead.telefone}</span>
@@ -864,12 +934,12 @@ export default function AtendimentosView() {
                   {selectedLead.email && (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Mail className="w-4 h-4" />
-                      <span className="truncate">{selectedLead.email}</span>
+                      <span className="break-all">{selectedLead.email}</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-muted-foreground col-span-2">
+                  <div className="flex items-start gap-2 text-muted-foreground sm:col-span-2">
                     <MapPin className="w-4 h-4 flex-shrink-0" />
-                    <span>{selectedLead.origem} → {selectedLead.destino}</span>
+                    <span className="break-words">{selectedLead.origem} → {selectedLead.destino}</span>
                   </div>
                   {selectedLead.dataMudanca && (
                     <div className="flex items-center gap-2 text-muted-foreground">
@@ -888,7 +958,7 @@ export default function AtendimentosView() {
 
               {/* Notas */}
               {selectedLead.notas && (
-                <div className="px-6 py-4 bg-yellow-50 border-b border-yellow-100">
+              <div className="px-4 sm:px-6 py-4 bg-yellow-50 border-b border-yellow-100">
                   <div className="flex items-start gap-2">
                     <StickyNote className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-1" />
                     <div className="flex-1">
@@ -900,12 +970,12 @@ export default function AtendimentosView() {
               )}
 
               {/* Adicionar Nova Nota */}
-              <div className="px-6 py-4 border-b border-border bg-slate-50">
+              <div className="px-4 sm:px-6 py-4 border-b border-border bg-slate-50">
                 <h3 className="font-semibold mb-2 text-sm flex items-center gap-2">
                   <StickyNote className="w-4 h-4" />
                   Adicionar Nota
                 </h3>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Textarea
                     placeholder="Digite uma nota sobre este lead..."
                     value={novaNota}
@@ -920,7 +990,7 @@ export default function AtendimentosView() {
               </div>
 
               {/* Histórico de Conversas */}
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <MessageCircle className="w-4 h-4" />
                   Histórico de Conversas

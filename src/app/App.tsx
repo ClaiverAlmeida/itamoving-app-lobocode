@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Toaster } from './components/ui/sonner';
@@ -39,10 +39,11 @@ import {
   Trash,
   Eye,
   Settings,
+  ClipboardList,
 } from 'lucide-react';
 import { Badge } from './components/ui/badge';
 import { Card, CardContent } from './components/ui/card';
-import logo from '../assets/2ac2fb95a59823c3119ddd194998db2f41de4a80.png';
+
 import { Button } from './components/ui/button';
 import {
   Popover,
@@ -52,7 +53,9 @@ import {
 import { useNotifications } from './hooks/useNotifications';
 import { notificationsService } from './services/notifications.service';
 import ConfiguracoesView from './components/configurations';
+import OrdemDeServicoView from './components/service-order';
 
+const logo = new URL('../assets/itamoving-logo.png', import.meta.url).href;
 const STORAGE_KEY = 'itamoving_last_route';
 
 type View =
@@ -67,6 +70,7 @@ type View =
   | 'precos'
   | 'rh'
   | 'motorista'
+  | 'ordem-de-servico'
   | 'configuracoes';
 
 /** Rotas em português (URL) -> view interno */
@@ -82,6 +86,7 @@ const PATH_TO_VIEW: Record<string, View> = {
   atendimentos: 'atendimentos',
   rh: 'rh',
   motorista: 'motorista',
+  'ordem-de-servico': 'ordem-de-servico',
   configuracoes: 'configuracoes',
 };
 
@@ -97,6 +102,7 @@ const VIEW_TO_PATH: Record<View, string> = {
   atendimentos: 'atendimentos',
   rh: 'rh',
   motorista: 'motorista',
+  'ordem-de-servico': 'ordem-de-servico',
   configuracoes: 'configuracoes',
 };
 
@@ -116,6 +122,9 @@ function MainApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [removingNotificationId, setRemovingNotificationId] = useState<string | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [mobileNotificationsAlignOffset, setMobileNotificationsAlignOffset] = useState(0);
+  const notificationsTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   // Restaurar última rota ao abrir na raiz (só quando path é / ou vazio)
   useEffect(() => {
@@ -142,6 +151,28 @@ function MainApp() {
     }
   }, [location.pathname]);
 
+  useEffect(() => {
+    const updateViewport = () => {
+      setIsMobileViewport(window.innerWidth < 640);
+    };
+
+    updateViewport();
+    window.addEventListener('resize', updateViewport);
+    return () => window.removeEventListener('resize', updateViewport);
+  }, []);
+
+  useEffect(() => {
+    if (!notificationsOpen || !isMobileViewport || !notificationsTriggerRef.current) {
+      setMobileNotificationsAlignOffset(0);
+      return;
+    }
+
+    const rect = notificationsTriggerRef.current.getBoundingClientRect();
+    const triggerCenterX = rect.left + rect.width / 2;
+    const viewportCenterX = window.innerWidth / 2;
+    setMobileNotificationsAlignOffset(viewportCenterX - triggerCenterX);
+  }, [notificationsOpen, isMobileViewport]);
+
   const setActiveView = (view: View) => {
     navigate(`/${VIEW_TO_PATH[view]}`);
     setMobileMenuOpen(false);
@@ -163,6 +194,7 @@ function MainApp() {
       { id: 'atendimentos' as View, label: 'Atendimentos', icon: Headset, module: 'atendimentos' as const },
       { id: 'rh' as View, label: 'RH', icon: UserCog, module: 'rh' as const },
       { id: 'motorista' as View, label: 'Motorista', icon: Truck, module: 'motorista' as const },
+      { id: 'ordem-de-servico' as View, label: 'Ordem de Serviço', icon: ClipboardList, module: 'ordem-de-servico' as const },
       { id: 'configuracoes' as View, label: 'Configurações', icon: Settings, module: 'configuracoes' as const },
     ];
 
@@ -170,6 +202,7 @@ function MainApp() {
     if (user.role === 'motorista') {
       return [
         { id: 'motorista' as View, label: 'Minhas Entregas', icon: Truck, module: 'motorista' as const },
+        { id: 'ordem-de-servico' as View, label: 'Ordem de Serviço', icon: ClipboardList, module: 'ordem-de-servico' as const },
       ];
     }
 
@@ -181,8 +214,11 @@ function MainApp() {
   const renderView = () => {
     if (!user) return null;
 
-    // Motorista só pode acessar sua própria view
+    // Motorista pode acessar Minhas Entregas e Ordem de Serviço
     if (user.role === 'motorista') {
+      if (activeView === 'ordem-de-servico') {
+        return <OrdemDeServicoView />;
+      }
       return <MotoristaApp />;
     }
 
@@ -198,6 +234,7 @@ function MainApp() {
       case 'atendimentos': return hasPermission('atendimentos', 'read') ? <AtendimentosView /> : <AcessoNegado />;
       case 'rh': return hasPermission('rh', 'read') ? <RHView /> : <AcessoNegado />;
       case 'motorista': return hasPermission('motorista', 'read') ? <MotoristaApp /> : <AcessoNegado />;
+      case 'ordem-de-servico': return hasPermission('ordem-de-servico', 'read') ? <OrdemDeServicoView /> : <AcessoNegado />;
       case 'configuracoes': return hasPermission('configuracoes', 'read') ? <ConfiguracoesView /> : <AcessoNegado />;
       default: return <DashboardView onNavigate={setActiveView} />;
     }
@@ -368,7 +405,7 @@ function MainApp() {
                 if (open) refreshNotifications();
               }}>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
+                  <Button ref={notificationsTriggerRef} variant="ghost" size="icon" className="relative">
                     <Bell className="w-5 h-5 stroke-2 fill-none outline-none" />
                     {unreadCount > 0 && (
                       <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
@@ -377,7 +414,13 @@ function MainApp() {
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 sm:w-96 p-0" align="end" sideOffset={8}>
+                <PopoverContent
+                  className="w-[calc(100vw-1rem)] max-w-sm sm:w-96 p-0"
+                  align={isMobileViewport ? 'center' : 'end'}
+                  alignOffset={isMobileViewport ? mobileNotificationsAlignOffset : 0}
+                  sideOffset={8}
+                  collisionPadding={8}
+                >
                   <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/30">
                     <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <BellRing className="w-4 h-4 text-muted-foreground" />
@@ -454,11 +497,11 @@ function MainApp() {
                                 <div className="flex items-center justify-between mb-2">
                                   <Badge variant={!n.isRead ? 'destructive' : 'default'} className="text-xs cursor-auto transition-colors duration-200">{!n.isRead ? 'Nova' : 'Lida'}</Badge>
                                 </div>
-                                <div className="flex justify-end items-center gap-2 float-right">
+                                <div className="flex justify-end items-center gap-2">
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="relative top-0 bg-transparent hover:bg-transparent border-none p-0 m-0 float-right cursor-pointer"
+                                    className="relative top-0 bg-transparent hover:bg-transparent border-none p-0 m-0 cursor-pointer"
                                     onClick={async (e) => {
                                       e.stopPropagation();
                                       const id = n.id;

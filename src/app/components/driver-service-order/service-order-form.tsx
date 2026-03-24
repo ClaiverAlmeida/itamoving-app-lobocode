@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { useData } from '../../context/DataContext';
 import { OrdemServicoMotorista, PrecoProduto } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'motion/react';
@@ -471,7 +470,8 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
       },
       driverServiceOrderProducts: caixas.map((c) => ({
         id: c.id,
-        type: c.type,
+        /** Persiste enum do produto (ex.: SMALL_BOX) para o recibo e relatórios classificarem corretamente. */
+        type: obterTipoProdutoDaCaixa(c) ?? c.type,
         number: c.number,
         value: c.value,
         weight: c.weight,
@@ -507,11 +507,11 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
       initial={embedded ? { opacity: 0 } : { scale: 0.95, y: 20 }}
       animate={embedded ? { opacity: 1 } : { scale: 1, y: 0 }}
       exit={embedded ? { opacity: 0 } : { scale: 0.95, y: 20 }}
-      className={embedded ? "bg-white rounded-lg shadow-sm w-full" : "bg-white rounded-lg shadow-2xl w-full max-w-5xl my-8"}
+      className={embedded ? "bg-white rounded-lg shadow-sm w-full min-w-0" : "bg-white rounded-lg shadow-2xl w-full max-w-5xl my-8 min-w-0"}
     >
       {/* Cabeçalho */}
-      <div className="bg-gradient-to-r from-[#1E3A5F] to-[#2A4A6F] text-white p-6 rounded-t-lg flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="bg-gradient-to-r from-[#1E3A5F] to-[#2A4A6F] text-white p-4 sm:p-6 rounded-t-lg flex items-start sm:items-center justify-between gap-3">
+        <div className="flex items-start sm:items-center gap-3 min-w-0">
           {embedded ? (
             <Button
               variant="ghost"
@@ -527,9 +527,9 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
             </div>
           )}
 
-          <div>
-            <h2 className="text-2xl font-bold">ITAMOVING</h2>
-            <p className="text-sm text-white/80">Ordem de Serviço - Motorista</p>
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold truncate">ITAMOVING</h2>
+            <p className="text-xs sm:text-sm text-white/80">Ordem de Serviço - Motorista</p>
           </div>
         </div>
         {!embedded && (
@@ -545,7 +545,7 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
       </div>
 
       {/* Conteúdo */}
-      <div className={`p-6 space-y-6 ${!embedded ? "max-h-[calc(100vh-200px)] overflow-y-auto" : ""}`}>
+      <div className={`p-4 sm:p-6 space-y-6 min-w-0 ${!embedded ? "max-h-[calc(100vh-200px)] overflow-y-auto" : ""}`}>
         {/* Informações da Empresa */}
         <Card className="border-[#F5A623] border-2">
           <CardContent className="pt-4">
@@ -794,7 +794,7 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
         {/* Seção Produtos e Valores */}
         <Card>
           <CardHeader className="bg-orange-50">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <CardTitle className="flex items-center gap-2 text-[#1E3A5F]">
                 <Package className="w-5 h-5" />
                 Produtos e Valores
@@ -802,7 +802,7 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
               <Button
                 onClick={adicionarCaixa}
                 size="sm"
-                className="bg-[#F5A623] hover:bg-[#E59400]"
+                className="bg-[#F5A623] hover:bg-[#E59400] w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Adicionar Caixa ou Produto
@@ -843,7 +843,7 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
                       className="rounded-xl border border-border bg-gray-50/90 p-3 shadow-sm space-y-3"
                     >
                       <div className="grid grid-cols-1 md:grid-cols-13 gap-3 items-end">
-                        <div className="md:col-span-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-2">
+                        <div className="md:col-span-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-2 min-w-0">
                           <div className="flex-1 min-w-0 space-y-1">
                             <Label className="md:hidden">Tipo da Caixa ou Produto</Label>
                             <Select
@@ -868,7 +868,7 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
                               type="button"
                               size="sm"
                               disabled={!podeAdicionarItens}
-                              className="shrink-0 rounded-sm bg-[#F5A623] hover:bg-[#E59400] whitespace-nowrap disabled:opacity-50 disabled:pointer-events-none"
+                              className="shrink-0 rounded-sm bg-[#F5A623] hover:bg-[#E59400] whitespace-nowrap disabled:opacity-50 disabled:pointer-events-none w-full sm:w-auto"
                               title={
                                 podeAdicionarItens
                                   ? 'Adicionar itens nesta caixa'
@@ -1028,12 +1028,12 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
                             ))}
                           </div>
 
-                          <div className="flex flex-col justify-end gap-2 items-end">
-                            <div className="flex flex-inline gap-2">
+                          <div className="flex flex-col justify-end gap-2 items-start sm:items-end">
+                            <div className="flex gap-2">
                               <p className="text-sm text-muted-foreground font-semibold">Total de Itens da Caixa:</p>
                               <p className="text-sm text-muted-foreground">{itensDaCaixa.length}</p>
                             </div>
-                            <div className="flex flex-inline gap-2">
+                            <div className="flex gap-2">
                               <p className={`text-sm text-muted-foreground font-semibold ${isGreaterThanPesoTotalCaixa}`}>Peso Total dos Itens:</p>
                               <p className={`text-sm text-muted-foreground ${isGreaterThanPesoTotalCaixa}`}>{pesoItensDaCaixa} kg</p>
                             </div>
@@ -1144,7 +1144,7 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
           <CardContent className="pt-6">
             <div className="space-y-4">
               <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                   <span className="text-sm text-muted-foreground">Valor Total das Caixas:</span>
                   <span className="text-2xl font-bold text-green-700">
                     $ {valorTotalCaixas.toFixed(2)}
@@ -1210,18 +1210,18 @@ export default function OrdemServicoForm({ appointmentId, agendamento, onClose, 
       </div>
 
       {/* Rodapé com Botões */}
-      <div className="p-6 border-t bg-gray-50 rounded-b-lg flex items-center justify-between gap-4">
-        <div className="text-sm text-muted-foreground">
+      <div className="p-4 sm:p-6 border-t bg-gray-50 rounded-b-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="text-sm text-muted-foreground w-full sm:w-auto">
           <p>Data: {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
           <p>Agente: {user?.nome || 'Motorista'}</p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={onClose}>
+        <div className="flex flex-col-reverse sm:flex-row w-full sm:w-auto gap-2 sm:gap-3">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Cancelar
           </Button>
           <Button
             onClick={salvarOrdemServico}
-            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 w-full sm:w-auto"
           >
             <Save className="w-4 h-4 mr-2" />
             Salvar Ordem de Serviço

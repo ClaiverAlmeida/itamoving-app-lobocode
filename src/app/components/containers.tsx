@@ -75,12 +75,24 @@ import {
   Truck,
   Globe,
   Edit,
+  Gauge,
 } from "lucide-react";
 import { containersServices } from "../services";
 import {
   UpdateContainersDTO,
 } from "../services/containers.service";
+import {
+  StatusSelect,
+  type StatusSelectItem,
+} from "./forms";
 
+const CONTAINER_STATUS_ITEMS = [
+  { value: "PREPARATION", label: "Em Preparação" },
+  { value: "DELIVERED", label: "Entregue" },
+  { value: "IN_TRANSIT", label: "Em Trânsito" },
+  { value: "CANCELLED", label: "Cancelado" },
+  { value: "SHIPPED", label: "Enviado" },
+] as const satisfies readonly StatusSelectItem<Container["status"]>[];
 
 type ViewMode = "grid" | "list" | "kanban";
 
@@ -130,11 +142,7 @@ export default function ContainersView() {
     destination: "Santos, SP - Brasil",
     boardingDate: "",
     estimatedArrival: "",
-    status: "PREPARATION" as
-      | "PREPARATION"
-      | "IN_TRANSIT"
-      | "DELIVERED"
-      | "CANCELLED",
+    status: "PREPARATION" as Container["status"],
     volume: "",
     weightLimit: "",
     trackingLink: "",
@@ -149,11 +157,7 @@ export default function ContainersView() {
       destination: "Santos, SP - Brasil",
       boardingDate: "",
       estimatedArrival: "",
-      status: "PREPARATION" as
-        | "PREPARATION"
-        | "IN_TRANSIT"
-        | "DELIVERED"
-        | "CANCELLED",
+      status: "PREPARATION" as Container["status"],
       volume: "",
       weightLimit: "",
       trackingLink: "",
@@ -320,6 +324,18 @@ export default function ContainersView() {
     }
   };
 
+  const handleContainerStatusChange = async (id: string, status: Container["status"]) => {
+    const result = await containersServices.update(id, { status });
+    if (!result.success || !result.data) {
+      toast.error(result.error ?? "Erro ao atualizar status do container.");
+      return;
+    }
+
+    updateContainer(selectedContainer.id, result.data);
+    setSelectedContainer(null);
+    toast.success("Status do container atualizado com sucesso!");
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PREPARATION":
@@ -330,6 +346,12 @@ export default function ContainersView() {
           badge: "bg-yellow-100 text-yellow-700",
         };
       case "SHIPPED":
+        return {
+          bg: "bg-sky-50",
+          border: "border-sky-500",
+          text: "text-sky-950",
+          badge: "bg-sky-100 text-sky-800",
+        };
       case "IN_TRANSIT":
         return {
           bg: "bg-blue-50",
@@ -382,6 +404,8 @@ export default function ContainersView() {
     switch (status) {
       case "PREPARATION":
         return "Em Preparação";
+      case "SHIPPED":
+        return "Enviado";
       case "IN_TRANSIT":
         return "Em Trânsito";
       case "DELIVERED":
@@ -589,7 +613,7 @@ export default function ContainersView() {
   }, [filteredContainers]);
 
   return (
-    <div className="space-y-4 lg:space-y-6">
+    <div className="space-y-4 lg:space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -601,19 +625,19 @@ export default function ContainersView() {
               Rastreamento e controle de containers internacionais
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:flex-wrap">
             <Dialog open={isDialogOpen} onOpenChange={(open) => {
               setIsDialogOpen(open);
               if (!open) resetForm();
             }
             }>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="col-span-2 w-full sm:w-auto sm:col-span-1">
                   <Plus className="w-4 h-4 mr-2" />
                   Novo Container
                 </Button>
               </DialogTrigger>
-              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-auto sm:max-w-[40vw] max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
+              <DialogContent className="w-[95vw] sm:w-[92vw] lg:w-[84vw] max-w-4xl lg:max-w-5xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg">
                 <DialogHeader>
                   <DialogTitle>Cadastrar Novo Container</DialogTitle>
                   <DialogDescription>
@@ -622,8 +646,8 @@ export default function ContainersView() {
                   </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
                     <div className="space-y-2">
                       <Label htmlFor="number">Número do Container *</Label>
                       <Input
@@ -762,7 +786,7 @@ export default function ContainersView() {
                       />
                     </div>
 
-                    <div className="col-span-1 sm:col-span-3 grid grid-cols-[1fr_1fr] gap-4 w-full">
+                    <div className="col-span-1 md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5 w-full">
                       <div className="space-y-2 min-w-0">
                         <Label htmlFor="trackingLink">Link de Rastreamento</Label>
                         <Input
@@ -803,6 +827,7 @@ export default function ContainersView() {
                             </SelectItem>
                             <SelectItem value="DELIVERED">Entregue</SelectItem>
                             <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                            <SelectItem value="SHIPPED">Enviado</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -810,10 +835,11 @@ export default function ContainersView() {
 
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-4 border-t">
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 lg:gap-3 pt-4 lg:pt-5 border-t">
                     <Button
                       type="button"
                       variant="outline"
+                      className="w-full sm:w-auto"
                       onClick={() => {
                         resetForm();
                         setIsDialogOpen(false);
@@ -821,7 +847,7 @@ export default function ContainersView() {
                     >
                       Cancelar
                     </Button>
-                    <Button type="submit">Cadastrar Container</Button>
+                    <Button type="submit" className="w-full sm:w-auto">Cadastrar Container</Button>
                   </div>
                 </form>
               </DialogContent>
@@ -831,11 +857,12 @@ export default function ContainersView() {
               variant={showFilters ? "default" : "outline"}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
+              className="w-full sm:w-auto"
             >
               <Filter className="w-4 h-4 mr-2" />
               Filtros
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
@@ -844,59 +871,59 @@ export default function ContainersView() {
 
         {/* Métricas Principais */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
-          <Card className="p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs lg:text-sm font-medium text-blue-900">
                 Total Containers
               </span>
               <ContainerIcon className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
             </div>
-            <p className="text-2xl lg:text-3xl font-bold text-blue-900">
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-900">
               {statistics.total}
             </p>
             <p className="text-xs text-blue-700 mt-1">Containers ativos</p>
           </Card>
 
-          <Card className="p-4 lg:p-5 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+          <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs lg:text-sm font-medium text-yellow-900">
                 Em Preparação
               </span>
               <Package className="w-4 h-4 lg:w-5 lg:h-5 text-yellow-600" />
             </div>
-            <p className="text-2xl lg:text-3xl font-bold text-yellow-900">
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-900">
               {statistics.emPreparacao}
             </p>
             <p className="text-xs text-yellow-700 mt-1">Sendo carregados</p>
           </Card>
 
-          <Card className="p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs lg:text-sm font-medium text-purple-900">
                 Em Trânsito
               </span>
               <Ship className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
             </div>
-            <p className="text-2xl lg:text-3xl font-bold text-purple-900">
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-900">
               {statistics.emTransito}
             </p>
             <p className="text-xs text-purple-700 mt-1">No oceano</p>
           </Card>
 
-          <Card className="p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs lg:text-sm font-medium text-green-900">
                 Entregues
               </span>
               <CheckCircle2 className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
             </div>
-            <p className="text-2xl lg:text-3xl font-bold text-green-900">
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-900">
               {statistics.entregues}
             </p>
             <p className="text-xs text-green-700 mt-1">Completos</p>
           </Card>
 
-          <Card className="p-4 lg:p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs lg:text-sm font-medium text-orange-900">
                 Total Caixas
@@ -909,7 +936,7 @@ export default function ContainersView() {
             <p className="text-xs text-orange-700 mt-1">Unidades</p>
           </Card>
 
-          <Card className="p-4 lg:p-5 bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
+          <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs lg:text-sm font-medium text-slate-900">
                 Peso Total
@@ -1056,7 +1083,7 @@ export default function ContainersView() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex justify-between items-center pt-4 border-t border-slate-200">
+                <div className="mt-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-4 border-t border-slate-200">
                   <div className="text-xs text-slate-600">
                     {filteredContainers.length} container(s) encontrado(s)
                   </div>
@@ -1122,14 +1149,18 @@ export default function ContainersView() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium">{container.origin}</span>
-                        <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                        <MapPin className="w-4 h-4 text-green-600" />
-                        <span className="font-medium">
-                          {container.destination}
-                        </span>
+                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                        <div className="inline-flex items-center gap-1 min-w-0">
+                          <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+                          <span className="font-medium break-words">{container.origin}</span>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <div className="inline-flex items-center gap-1 min-w-0">
+                          <MapPin className="w-4 h-4 text-green-600 shrink-0" />
+                          <span className="font-medium break-words">
+                            {container.destination}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 text-sm">
@@ -1226,17 +1257,17 @@ export default function ContainersView() {
                         className={`hover:shadow-md transition-all cursor-pointer border-l-4 ${colors.border}`}
                         onClick={() => setSelectedContainer(container)}
                       >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4 flex-1">
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
                               <div className={`p-3 rounded-full ${colors.bg}`}>
                                 <StatusIcon
                                   className={`w-6 h-6 ${colors.text}`}
                                 />
                               </div>
-                              <div className="flex-1 space-y-2">
+                              <div className="flex-1 min-w-0 space-y-2">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <h3 className="font-semibold text-lg">
+                                  <h3 className="font-semibold text-base sm:text-lg break-words">
                                     {container.number}
                                   </h3>
                                   <Badge className={colors.badge}>
@@ -1247,21 +1278,25 @@ export default function ContainersView() {
                                   </Badge> */}
                                 </div>
 
-                                <div className="grid grid-cols-4 gap-4 text-sm">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                                   <div>
                                     <p className="text-muted-foreground mb-1">
                                       Rota
                                     </p>
-                                    <div className="flex items-center gap-1">
-                                      <MapPin className="w-3 h-3 text-blue-600" />
-                                      <span className="font-medium">
-                                        {container.origin || "N/A"}
-                                      </span>
-                                      <ArrowRight className="w-3 h-3" />
-                                      <MapPin className="w-3 h-3 text-green-600" />
-                                      <span className="font-medium">
-                                        {container.destination || "N/A"}
-                                      </span>
+                                    <div className="flex flex-wrap items-center gap-1">
+                                      <div className="inline-flex items-center gap-1 min-w-0">
+                                        <MapPin className="w-3 h-3 text-blue-600 shrink-0" />
+                                        <span className="font-medium break-words">
+                                          {container.origin || "N/A"}
+                                        </span>
+                                      </div>
+                                      <ArrowRight className="w-3 h-3 shrink-0" />
+                                      <div className="inline-flex items-center gap-1 min-w-0">
+                                        <MapPin className="w-3 h-3 text-green-600 shrink-0" />
+                                        <span className="font-medium break-words">
+                                          {container.destination || "N/A"}
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
                                   <div>
@@ -1302,7 +1337,7 @@ export default function ContainersView() {
                               </div>
                             </div>
 
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" className="shrink-0">
                               <ArrowRight className="w-5 h-5" />
                             </Button>
                           </div>
@@ -1326,7 +1361,7 @@ export default function ContainersView() {
 
       {/* Kanban View */}
       {viewMode === "kanban" && (
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
           {/* Coluna Em Preparação */}
           <Card className="bg-yellow-50 border-yellow-200">
             <CardHeader>
@@ -1485,7 +1520,7 @@ export default function ContainersView() {
             className="fixed inset-y-0 right-0 w-full lg:w-[700px] bg-white shadow-2xl border-l border-border z-50 overflow-y-auto"
           >
             {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-border p-4 lg:p-6 z-10">
+            <div className="sticky top-0 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-border p-4 sm:p-5 lg:p-6 z-10">
               <div className="flex flex-col gap-4">
                 {/* Primeira linha - Ícone, Título e Fechar */}
                 <div className="flex items-start justify-between gap-3">
@@ -1494,7 +1529,7 @@ export default function ContainersView() {
                       <ContainerIcon className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-lg lg:text-2xl font-bold text-foreground mb-2 truncate">
+                      <h2 className="text-base sm:text-lg lg:text-2xl font-bold text-foreground mb-2 break-words">
                         {selectedContainer.number}
                       </h2>
                       <div className="flex items-center gap-2 mb-2">
@@ -1575,7 +1610,30 @@ export default function ContainersView() {
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-5 sm:space-y-6">
+              {/* Alterar Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Gauge className="w-5 h-5 text-muted-foreground" />
+                    Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <StatusSelect
+                    value={selectedContainer.status}
+                    items={CONTAINER_STATUS_ITEMS}
+                    onValueChange={(value) => {
+                      handleContainerStatusChange(selectedContainer.id!, value);
+                      setSelectedContainer({
+                        ...selectedContainer,
+                        status: value,
+                      });
+                    }}
+                    triggerClassName="w-full"
+                  />
+                </CardContent>
+              </Card>
               {/* Informações de Rota */}
               <Card>
                 <CardHeader>
@@ -1585,7 +1643,7 @@ export default function ContainersView() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <MapPin className="w-4 h-4 text-blue-600" />
@@ -1593,11 +1651,11 @@ export default function ContainersView() {
                           Origem
                         </span>
                       </div>
-                      <p className="font-semibold">
+                      <p className="font-semibold break-words">
                         {selectedContainer.origin}
                       </p>
                     </div>
-                    <ArrowRight className="w-6 h-6 text-muted-foreground" />
+                    <ArrowRight className="w-6 h-6 text-muted-foreground self-center" />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <MapPin className="w-4 h-4 text-green-600" />
@@ -1605,13 +1663,13 @@ export default function ContainersView() {
                           Destino
                         </span>
                       </div>
-                      <p className="font-semibold">
+                      <p className="font-semibold break-words">
                         {selectedContainer.destination}
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
                         Data de Embarque
@@ -1767,7 +1825,7 @@ export default function ContainersView() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
                         Volume
@@ -1837,7 +1895,7 @@ export default function ContainersView() {
         if (!open) resetForm();
       }
       }>
-        <DialogContent className="w-[95vw] max-w-[95vw] sm:w-auto sm:max-w-[40vw] max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
+        <DialogContent className="w-[95vw] sm:w-[92vw] lg:w-[84vw] max-w-4xl lg:max-w-5xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg">
           <DialogHeader>
             <DialogTitle>Editar Container</DialogTitle>
             <DialogDescription>
@@ -1845,8 +1903,8 @@ export default function ContainersView() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <form onSubmit={handleEditSubmit} className="space-y-4 lg:space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
               <div className="space-y-2">
                 <Label htmlFor="number">Número do Container *</Label>
                 <Input
@@ -1975,7 +2033,7 @@ export default function ContainersView() {
                 />
               </div>
 
-              <div className="col-span-1 sm:col-span-3 grid grid-cols-[1fr_1fr] gap-4 w-full">
+              <div className="col-span-1 md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5 w-full">
                 <div className="space-y-2 min-w-0">
                   <Label htmlFor="trackingLink">Link de Rastreamento</Label>
                   <Input
@@ -1996,7 +2054,7 @@ export default function ContainersView() {
                   </p>
                 </div>
                 <div className="space-y-2 min-w-0">
-                  <Label htmlFor="status">Status Inicial *</Label>
+                  <Label htmlFor="status">Status *</Label>
                   <Select
                     value={formData.status}
                     onValueChange={(value) =>
@@ -2016,6 +2074,7 @@ export default function ContainersView() {
                       </SelectItem>
                       <SelectItem value="DELIVERED">Entregue</SelectItem>
                       <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                      <SelectItem value="SHIPPED">Enviado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -2023,10 +2082,11 @@ export default function ContainersView() {
 
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 lg:gap-3 pt-4 lg:pt-5 border-t">
               <Button
                 type="button"
                 variant="outline"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   resetForm();
                   setIsEditDialogOpen(false);
@@ -2035,7 +2095,7 @@ export default function ContainersView() {
               >
                 Cancelar
               </Button>
-              <Button type="submit">Atualizar Container</Button>
+              <Button type="submit" className="w-full sm:w-auto">Atualizar Container</Button>
             </div>
           </form>
         </DialogContent>
@@ -2043,7 +2103,7 @@ export default function ContainersView() {
 
       {/* Dialog de Exclusão */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Excluir Container</DialogTitle>
             <DialogDescription>
@@ -2075,7 +2135,7 @@ export default function ContainersView() {
             )}
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
@@ -2083,7 +2143,7 @@ export default function ContainersView() {
             >
               Cancelar
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button variant="destructive" className="w-full sm:w-auto" onClick={handleDelete}>
               <Trash2 className="w-4 h-4 mr-2" />
               Excluir Container
             </Button>

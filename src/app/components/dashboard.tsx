@@ -308,7 +308,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
   };
 
   return (
-    <div className="space-y-4 lg:space-y-6">
+    <div className="space-y-4 lg:space-y-6 overflow-x-hidden">
       {/* Header com saudação */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -319,19 +319,19 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
             {format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:flex-wrap">
           {hasPermission('relatorios', 'read') && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => onNavigate?.('relatorios')}
-              className="flex-1 sm:flex-none"
+              className="w-full sm:w-auto"
             >
               <FileText className="w-4 h-4 mr-2" />
               Relatórios
             </Button>
           )}
-          <Button size="sm" className="flex-1 sm:flex-none">
+          <Button size="sm" className="w-full sm:w-auto">
             <Sparkles className="w-4 h-4 mr-2" />
             Insights IA
           </Button>
@@ -355,7 +355,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                 >
                   <Card className={`${colors.bg} ${colors.border} border-l-4`}>
                     <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                         <div className={`p-2 rounded-full ${colors.bg}`}>
                           <Icon className={`w-5 h-5 ${colors.icon}`} />
                         </div>
@@ -363,7 +363,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                           <h4 className={`font-semibold ${colors.text}`}>{alerta.titulo}</h4>
                           <p className="text-sm text-muted-foreground">{alerta.descricao}</p>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={() => onNavigate?.(alerta.navigateTo!)}>
+                        <Button variant="ghost" size="sm" className="w-full sm:w-auto" onClick={() => onNavigate?.(alerta.navigateTo!)}>
                           Ver Detalhes
                         </Button>
                       </div>
@@ -391,7 +391,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
               <Users className="h-5 w-5 text-blue-600 group-hover:scale-110 transition-transform" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-900">{clientes.length}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-blue-900">{clientes.length}</div>
               <div className="flex items-center gap-2 mt-2">
                 <Badge className="bg-blue-200 text-blue-800">
                   <TrendingUp className="w-3 h-3 mr-1" />
@@ -416,7 +416,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
               <Calendar className="h-5 w-5 text-green-600 group-hover:scale-110 transition-transform" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-green-900">{agendamentosHoje}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-green-900">{agendamentosHoje}</div>
               <div className="flex items-center gap-2 mt-2">
                 <Badge className="bg-green-200 text-green-800">
                   Hoje
@@ -447,7 +447,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                 <Target className="h-5 w-5 text-indigo-600 group-hover:scale-110 transition-transform" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-indigo-900">
+                <div className="text-2xl sm:text-3xl font-bold text-indigo-900">
                   87.5%
                 </div>
                 <div className="flex items-center gap-2 mt-2">
@@ -470,7 +470,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                 <DollarSign className="h-5 w-5 text-purple-600 group-hover:scale-110 transition-transform" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-purple-900">
+                <div className="text-2xl sm:text-3xl font-bold text-purple-900 break-words">
                   {formatCurrency(receitaTotal)}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
@@ -505,7 +505,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                 }`} />
             </CardHeader>
             <CardContent>
-              <div className={`text-3xl font-bold ${estoqueBaixo.length > 0 ? 'text-orange-900' : 'text-slate-900'
+              <div className={`text-2xl sm:text-3xl font-bold ${estoqueBaixo.length > 0 ? 'text-orange-900' : 'text-slate-900'
                 }`}>
                 {estoqueTotal}
               </div>
@@ -524,7 +524,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                   </Badge>
                 </div>
               )}
-              <p className={`text-xs mt-1 ${estoqueBaixo.length > 0 ? 'text-orange-700' : 'text-slate-700'
+              <p className={`text-xs mt-1 break-words ${estoqueBaixo.length > 0 ? 'text-orange-700' : 'text-slate-700'
                 }`}>
                 P: {estoque.smallBoxes} | M: {estoque.mediumBoxes} | G: {estoque.largeBoxes} | Itens Personalizados: {estoque.personalizedItems} | Fitas: {estoque.adhesiveTape}
               </p>
@@ -536,7 +536,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
       {/* KPI Cards Secundários */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-cyan-900">Containers Ativos</p>
@@ -549,7 +549,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
         </Card>
 
         <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-indigo-900">Taxa de Conversão</p>
@@ -562,7 +562,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
         </Card>
 
         <Card className="bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-pink-900">Tempo Médio</p>
@@ -595,7 +595,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={320}>
+              <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={financeiroData}>
                   <defs>
                     <linearGradient id="colorReceitas" x1="0" y1="0" x2="0" y2="1">
@@ -612,7 +612,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                  <XAxis dataKey="mes" stroke="#64748B" />
+                  <XAxis dataKey="mes" stroke="#64748B" tick={{ fontSize: 11 }} />
                   <YAxis stroke="#64748B" />
                   <Tooltip
                     contentStyle={{
@@ -659,25 +659,25 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
         {/* Gráfico de Status de Containers */}
         <Card className="col-span-1">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
                 <CardTitle>Status dos Containers</CardTitle>
                 <CardDescription>
                   Distribuição atual dos {containers.length} containers
                 </CardDescription>
               </div>
-              <Badge variant="outline">{containersAtivos} ativos</Badge>
+              <Badge variant="outline" className="w-fit">{containersAtivos} ativos</Badge>
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie
                   data={containersStatusData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => percent > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
+                  label={({ name, percent }) => percent > 0 ? `${String(name).slice(0, 10)}: ${(percent * 100).toFixed(0)}%` : ''}
                   outerRadius={110}
                   fill="#8884d8"
                   dataKey="value"
@@ -712,10 +712,10 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={230}>
               <BarChart data={estoqueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="tipo" stroke="#64748B" />
+                <XAxis dataKey="tipo" stroke="#64748B" tick={{ fontSize: 11 }} />
                 <YAxis stroke="#64748B" />
                 <Tooltip
                   contentStyle={{
@@ -748,10 +748,10 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={230}>
               <BarChart data={performanceData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="dia" stroke="#64748B" />
+                <XAxis dataKey="dia" stroke="#64748B" tick={{ fontSize: 11 }} />
                 <YAxis stroke="#64748B" />
                 <Tooltip
                   contentStyle={{
@@ -805,7 +805,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                         }`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{atividade.descricao}</p>
+                      <p className="text-sm font-medium break-words">{atividade.descricao}</p>
                       <p className="text-xs text-muted-foreground">
                         {format(atividade.data, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                       </p>
@@ -821,7 +821,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
       {/* Próximos Agendamentos */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
@@ -831,7 +831,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                 Coletas programadas para os próximos dias
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => onNavigate?.('agendamentos')}>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => onNavigate?.('agendamentos')}>
               Ver Todos
             </Button>
           </div>
@@ -861,7 +861,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="flex items-start justify-between">
-                          <h4 className="font-semibold text-sm">{agendamento.client?.name}</h4>
+                          <h4 className="font-semibold text-sm break-words">{agendamento.client?.name}</h4>
                           <Badge className={
                             agendamento.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
                               agendamento.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
@@ -894,7 +894,11 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                         </div>
                         <div className="flex items-start gap-2 text-xs text-muted-foreground">
                           <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                          <span className="line-clamp-2">{agendamento.address}</span>
+                          <span className="line-clamp-2 break-words">
+                            {(agendamento as any).address ??
+                              agendamento.client?.usaAddress ??
+                              'Endereço não informado'}
+                          </span>
                         </div>
                       </div>
                     </CardContent>

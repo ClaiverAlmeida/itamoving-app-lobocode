@@ -267,7 +267,7 @@ export function PrecosEntregaTab() {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <CardTitle>Preços de Entrega por Cidade</CardTitle>
               <CardDescription>
@@ -286,12 +286,12 @@ export function PrecosEntregaTab() {
               }}
             >
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-[#1E3A5F] to-[#5DADE2] hover:opacity-90">
+                <Button className="bg-gradient-to-r from-[#1E3A5F] to-[#5DADE2] hover:opacity-90 w-full sm:w-auto">
                   <Plus className="w-4 h-4 mr-2" />
                   Nova Rota
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Novo Preço de Entrega</DialogTitle>
                   <DialogDescription>
@@ -299,8 +299,8 @@ export function PrecosEntregaTab() {
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmitEntrega} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2 col-span-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2 col-span-1 sm:col-span-2">
                       <Label className="text-base font-semibold">
                         Origem (EUA)
                       </Label>
@@ -344,7 +344,7 @@ export function PrecosEntregaTab() {
                       </Select>
                     </div>
 
-                    <div className="space-y-2 col-span-2">
+                    <div className="space-y-2 col-span-1 sm:col-span-2">
                       <Label className="text-base font-semibold">
                         Destino (Brasil)
                       </Label>
@@ -388,7 +388,7 @@ export function PrecosEntregaTab() {
                       </Select>
                     </div>
 
-                    <div className="space-y-2 col-span-2">
+                    <div className="space-y-2 col-span-1 sm:col-span-2">
                       <Label className="text-base font-semibold">
                         Preços e Prazo
                       </Label>
@@ -448,7 +448,7 @@ export function PrecosEntregaTab() {
                         required
                       />
                     </div>
-                    <div className="space-y-2 flex items-center gap-2">
+                    <div className="col-span-1 sm:col-span-2 flex items-center gap-2 pt-1">
                       <Switch
                         id="activeEntrega"
                         checked={formEntrega.active}
@@ -462,17 +462,18 @@ export function PrecosEntregaTab() {
                       <Label htmlFor="activeEntrega">Rota Ativa</Label>
                     </div>
                   </div>
-                  <div className="flex justify-end gap-2 pt-4 border-t">
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t">
                     <Button
                       type="button"
                       variant="outline"
+                      className="w-full sm:w-auto"
                       onClick={() => setIsEntregaDialogOpen(false)}
                     >
                       Cancelar
                     </Button>
                     <Button
                       type="submit"
-                      className="bg-gradient-to-r from-[#1E3A5F] to-[#5DADE2]"
+                      className="bg-gradient-to-r from-[#1E3A5F] to-[#5DADE2] w-full sm:w-auto"
                     >
                       Cadastrar
                     </Button>
@@ -483,7 +484,7 @@ export function PrecosEntregaTab() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -497,12 +498,13 @@ export function PrecosEntregaTab() {
               variant="outline"
               size="icon"
               onClick={handleExportarEntregas}
+              className="w-full sm:w-10"
             >
               <Download className="w-4 h-4" />
             </Button>
           </div>
 
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
@@ -621,7 +623,7 @@ export function PrecosEntregaTab() {
             </Table>
           </div>
           {paginationEntrega && paginationEntrega.totalPages > 1 && (
-            <div className="flex items-center justify-between gap-4 pt-4 border-t">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-4 border-t">
               <p className="text-sm text-muted-foreground">
                 Página {paginationEntrega.page} de{" "}
                 {paginationEntrega.totalPages}
@@ -629,10 +631,11 @@ export function PrecosEntregaTab() {
                   <> · {paginationEntrega.total} registro(s)</>
                 )}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   disabled={!paginationEntrega.hasPreviousPage}
                   onClick={() => setPageEntrega((p) => Math.max(1, p - 1))}
                 >
@@ -642,6 +645,7 @@ export function PrecosEntregaTab() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   disabled={!paginationEntrega.hasNextPage}
                   onClick={() =>
                     setPageEntrega((p) =>
@@ -670,7 +674,7 @@ export function PrecosEntregaTab() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Preço de Entrega</DialogTitle>
             <DialogDescription>
@@ -678,8 +682,8 @@ export function PrecosEntregaTab() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditEntrega} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2 col-span-1 sm:col-span-2">
                 <Label className="text-base font-semibold">Origem (EUA)</Label>
               </div>
               <div className="space-y-2">
@@ -718,7 +722,7 @@ export function PrecosEntregaTab() {
                 </Select>
               </div>
 
-              <div className="space-y-2 col-span-2">
+              <div className="space-y-2 col-span-1 sm:col-span-2">
                 <Label className="text-base font-semibold">
                   Destino (Brasil)
                 </Label>
@@ -759,7 +763,7 @@ export function PrecosEntregaTab() {
                 </Select>
               </div>
 
-              <div className="space-y-2 col-span-2">
+              <div className="space-y-2 col-span-1 sm:col-span-2">
                 <Label className="text-base font-semibold">
                   Preços e Prazo
                 </Label>
@@ -819,7 +823,7 @@ export function PrecosEntregaTab() {
                   required
                 />
               </div>
-              <div className="space-y-2 flex items-center gap-2">
+              <div className="col-span-1 sm:col-span-2 flex items-center gap-2 pt-1">
                 <Switch
                   id="editActive"
                   checked={formEntrega.active}
@@ -830,17 +834,18 @@ export function PrecosEntregaTab() {
                 <Label htmlFor="editActive">Rota Ativa</Label>
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-4 border-t">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"
+                className="w-full sm:w-auto"
                 onClick={() => setIsEditEntregaDialogOpen(false)}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                className="bg-gradient-to-r from-[#1E3A5F] to-[#5DADE2]"
+                className="bg-gradient-to-r from-[#1E3A5F] to-[#5DADE2] w-full sm:w-auto"
               >
                 Salvar Alterações
               </Button>

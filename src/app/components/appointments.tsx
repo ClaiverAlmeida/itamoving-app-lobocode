@@ -89,12 +89,19 @@ import {
 import { ptBR } from "date-fns/locale/pt-BR";
 import { motion, AnimatePresence } from "motion/react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
-import { AtendenteSelect } from "./forms";
+import { AtendenteSelect, StatusSelect, type StatusSelectItem } from "./forms";
 import { EmptyStateAlert, AppointmentBoxesPerDayAlert, AppointmentBoxesPerPeriodAlert } from "./alerts";
 import { clientsService } from "../services/clients.service";
 import { appointmentsService, CreateAppointmentsDTO, CreateAppointmentsPeriodsDTO, UpdateAppointmentsDTO, UpdateAppointmentsPeriodsDTO } from "../services/appointments.service";
 import { connectSocket, getSocket } from "../services/socket.service";
 import { toDateOnly, formatDateOnlyToBR } from "../utils";
+
+const AGENDAMENTO_STATUS_ITEMS = [
+  { value: "PENDING", label: "Pendente" },
+  { value: "CONFIRMED", label: "Confirmado" },
+  { value: "COLLECTED", label: "Coletado" },
+  { value: "CANCELLED", label: "Cancelado" },
+] as const satisfies readonly StatusSelectItem<Agendamento["status"]>[];
 
 type ViewMode = "calendar" | "list" | "timeline";
 
@@ -476,8 +483,6 @@ export default function AgendamentosView() {
       }
     }
 
-    const address = `${cliente.usaAddress.rua}, ${cliente.usaAddress.numero} - ${cliente.usaAddress.complemento}, ${cliente.usaAddress.cidade}, ${cliente.usaAddress.estado} ${cliente.usaAddress.zipCode} - ${cliente.usaAddress.bairro}`;
-
     const isPeriodic = Boolean(formData?.isPeriodic);
     const collectionDate = formData.collectionDate?.trim();
     const comPeriodo = isPeriodic && Boolean(formData.appointmentPeriodId?.trim());
@@ -490,7 +495,6 @@ export default function AgendamentosView() {
       downPayment: formData?.downPayment ?? 0,
       isPeriodic,
       qtyBoxes: qty,
-      address,
       status: formData.status as
         | "PENDING"
         | "CONFIRMED"
@@ -855,7 +859,7 @@ export default function AgendamentosView() {
         agendamento.client.name
           .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        agendamento.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        agendamento.client.usaAddress.toLowerCase().includes(searchTerm.toLowerCase()) ||
         agendamento.user.name.toLowerCase().includes(searchTerm.toLowerCase());
 
       if (!matchesSearch) return false;
@@ -922,7 +926,7 @@ export default function AgendamentosView() {
       if (!agendamento.isPeriodic) return false;
       const matchesSearch =
         agendamento.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        agendamento.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        agendamento.client.usaAddress.toLowerCase().includes(searchTerm.toLowerCase()) ||
         agendamento.user.name.toLowerCase().includes(searchTerm.toLowerCase());
       if (!matchesSearch) return false;
       if (filters.status.length > 0 && !filters.status.includes(getStatusKey(agendamento.status))) return false;
@@ -1244,15 +1248,15 @@ export default function AgendamentosView() {
                                     </span>
                                     <span>{agendamento.client.name}</span>
                                   </div>
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <MapPin className="w-3 h-3" />
-                                    <span className="truncate">
-                                      {agendamento.address}
+                                  <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                                    <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                    <span className="break-words leading-relaxed">
+                                      {agendamento.client.usaAddress}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <Box className="w-3 h-3" />
-                                    <span className="truncate">
+                                    <span className="break-words">
                                       {agendamento.qtyBoxes} Caixa(s)
                                     </span>
                                   </div>
@@ -1282,7 +1286,7 @@ export default function AgendamentosView() {
   };
 
   return (
-    <div className="space-y-4 lg:space-y-6">
+    <div className="space-y-4 lg:space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1294,17 +1298,17 @@ export default function AgendamentosView() {
               Gerencie coletas de caixas e entregas
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:flex-wrap">
             <Button
               variant={showFilters ? "default" : "outline"}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className="flex-1 sm:flex-none"
+              className="w-full sm:w-auto"
             >
               <Filter className="w-4 h-4 mr-2" />
               Filtros
             </Button>
-            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
@@ -1340,12 +1344,16 @@ export default function AgendamentosView() {
               }}
             >
               <DialogTrigger asChild>
-                <Button variant="secondary" size="sm" className="flex-1 sm:flex-none">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="col-span-2 w-full sm:w-auto sm:col-span-1"
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Novo Período de Coleta
                 </Button>
               </DialogTrigger>
-              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
+              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg">
                 <DialogHeader>
                   <DialogTitle>Novo Período</DialogTitle>
                   <DialogDescription>
@@ -1470,12 +1478,12 @@ export default function AgendamentosView() {
               }}
             >
               <DialogTrigger asChild>
-                <Button>
+                <Button className="col-span-2 w-full sm:w-auto sm:col-span-1">
                   <Plus className="w-4 h-4 mr-2" />
                   Novo Agendamento
                 </Button>
               </DialogTrigger>
-              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
+              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg">
                 <DialogHeader>
                   <DialogTitle>Novo Agendamento</DialogTitle>
                   <DialogDescription>
@@ -2113,7 +2121,7 @@ export default function AgendamentosView() {
                                   <Edit className="w-4 h-4" />
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
+                              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg">
                                 <DialogHeader>
                                   <DialogTitle>Editar Período</DialogTitle>
                                   <DialogDescription>Edite as informações do período. Os agendamentos vinculados serão realocados.</DialogDescription>
@@ -2604,7 +2612,7 @@ export default function AgendamentosView() {
                               onClick={() => { setSelectedAgendamento(agendamento); setIsSidePanelOpen(true); }}
                             >
                               <CardContent className="p-4">
-                                <div className="flex items-stretch justify-between gap-3">
+                                <div className="flex flex-col lg:flex-row lg:items-stretch lg:justify-between gap-3">
                                   <div className="flex min-w-0 flex-1 items-start gap-3">
                                     <div
                                       className={`p-2 rounded-full ${config.color} bg-opacity-20`}
@@ -2613,9 +2621,9 @@ export default function AgendamentosView() {
                                         className={`w-5 h-5 ${config.textColor}`}
                                       />
                                     </div>
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <span className={selectedPeriod ? "font-semibold text-base" : "font-semibold text-lg"}>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                                        <span className={cn("break-words", selectedPeriod ? "font-semibold text-base" : "font-semibold text-lg")}>
                                           {selectedPeriod && !selectedDayInPeriod
                                             ? `${formatDateOnlyToBR((agendamento.collectionDate ?? "").slice(0, 10)) || "Sem data"} · ${timeLabel}`
                                             : selectedPeriod && selectedDayInPeriod
@@ -2628,17 +2636,17 @@ export default function AgendamentosView() {
                                           </span>
                                         </Badge>
                                       </div>
-                                      <h4 className="font-semibold mb-1">
+                                      <h4 className="font-semibold mb-1 break-words">
                                         {agendamento.client.name}
                                       </h4>
                                       <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
                                         <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                        <span>{agendamento.address}</span>
+                                        <span className="break-words">{agendamento.client.usaAddress}</span>
                                       </div>
-                                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                        <div className="flex items-center gap-1">
+                                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
+                                        <div className="flex items-center gap-1 min-w-0">
                                           <User className="w-3 h-3" />
-                                          <span>{agendamento.user.name}</span>
+                                          <span className="break-words">{agendamento.user.name}</span>
                                         </div>
                                         <div className="flex items-center gap-1">
                                           <Box className="w-3 h-3 text-foreground" />
@@ -2649,26 +2657,11 @@ export default function AgendamentosView() {
                                       </div>
                                     </div>
                                   </div>
-                                  <div className="flex shrink-0 flex-col items-end justify-between self-stretch py-0.5">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="border-blue-200/90 bg-white text-blue-900 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/90 dark:border-blue-900/50 dark:bg-slate-950 dark:text-blue-200 dark:hover:bg-blue-950/40"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        window.open(
-                                          `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.address)}`,
-                                          "_blank",
-                                        );
-                                      }}
-                                    >
-                                      <Navigation className="w-4 h-4 mr-1 shrink-0 text-blue-700 dark:text-blue-300" />
-                                      Rota
-                                    </Button>
+                                  <div className="flex w-full sm:w-auto shrink-0 flex-col sm:items-end justify-between self-stretch py-0.5 gap-2">
                                     <Badge
                                       variant="outline"
                                       className={cn(
-                                        "inline-flex items-center gap-1 border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide shadow-sm",
+                                        "inline-flex w-fit items-center gap-1 self-start sm:self-end whitespace-nowrap border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide shadow-sm",
                                         agendamento.isPeriodic
                                           ? "border-indigo-200/90 bg-indigo-50 text-indigo-900 dark:border-indigo-800/50 dark:bg-indigo-950/45 dark:text-indigo-100"
                                           : "border-slate-300/80 bg-slate-50 text-slate-800 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-200",
@@ -2683,6 +2676,21 @@ export default function AgendamentosView() {
                                         ? "Periódico"
                                         : "Único"}
                                     </Badge>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full sm:w-auto border-blue-200/90 bg-white text-blue-900 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/90 dark:border-blue-900/50 dark:bg-slate-950 dark:text-blue-200 dark:hover:bg-blue-950/40"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(
+                                          `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.client.usaAddress)}`,
+                                          "_blank",
+                                        );
+                                      }}
+                                    >
+                                      <Navigation className="w-4 h-4 mr-1 shrink-0 text-blue-700 dark:text-blue-300" />
+                                      Rota
+                                    </Button>
                                   </div>
                                 </div>
                               </CardContent>
@@ -2810,19 +2818,19 @@ export default function AgendamentosView() {
                                       </Badge>
                                     )}
                                   </div>
-                                  <h4 className="font-semibold mb-1 truncate">
+                                  <h4 className="font-semibold mb-1 break-words">
                                     {agendamento.client.name}
                                   </h4>
                                   <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
                                     <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                    <span className="line-clamp-2 break-words">
-                                      {agendamento.address}
+                                    <span className="line-clamp-3 sm:line-clamp-2 break-words leading-relaxed">
+                                      {agendamento.client.usaAddress}
                                     </span>
                                   </div>
                                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1 min-w-0">
                                       <User className="w-3 h-3 flex-shrink-0" />
-                                      <span className="truncate">
+                                      <span className="break-words">
                                         {agendamento.user.name}
                                       </span>
                                     </div>
@@ -2847,7 +2855,7 @@ export default function AgendamentosView() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     window.open(
-                                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.address)}`,
+                                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(agendamento.client.usaAddress)}`,
                                       "_blank",
                                     );
                                   }}
@@ -2927,7 +2935,7 @@ export default function AgendamentosView() {
                 </div>
                 <div className="p-6 space-y-6">
                   {/* Resumo agregado do período */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Card className="p-4 bg-blue-50 dark:bg-blue-950/30 border-blue-200">
                       <p className="text-xs font-medium text-blue-800 dark:text-blue-300">Clientes</p>
                       <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{agendamentosDoPeriodo.length}</p>
@@ -2970,13 +2978,13 @@ export default function AgendamentosView() {
                         .map((a) => (
                           <li
                             key={a.id}
-                            className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+                            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-2 px-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
                             onClick={() => {
                               setSelectedPeriod(null);
                               setSelectedAgendamento(a);
                             }}
                           >
-                            <span className="font-medium truncate max-w-[200px]">{a.client?.name ?? "—"}</span>
+                            <span className="font-medium break-words">{a.client?.name ?? "—"}</span>
                             <Badge variant="secondary">{a.qtyBoxes ?? 0} caixas</Badge>
                           </li>
                         ))}
@@ -3004,18 +3012,18 @@ export default function AgendamentosView() {
                                 setSelectedAgendamento(ag);
                               }}
                             >
-                              <div className="flex items-center justify-between gap-2">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0">
                                   <StatusIcon className={cn("w-4 h-4 flex-shrink-0", config.textColor)} />
-                                  <span className="font-medium truncate">{ag.client?.name}</span>
+                                  <span className="font-medium break-words">{ag.client?.name}</span>
                                 </div>
-                                <div className="flex items-center gap-2 flex-shrink-0 text-xs text-muted-foreground">
+                                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                   <span>{(formatDateOnlyToBR(ag.collectionDate) ?? "").slice(0, 10)}</span>
                                   <span>{ag.collectionTime}</span>
                                   <Badge variant="outline" className="text-xs">{ag.qtyBoxes} caixa(s)</Badge>
                                 </div>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1 truncate">{ag.user?.name}</p>
+                              <p className="text-xs text-muted-foreground mt-1 break-words">{ag.user?.name}</p>
                             </Card>
                           );
                         })}
@@ -3062,7 +3070,7 @@ export default function AgendamentosView() {
                       </div>
 
                       {/* Data e Hora */}
-                      <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <CalendarIcon className="w-4 h-4" />
                           <span>
@@ -3110,7 +3118,7 @@ export default function AgendamentosView() {
                           </Button>
                         </DialogTrigger>
                       </div>
-                      <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg mx-2 sm:mx-4">
+                      <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-lg">
                         <DialogHeader>
                           <DialogTitle>Editar Agendamento</DialogTitle>
                           <DialogDescription>
@@ -3443,8 +3451,8 @@ export default function AgendamentosView() {
                           <MapPin className="w-4 h-4" />
                           Endereço de Coleta
                         </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {ag.address}
+                        <p className="text-sm text-muted-foreground break-words leading-relaxed">
+                          {ag.client.usaAddress}
                         </p>
                         <Button
                           variant="outline"
@@ -3452,7 +3460,7 @@ export default function AgendamentosView() {
                           className="mt-2 w-full"
                           onClick={() =>
                             window.open(
-                              `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ag.address)}`,
+                              `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ag.client.usaAddress)}`,
                               "_blank",
                             )
                           }
@@ -3494,66 +3502,18 @@ export default function AgendamentosView() {
                       {/* Alterar Status */}
                       <div>
                         <h3 className="font-semibold mb-2">Alterar Status</h3>
-                        <Select
+                        <StatusSelect
                           value={ag.status}
+                          items={AGENDAMENTO_STATUS_ITEMS}
                           onValueChange={(value) => {
-                            handleStatusChange(
-                              ag.id!,
-                              value as Agendamento["status"],
-                            );
+                            handleStatusChange(ag.id!, value);
                             setSelectedAgendamento({
                               ...ag,
-                              status: value as Agendamento["status"],
+                              status: value,
                               collectionTime: ag.collectionTime ?? "",
                             });
                           }}
-                        >
-                          <SelectTrigger
-                            className={cn(
-                              "border-l-4 font-medium transition-colors",
-                              ag.status === "PENDING" &&
-                              "border-l-[var(--accent)] bg-[var(--accent)]/10 dark:bg-[var(--accent)]/20",
-                              ag.status === "CONFIRMED" &&
-                              "border-l-green-600 bg-green-50 dark:bg-green-950/30 dark:border-l-green-500",
-                              ag.status === "COLLECTED" &&
-                              "border-l-[var(--secondary)] bg-[var(--secondary)]/10 dark:bg-[var(--secondary)]/20",
-                              ag.status === "CANCELLED" &&
-                              "border-l-[var(--destructive)] bg-[var(--destructive)]/10 dark:bg-[var(--destructive)]/20"
-                            )}
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem
-                              value="PENDING"
-                              className="focus:bg-[var(--accent)]/15 focus:text-[var(--accent)] data-[highlighted]:bg-[var(--accent)]/15 text-[var(--accent)] dark:focus:bg-[var(--accent)]/25 dark:data-[highlighted]:bg-[var(--accent)]/25"
-                            >
-                              <span className="mr-2 inline-block size-2 rounded-full bg-[var(--accent)]" />
-                              Pendente
-                            </SelectItem>
-                            <SelectItem
-                              value="CONFIRMED"
-                              className="focus:bg-green-50 focus:text-green-700 data-[highlighted]:bg-green-50 text-green-700 dark:focus:bg-green-950/50 dark:data-[highlighted]:bg-green-950/50 dark:text-green-400"
-                            >
-                              <span className="mr-2 inline-block size-2 rounded-full bg-green-500" />
-                              Confirmado
-                            </SelectItem>
-                            <SelectItem
-                              value="COLLECTED"
-                              className="focus:bg-[var(--secondary)]/15 focus:text-[var(--secondary)] data-[highlighted]:bg-[var(--secondary)]/15 text-[var(--secondary)] dark:focus:bg-[var(--secondary)]/25 dark:data-[highlighted]:bg-[var(--secondary)]/25"
-                            >
-                              <span className="mr-2 inline-block size-2 rounded-full bg-[var(--secondary)]" />
-                              Coletado
-                            </SelectItem>
-                            <SelectItem
-                              value="CANCELLED"
-                              className="focus:bg-[var(--destructive)]/15 focus:text-[var(--destructive)] data-[highlighted]:bg-[var(--destructive)]/15 text-[var(--destructive)] dark:focus:bg-[var(--destructive)]/25 dark:data-[highlighted]:bg-[var(--destructive)]/25"
-                            >
-                              <span className="mr-2 inline-block size-2 rounded-full bg-[var(--destructive)]" />
-                              Cancelado
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                        />
                       </div>
 
                       {/* Ações */}

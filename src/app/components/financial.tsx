@@ -270,7 +270,7 @@ export default function FinanceiroView() {
   };
 
   return (
-    <div className="space-y-4 lg:space-y-6">
+    <div className="space-y-4 lg:space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -280,17 +280,17 @@ export default function FinanceiroView() {
               Fluxo de caixa, receitas e despesas
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:flex-wrap">
             <Button
               variant={showFilters ? 'default' : 'outline'}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className="flex-1 sm:flex-none"
+              className="w-full sm:w-auto"
             >
               <Filter className="w-4 h-4 mr-2" />
               Filtros
             </Button>
-            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
@@ -299,12 +299,12 @@ export default function FinanceiroView() {
               if (!open) resetForm();
             }}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="col-span-2 w-full sm:w-auto sm:col-span-1">
                   <Plus className="w-4 h-4 mr-2" />
                   Nova Transação
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg">
                 <DialogHeader>
                   <DialogTitle>Nova Transação</DialogTitle>
                   <DialogDescription>
@@ -351,7 +351,7 @@ export default function FinanceiroView() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="categoria">Categoria *</Label>
                       <Select
@@ -385,7 +385,7 @@ export default function FinanceiroView() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="data">Data *</Label>
                       <Input
@@ -428,14 +428,14 @@ export default function FinanceiroView() {
                     />
                   </div>
 
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => {
                       resetForm();
                       setIsDialogOpen(false);
-                    }}>
+                    }} className="w-full sm:w-auto">
                       Cancelar
                     </Button>
-                    <Button type="submit">
+                    <Button type="submit" className="w-full sm:w-auto">
                       Registrar
                     </Button>
                   </div>
@@ -514,7 +514,7 @@ export default function FinanceiroView() {
               className="pl-10"
             />
           </div>
-          <div className="flex gap-1 border border-border rounded-lg p-1 bg-muted/30">
+          <div className="flex gap-1 border border-border rounded-lg p-1 bg-muted/30 w-full sm:w-auto">
             <Button
               variant={viewMode === 'todas' ? 'default' : 'ghost'}
               size="sm"
@@ -543,7 +543,7 @@ export default function FinanceiroView() {
           <select
             value={periodFilter}
             onChange={(e) => setPeriodFilter(e.target.value as PeriodFilter)}
-            className="px-3 py-2 border border-border rounded-lg text-sm bg-white"
+            className="px-3 py-2 border border-border rounded-lg text-sm bg-white w-full sm:w-auto"
           >
             <option value="todos">Todos os períodos</option>
             <option value="mes">Último mês</option>
@@ -577,7 +577,7 @@ export default function FinanceiroView() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="mes" stroke="#64748B" />
+                <XAxis dataKey="mes" stroke="#64748B" tick={{ fontSize: 11 }} />
                 <YAxis stroke="#64748B" />
                 <Tooltip 
                   contentStyle={{ 
@@ -628,7 +628,7 @@ export default function FinanceiroView() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => percent > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
+                  label={({ name, percent }) => percent > 0 ? `${String(name).slice(0, 10)}: ${(percent * 100).toFixed(0)}%` : ''}
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
@@ -664,7 +664,7 @@ export default function FinanceiroView() {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={despesasPorCategoria}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis dataKey="name" stroke="#64748B" />
+              <XAxis dataKey="name" stroke="#64748B" tick={{ fontSize: 11 }} />
               <YAxis stroke="#64748B" />
               <Tooltip 
                 contentStyle={{ 
@@ -717,8 +717,8 @@ export default function FinanceiroView() {
                       onClick={() => setSelectedTransaction(transacao)}
                     >
                       <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
                               <Badge className={
                                 transacao.tipo === 'receita' 
@@ -727,29 +727,29 @@ export default function FinanceiroView() {
                               }>
                                 {transacao.tipo === 'receita' ? 'Receita' : 'Despesa'}
                               </Badge>
-                              <span className="font-semibold">{transacao.categoria}</span>
+                              <span className="font-semibold break-words">{transacao.categoria}</span>
                               <Badge variant="outline" className="text-xs">
                                 {transacao.metodoPagamento}
                               </Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground mb-1">
+                            <p className="text-sm text-muted-foreground mb-1 break-words">
                               {transacao.descricao}
                             </p>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
                                 {isDataValid ? format(data, "dd/MM/yyyy", { locale: ptBR }) : transacao.data}
                               </span>
                               {transacao.clienteNome !== 'N/A' && (
-                                <span className="flex items-center gap-1">
+                                <span className="flex items-center gap-1 break-words">
                                   <CreditCard className="w-3 h-3" />
                                   {transacao.clienteNome}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <div className={`text-xl font-bold ${
+                          <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 w-full sm:w-auto">
+                            <div className={`text-base sm:text-xl font-bold ${
                               transacao.tipo === 'receita' ? 'text-green-600' : 'text-red-600'
                             }`}>
                               {transacao.tipo === 'receita' ? '+' : '-'}{formatCurrency(transacao.valor)}

@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
-import logo from 'figma:asset/2ac2fb95a59823c3119ddd194998db2f41de4a80.png';
+const logo = new URL('../assets/itamoving-logo.png', import.meta.url).href;
 
 interface AuthProps {
   onLogin: () => void;
@@ -27,27 +27,27 @@ export default function Auth({ onLogin }: AuthProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#EBF5FB] via-white to-[#FFF4E6] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#EBF5FB] via-white to-[#FFF4E6] flex items-center justify-center p-3 sm:p-4">
       <div className="w-full max-w-md">
         {/* Card de Login */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8 border border-blue-100">
+        <div className="bg-white rounded-2xl shadow-2xl p-5 sm:p-8 border border-blue-100">
           {/* Logo */}
-          <div className="flex flex-col items-center mb-8">
+          <div className="flex flex-col items-center mb-6 sm:mb-8">
             <img 
               src={logo} 
               alt="ITAMOVING" 
-              className="w-40 h-40 object-contain mb-4"
+              className="w-28 h-28 sm:w-40 sm:h-40 object-contain mb-3 sm:mb-4"
             />
-            <h1 className="text-2xl font-bold text-slate-800 text-center">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-800 text-center">
               Bem-vindo ao ITAMOVING
             </h1>
-            <p className="text-sm text-slate-500 mt-2 text-center">
+            <p className="text-xs sm:text-sm text-slate-500 mt-2 text-center">
               Sistema de Gestão de Mudanças Internacionais
             </p>
           </div>
 
           {/* Formulário */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-slate-700">
@@ -125,7 +125,7 @@ export default function Auth({ onLogin }: AuthProps) {
           </form>
 
           {/* Divider */}
-          <div className="relative my-6">
+          <div className="relative my-5 sm:my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-slate-200"></div>
             </div>
@@ -151,8 +151,8 @@ export default function Auth({ onLogin }: AuthProps) {
         </div>
 
         {/* Footer */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-slate-500">
+        <div className="mt-5 sm:mt-6 text-center">
+          <p className="text-xs sm:text-sm text-slate-500">
             © 2024 ITAMOVING. Todos os direitos reservados.
           </p>
           <p className="text-xs text-slate-400 mt-2">

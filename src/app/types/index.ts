@@ -51,7 +51,6 @@ export interface Agendamento {
   downPayment: number;
   isPeriodic?: boolean | false;
   qtyBoxes: number;
-  address: string;
   observations?: string;
   user: {
     id: string;
@@ -60,6 +59,7 @@ export interface Agendamento {
   client: {
     id: string;
     name: string;
+    usaAddress: string;
   };
   status: "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED";
 }

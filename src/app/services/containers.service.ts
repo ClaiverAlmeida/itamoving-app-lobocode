@@ -13,7 +13,7 @@ export interface CreateContainersDTO {
   volume: number;
   weightLimit: number;
   trackingLink: string;
-  status: "PREPARATION" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
+  status: Container["status"];
 }
 
 export type UpdateContainersDTO = Partial<CreateContainersDTO>;

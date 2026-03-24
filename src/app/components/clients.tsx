@@ -867,7 +867,7 @@ export default function ClientesView() {
               Gerencie o cadastro de clientes e destinatários
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap w-full sm:w-auto">
             <Button
               variant={showFilters ? "default" : "outline"}
               size="sm"
@@ -962,15 +962,16 @@ export default function ClientesView() {
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-row justify-end gap-2">
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
                     <Button
                       type="button"
                       variant="outline"
+                      className="w-full sm:w-auto"
                       onClick={() => setIsImportDialogOpen(false)}
                     >
                       Cancelar
                     </Button>
-                    <Button type="button" onClick={() => handleImport(importFile)}>
+                    <Button className="w-full sm:w-auto" type="button" onClick={() => handleImport(importFile)}>
                       Confirmar Importação
                     </Button>
                   </div>
@@ -987,7 +988,7 @@ export default function ClientesView() {
               }}
             >
               <DialogTrigger asChild>
-                <Button>
+                <Button className="w-full sm:w-auto">
                   <Plus className="w-4 h-4 mr-2" />
                   Novo Cliente
                 </Button>
@@ -1496,7 +1497,7 @@ export default function ClientesView() {
         </div>
 
         {/* Barra de Busca e View Mode */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -1506,11 +1507,12 @@ export default function ClientesView() {
               className="pl-10"
             />
           </div>
-          <div className="flex gap-1 border border-border rounded-lg p-1">
+          <div className="flex gap-1 border border-border rounded-lg p-1 w-full sm:w-auto">
             <Button
               variant={viewMode === "grid" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("grid")}
+              className="flex-1 sm:flex-none"
             >
               <LayoutGrid className="w-4 h-4" />
             </Button>
@@ -1518,6 +1520,7 @@ export default function ClientesView() {
               variant={viewMode === "list" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("list")}
+              className="flex-1 sm:flex-none"
             >
               <List className="w-4 h-4" />
             </Button>
@@ -1620,13 +1623,13 @@ export default function ClientesView() {
                   onClick={() => setSelectedCliente(cliente)}
                 >
                   <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="flex items-start gap-3 flex-1">
                         <div className="bg-blue-100 p-3 rounded-full">
                           <User className="w-6 h-6 text-blue-600" />
                         </div>
-                        <div className="flex-1">
-                          <CardTitle className="text-lg mb-1">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-lg mb-1 break-words">
                             {cliente.usaNome}
                           </CardTitle>
                           <div className="flex items-center gap-2">
@@ -1689,7 +1692,7 @@ export default function ClientesView() {
                       </span>
                     </div>
 
-                    <div className="flex gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-2 pt-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <Button
                         variant="outline"
                         size="sm"
@@ -1754,14 +1757,14 @@ export default function ClientesView() {
                       onClick={() => setSelectedCliente(cliente)}
                     >
                       <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-4 flex-1">
-                            <div className="bg-blue-100 p-3 rounded-full">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                            <div className="bg-blue-100 p-2.5 sm:p-3 rounded-full flex-shrink-0">
                               <User className="w-6 h-6 text-blue-600" />
                             </div>
-                            <div className="flex-1 space-y-2">
+                            <div className="flex-1 min-w-0 space-y-2">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="font-semibold text-lg">
+                                <h3 className="font-semibold text-base sm:text-lg break-words">
                                   {cliente.usaNome}
                                 </h3>
                                 <Badge variant="outline">
@@ -1780,27 +1783,27 @@ export default function ClientesView() {
                                 </Badge>
                               </div>
 
-                              <div className="grid grid-cols-3 gap-4 text-sm">
-                                <div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 text-sm">
+                                <div className="min-w-0">
                                   <p className="text-muted-foreground mb-1">
                                     Informações
                                   </p>
-                                  <p className="flex items-center gap-1">
-                                    <FileText className="w-3 h-3" />
-                                    {cliente.usaCpf}
+                                  <p className="flex items-center gap-1 min-w-0">
+                                    <FileText className="w-3 h-3 flex-shrink-0" />
+                                    <span className="break-all">{cliente.usaCpf}</span>
                                   </p>
-                                  <p className="flex items-center gap-1">
-                                    <Phone className="w-3 h-3" />
-                                    {cliente.usaPhone}
+                                  <p className="flex items-center gap-1 min-w-0">
+                                    <Phone className="w-3 h-3 flex-shrink-0" />
+                                    <span className="break-all">{cliente.usaPhone}</span>
                                   </p>
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                   <p className="text-muted-foreground mb-1">
                                     Origem (USA)
                                   </p>
                                   <p className="flex items-start gap-1">
                                     <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                                    <span>
+                                    <span className="break-words">
                                       {
                                         (
                                           cliente.usaAddress as {
@@ -1828,13 +1831,13 @@ export default function ClientesView() {
                                     </span>
                                   </p>
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                   <p className="text-muted-foreground mb-1">
                                     Destino (Brasil)
                                   </p>
                                   <p className="flex items-start gap-1">
                                     <Flag className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                                    <span>
+                                    <span className="break-words">
                                       {
                                         (
                                           cliente.brazilAddress as {
@@ -1861,7 +1864,7 @@ export default function ClientesView() {
                             </div>
                           </div>
 
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 self-end md:self-start">
                             <Button
                               variant="outline"
                               size="icon"
@@ -1958,9 +1961,9 @@ export default function ClientesView() {
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-6">
               {/* Ações Rápidas */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Button
                   variant="outline"
                   className="w-full"
@@ -2212,10 +2215,11 @@ export default function ClientesView() {
                         )}
                         {historicoPorCliente[selectedCliente.id].totalPages >
                           1 && (
-                            <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-3 border-t border-border">
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="w-full sm:w-auto"
                                 disabled={
                                   loadingHistoricoId === selectedCliente.id ||
                                   historicoPorCliente[selectedCliente.id].page <=
@@ -2232,7 +2236,7 @@ export default function ClientesView() {
                                 <ChevronLeft className="w-4 h-4 mr-1" />
                                 Anterior
                               </Button>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-muted-foreground text-center">
                                 Página{" "}
                                 {historicoPorCliente[selectedCliente.id].page} de{" "}
                                 {
@@ -2245,6 +2249,7 @@ export default function ClientesView() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="w-full sm:w-auto"
                                 disabled={
                                   loadingHistoricoId === selectedCliente.id ||
                                   historicoPorCliente[selectedCliente.id].page >=

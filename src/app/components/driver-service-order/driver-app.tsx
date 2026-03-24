@@ -8,7 +8,6 @@ import {
 } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { useData } from "../../context/DataContext";
 import { motion, AnimatePresence } from "motion/react";
 import OrdemServicoForm from "./service-order-form";
 import { Estoque, OrdemServicoMotorista } from "../../types";
@@ -19,17 +18,14 @@ import {
   MapPin,
   Calendar,
   Phone,
-  CheckCircle,
-  User,
   Box,
-  Download,
   Home,
-  FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { stockService, driverAppService } from "../../services";
 import { AgendamentoConfirmedBackend } from "../../services/driver-service-order/driver-app.service";
+import { DeliveryReceipt } from "./delivery-receipt";
 
 type TruckStockItem = {
   label: string;
@@ -166,281 +162,17 @@ export default function MotoristaApp() {
     setViewMode("recibo");
   };
 
-  const RECIBO_PRINT_ID = "recibo-impressao";
-
-  const imprimirRecibo = () => {
-    window.print();
-  };
-
-  const countCaixas = (ordem: OrdemServicoMotorista) => {
-    const counts = {
-      pequenas: 0,
-      medias: 0,
-      grandes: 0,
-      total: ordem.driverServiceOrderProducts.length
-    };
-
-    ordem.driverServiceOrderProducts.forEach(c => {
-      const tipo = c.type.toLowerCase();
-      if (tipo.includes('pequena')) counts.pequenas++;
-      else if (tipo.includes('media') || tipo.includes('média')) counts.medias++;
-      else if (tipo.includes('grande')) counts.grandes++;
-    });
-
-    return counts;
-  };
-
   if (viewMode === "recibo" && ordemConcluida) {
-    const counts = countCaixas(ordemConcluida);
-
     return (
-      <div className="space-y-6 print:bg-white">
-        <style>{`
-          @media print {
-            @page {
-              margin: 10mm;
-            }
-            html,
-            body {
-              height: auto !important;
-              overflow: visible !important;
-              background: white !important;
-            }
-            /* Oculta tudo; só o bloco #${RECIBO_PRINT_ID} fica visível */
-            body * {
-              visibility: hidden;
-            }
-            #${RECIBO_PRINT_ID},
-            #${RECIBO_PRINT_ID} * {
-              visibility: visible;
-            }
-            #${RECIBO_PRINT_ID} {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-              max-width: 100% !important;
-              margin: 0 auto !important;
-              padding: 2rem !important;
-              box-shadow: none !important;
-              border: 2px solid #1e3a5f !important;
-              background: white !important;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-          }
-        `}</style>
-        <div className="flex items-center justify-between print:hidden">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setViewMode("lista");
-              setOrdemConcluida(null);
-            }}
-          >
-            ← Voltar para Início
-          </Button>
-          <Button
-            onClick={imprimirRecibo}
-            className="bg-[#1E3A5F]"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Imprimir Recibo
-          </Button>
-        </div>
-
-        <motion.div
-          id={RECIBO_PRINT_ID}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white border-2 border-[#1E3A5F] rounded-lg p-8 max-w-3xl mx-auto"
-        >
-          {/* Cabeçalho */}
-          <div className="text-center border-b-2 border-[#1E3A5F] pb-6 mb-6">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <div className="p-3 bg-gradient-to-br from-[#F5A623] to-[#E59400] rounded-xl">
-                <Truck className="w-8 h-8 text-white" />
-              </div>
-              <h1 className="text-3xl font-bold text-[#1E3A5F]">
-                ITAMOVING
-              </h1>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Mudanças Internacionais EUA-Brasil
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Miami, FL - São Paulo, SP | {agendamentoSelecionado?.company.contactPhone}
-            </p>
-          </div>
-
-          {/* Informações do Recibo */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-[#1E3A5F]">
-                RECIBO DE ENTREGA
-              </h2>
-              <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">
-                <CheckCircle className="w-4 h-4 mr-1" />
-                CONCLUÍDO
-              </Badge>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">
-                  Nº Ordem:
-                </span>
-                <span className="font-semibold ml-2">
-                  #{ordemConcluida.id}
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">
-                  Data:
-                </span>
-                <span className="font-semibold ml-2">
-                  {format(new Date(ordemConcluida.signatureDate), "dd/MM/yyyy 'às' HH:mm", {
-                    locale: ptBR,
-                  })}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Dados do Cliente */}
-          <div className="bg-blue-50 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-[#1E3A5F] mb-3 flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Dados do Cliente (Remetente)
-            </h3>
-            <div className="grid gap-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">
-                  Nome:
-                </span>
-                <span className="font-semibold">
-                  {ordemConcluida.sender.usaName}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">
-                  Telefone:
-                </span>
-                <span className="font-semibold">
-                  {ordemConcluida.sender.usaPhone}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">
-                  Origem:
-                </span>
-                <span className="font-semibold">
-                  {ordemConcluida.sender.usaAddress.rua} {ordemConcluida.sender.usaAddress.numero}, {ordemConcluida.sender.usaAddress.cidade} - {ordemConcluida.sender.usaAddress.estado}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">
-                  Destino:
-                </span>
-                <span className="font-semibold">
-                  {ordemConcluida.recipient.brazilAddress.rua}, {ordemConcluida.recipient.brazilAddress.cidade} - {ordemConcluida.recipient.brazilAddress.estado}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Itens da Entrega */}
-          <div className="border border-border rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-[#1E3A5F] mb-3 flex items-center gap-2">
-              <Box className="w-5 h-5" />
-              Itens Entregues
-            </h3>
-            <table className="w-full text-sm">
-              <thead className="border-b">
-                <tr className="text-left">
-                  <th className="pb-2">Item</th>
-                  <th className="pb-2 text-center">
-                    Quantidade
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {counts.pequenas > 0 && (
-                  <tr>
-                    <td className="py-2">Caixas Pequenas</td>
-                    <td className="py-2 text-center font-semibold">
-                      {counts.pequenas}
-                    </td>
-                  </tr>
-                )}
-                {counts.medias > 0 && (
-                  <tr>
-                    <td className="py-2">Caixas Médias</td>
-                    <td className="py-2 text-center font-semibold">
-                      {counts.medias}
-                    </td>
-                  </tr>
-                )}
-                {counts.grandes > 0 && (
-                  <tr>
-                    <td className="py-2">Caixas Grandes</td>
-                    <td className="py-2 text-center font-semibold">
-                      {counts.grandes}
-                    </td>
-                  </tr>
-                )}
-                <tr className="border-t-2 font-bold">
-                  <td className="py-2">TOTAL DE CAIXAS</td>
-                  <td className="py-2 text-center">
-                    {counts.total}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Valor Pago */}
-          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-semibold text-green-900">
-                Valor Pago em Espécie:
-              </span>
-              <span className="text-2xl font-bold text-green-700">
-                {ordemConcluida.chargedValue ? ordemConcluida.chargedValue.toLocaleString("pt-BR", { style: "currency", currency: "USD" }) : "$ 0,00"}
-              </span>
-            </div>
-          </div>
-
-          {/* Assinatura */}
-          <div className="border-t-2 border-dashed border-border pt-6">
-            <h3 className="font-semibold text-[#1E3A5F] mb-3">
-              Assinatura do Cliente:
-            </h3>
-            {ordemConcluida.clientSignature && (
-              <div className="border border-border rounded-lg p-4 bg-gray-50">
-                <img
-                  src={ordemConcluida.clientSignature}
-                  alt="Assinatura"
-                  className="h-24 mx-auto"
-                />
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-4 text-center">
-              Declaro que recebi os itens acima relacionados em
-              perfeito estado.
-            </p>
-          </div>
-
-          {/* Rodapé */}
-          <div className="mt-8 pt-6 border-t text-center text-xs text-muted-foreground">
-            <p>ITAMOVING - Mudanças Internacionais</p>
-            <p>www.itamoving.com | contato@itamoving.com</p>
-            <p className="mt-2">
-              Este documento comprova a entrega e pagamento dos
-              serviços prestados.
-            </p>
-          </div>
-        </motion.div>
-      </div>
+      <DeliveryReceipt
+        ordem={ordemConcluida}
+        companyContactPhone={agendamentoSelecionado?.company?.contactPhone}
+        onBack={() => {
+          setViewMode("lista");
+          setOrdemConcluida(null);
+        }}
+        onPrint={() => window.print()}
+      />
     );
   }
 
@@ -460,17 +192,17 @@ export default function MotoristaApp() {
 
   // Default: Lista view
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-3xl font-bold">
+          <h2 className="text-2xl sm:text-3xl font-bold">
             Minhas Entregas
           </h2>
           <p className="text-muted-foreground mt-1">
             Ordens de serviço confirmadas para hoje
           </p>
         </div>
-        <Badge className="text-lg px-4 py-2 bg-[#F5A623]">
+        <Badge className="text-base sm:text-lg px-3 sm:px-4 py-2 bg-[#F5A623] w-fit">
           {agendamentosConfirmados.length} {agendamentosConfirmados.length === 1 ? "ordem" : "ordens"}
         </Badge>
       </div>
@@ -513,7 +245,7 @@ export default function MotoristaApp() {
       </Card>
 
       {/* Lista de Ordens */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
         <AnimatePresence>
           {agendamentosConfirmados.map((agendamento, index) => {
             return (
@@ -525,21 +257,21 @@ export default function MotoristaApp() {
               >
                 <Card className="hover:shadow-xl transition-all border-l-4 border-l-[#F5A623] h-full flex flex-col">
                   <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-lg">
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] items-start gap-2 sm:gap-3">
+                      <div className="min-w-0">
+                        <CardTitle className="text-base sm:text-lg break-words leading-tight">
                           {agendamento.client?.usaName}
                         </CardTitle>
-                        <CardDescription className="flex items-center gap-1 mt-1">
-                          <Phone className="w-3 h-3" />
-                          {agendamento.client.usaPhone ?? ""}
+                        <CardDescription className="flex items-center gap-1 mt-1 min-w-0">
+                          <Phone className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{agendamento.client.usaPhone ?? ""}</span>
                         </CardDescription>
                       </div>
-                      <div className="flex items-center gap-1 flex-col justify-center">
-                        <Badge variant="outline" className="text-[#1E3A5F] border-[#1E3A5F]">
+                      <div className="flex flex-col items-end justify-start gap-1 w-full sm:w-[230px] sm:justify-self-end">
+                        <Badge variant="outline" className="text-[#1E3A5F] border-[#1E3A5F] text-[11px] sm:text-xs justify-center w-full">
                           {agendamento.status === "CONFIRMED" ? "Agendamento Confirmado" : "Agendamento Pendente"}
                         </Badge>
-                        <Badge variant="outline" className={`${agendamento.isPeriodic ? "bg-green-50 text-green-600 border-green-600" : "bg-blue-50 text-blue-600 border-blue-600"}`}>
+                        <Badge variant="outline" className={`${agendamento.isPeriodic ? "bg-green-50 text-green-600 border-green-600" : "bg-blue-50 text-blue-600 border-blue-600"} text-[11px] sm:text-xs justify-center w-full`}>
                           {agendamento.isPeriodic ? "Agendamento Periódico" : "Agendamento Único"}
                         </Badge>
                       </div>

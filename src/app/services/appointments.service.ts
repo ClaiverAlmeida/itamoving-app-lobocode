@@ -33,7 +33,6 @@ export interface CreateAppointmentsDTO {
   downPayment: number;
   isPeriodic?: boolean | false;
   qtyBoxes: number;
-  address: string;
   observations?: string;
   userId: string;
   status: "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED";
@@ -50,7 +49,6 @@ export interface AppointmentsBackend {
   downPayment: number;
   isPeriodic?: boolean | false;
   qtyBoxes: number;
-  address: string;
   observations?: string;
   userId: string;
   status: "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED";
@@ -66,15 +64,31 @@ export interface AppointmentsBackend {
   client: {
     id: string;
     usaName: string;
+    usaAddress: {
+      rua: string;
+      numero: string;
+      complemento: string;
+      cidade: string;
+      estado: string;
+      zipCode: string;
+    };
   };
 }
 
 function mapBackendToFrontend(appointment: AppointmentsBackend): Agendamento {
+  const { rua, numero, complemento, cidade, estado, zipCode } =
+    appointment.client.usaAddress;
+  const street = [rua, numero].filter(Boolean).join(", ");
+  const addressLine = [street, complemento].filter(Boolean).join(" - ");
+  const cityLine = [cidade, estado].filter(Boolean).join(" - ");
+  const usaAddress = [addressLine, cityLine, zipCode].filter(Boolean).join(", ");
+
   return {
     id: appointment.id,
     client: {
       id: appointment.client.id,
       name: appointment.client.usaName,
+      usaAddress: usaAddress,
     },
     user: {
       id: appointment.user?.id ?? "",
@@ -88,7 +102,6 @@ function mapBackendToFrontend(appointment: AppointmentsBackend): Agendamento {
     downPayment: Number(appointment.downPayment),
     isPeriodic: Boolean(appointment.isPeriodic),
     qtyBoxes: Number(appointment.qtyBoxes),
-    address: appointment.address,
     appointmentPeriodId: appointment.appointmentPeriodId ?? "",
   };
 }
@@ -222,9 +235,9 @@ export class AppointmentsService {
       const result = await api.get<
         | { collectionDate: string; qtyBoxes: number }[]
         | {
-            data: { collectionDate: string; qtyBoxes: number }[];
-            semDiaColetaNoPeriodo?: number;
-          }
+          data: { collectionDate: string; qtyBoxes: number }[];
+          semDiaColetaNoPeriodo?: number;
+        }
       >("/appointments/qtd-boxes-per-period", { params: { startDate, endDate } });
       if (result.success && result.data) {
         const raw = result.data as any;
@@ -238,8 +251,8 @@ export class AppointmentsService {
         }
         const semDiaColetaNoPeriodo = Number(
           raw?.semDiaColetaNoPeriodo ??
-            raw?.data?.semDiaColetaNoPeriodo ??
-            0,
+          raw?.data?.semDiaColetaNoPeriodo ??
+          0,
         );
         return {
           success: true,

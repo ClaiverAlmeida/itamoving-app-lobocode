@@ -515,8 +515,12 @@ export default function EstoqueView() {
               Gerencie caixas, materiais e movimentações
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+          <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto flex-1 sm:flex-none"
+            >
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
@@ -541,12 +545,15 @@ export default function EstoqueView() {
               }}
             >
               <DialogTrigger asChild>
-                <Button onClick={() => setDialogType("ENTRY")}>
+                <Button
+                  onClick={() => setDialogType("ENTRY")}
+                  className="w-full sm:w-auto"
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Nova Movimentação
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Registrar Movimentação</DialogTitle>
                   <DialogDescription>
@@ -555,7 +562,7 @@ export default function EstoqueView() {
                 </DialogHeader>
 
                 <div className="space-y-4">
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                       variant={dialogType === "ENTRY" ? "default" : "outline"}
                       className="flex-1"
@@ -687,14 +694,18 @@ export default function EstoqueView() {
                     />
                   </div>
 
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
                     <Button
                       variant="outline"
+                      className="w-full sm:w-auto"
                       onClick={() => setIsDialogOpen(false)}
                     >
                       Cancelar
                     </Button>
-                    <Button onClick={handleMovimentacao}>
+                    <Button
+                      onClick={handleMovimentacao}
+                      className="w-full sm:w-auto"
+                    >
                       Registrar {dialogType === "ENTRY" ? "Entrada" : "Saída"}
                     </Button>
                   </div>
@@ -979,17 +990,17 @@ export default function EstoqueView() {
                   return (
                     <div
                       key={item.key}
-                      className="flex items-center justify-between p-4 bg-white rounded-lg border border-red-200"
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-white rounded-lg border border-red-200"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div className="p-2 rounded-full bg-red-100">
                           <item.icon className="w-5 h-5 text-red-600" />
                         </div>
-                        <div>
-                          <p className="font-semibold text-red-900">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-red-900 break-words">
                             {item.nome}
                           </p>
-                          <p className="text-sm text-red-700">
+                          <p className="text-sm text-red-700 break-words">
                             Estoque: {quantidade} | Mínimo: {item.minimo} |
                             Faltam: {faltam}
                           </p>
@@ -997,6 +1008,7 @@ export default function EstoqueView() {
                       </div>
                       <Button
                         size="sm"
+                        className="w-full sm:w-auto"
                         onClick={() => {
                           setDialogType("ENTRY");
                           setSelectedItem(item.key);
@@ -1018,8 +1030,8 @@ export default function EstoqueView() {
       {/* Histórico de Movimentações */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="min-w-0">
               <CardTitle>Histórico de Movimentações</CardTitle>
               <CardDescription>
                 {searchTerm.trim()
@@ -1030,6 +1042,7 @@ export default function EstoqueView() {
             <Button
               variant="outline"
               size="sm"
+              className="w-full sm:w-auto"
               onClick={() => {
                 setShowFilters(!showFilters);
                 setSearchTerm("");
@@ -1085,7 +1098,7 @@ export default function EstoqueView() {
                       }`}
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3 flex-1">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div
                           className={`p-2 rounded-full ${mov.type === "ENTRY"
                             ? "bg-green-100"
@@ -1108,12 +1121,12 @@ export default function EstoqueView() {
                             />
                           )}
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className="font-semibold break-words">
                               {itemKey ? ITEM_LABELS[itemKey] : "-"}
                             </span>
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-sm text-muted-foreground break-words">
                               Produto: {mov.product.name}
                             </span>
                             <Badge
@@ -1135,7 +1148,7 @@ export default function EstoqueView() {
                               {qty}
                             </span>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               <span>
@@ -1152,9 +1165,9 @@ export default function EstoqueView() {
                                 )}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 min-w-0">
                               <User className="w-3 h-3" />
-                              <span>{mov.user.name}</span>
+                              <span className="break-words">{mov.user.name}</span>
                             </div>
                           </div>
                           {mov.observations && (
@@ -1173,7 +1186,7 @@ export default function EstoqueView() {
 
             {/* Paginação */}
             {movimentacoesFiltradas.length > MOVIMENTACOES_PAGE_SIZE && (
-              <div className="flex items-center justify-between pt-4 border-t">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t">
                 <p className="text-sm text-muted-foreground">
                   Página {movimentacoesPage} de {totalPages} (
                   {(movimentacoesPage - 1) * MOVIMENTACOES_PAGE_SIZE + 1}–
@@ -1183,10 +1196,11 @@ export default function EstoqueView() {
                   )}{" "}
                   de {movimentacoesFiltradas.length})
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto">
                   <Button
                     variant="outline"
                     size="sm"
+                    className="flex-1 sm:flex-none"
                     onClick={() =>
                       setMovimentacoesPage((p) => Math.max(1, p - 1))
                     }
@@ -1197,6 +1211,7 @@ export default function EstoqueView() {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="flex-1 sm:flex-none"
                     onClick={() =>
                       setMovimentacoesPage((p) => Math.min(totalPages, p + 1))
                     }

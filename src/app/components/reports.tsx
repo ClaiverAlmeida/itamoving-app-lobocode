@@ -236,7 +236,7 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
   return (
-    <div className="space-y-4 lg:space-y-6">
+    <div className="space-y-4 lg:space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -246,16 +246,17 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
               Dashboards executivos e insights de negócio
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:gap-3">
             <Button
               variant={showFilters ? 'default' : 'outline'}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
+              className="w-full sm:w-auto"
             >
               <Filter className="w-4 h-4 mr-2" />
               Filtros
             </Button>
-            <Button variant="outline" size="sm" onClick={() => gerarRelatorioPDF('completo')}>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => gerarRelatorioPDF('completo')}>
               <Download className="w-4 h-4 mr-2" />
               Exportar Tudo
             </Button>
@@ -291,60 +292,60 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
         >
           {/* KPIs Principais */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
-            <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-blue-900">Receitas</span>
                 <TrendingUp className="w-5 h-5 text-blue-600" />
               </div>
-              <p className="text-3xl font-bold text-blue-900">{formatCurrency(estatisticas.receitas)}</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-900 break-words">{formatCurrency(estatisticas.receitas)}</p>
               <p className="text-xs text-blue-700 mt-1 flex items-center gap-1">
                 <ArrowUpRight className="w-3 h-3" />
                 +{estatisticas.crescimentoMensal}% este mês
               </p>
             </Card>
 
-            <Card className="p-5 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+            <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-red-900">Despesas</span>
                 <TrendingDown className="w-5 h-5 text-red-600" />
               </div>
-              <p className="text-3xl font-bold text-red-900">{formatCurrency(estatisticas.despesas)}</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-900 break-words">{formatCurrency(estatisticas.despesas)}</p>
               <p className="text-xs text-red-700 mt-1">{estatisticas.totalTransacoes} transações</p>
             </Card>
 
-            <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-green-900">Lucro</span>
                 <DollarSign className="w-5 h-5 text-green-600" />
               </div>
-              <p className="text-3xl font-bold text-green-900">{formatCurrency(estatisticas.lucro)}</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-900 break-words">{formatCurrency(estatisticas.lucro)}</p>
               <p className="text-xs text-green-700 mt-1">Margem: {estatisticas.margemLucro}%</p>
             </Card>
 
-            <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-purple-900">Clientes</span>
                 <Users className="w-5 h-5 text-purple-600" />
               </div>
-              <p className="text-3xl font-bold text-purple-900">{estatisticas.totalClientes}</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-900">{estatisticas.totalClientes}</p>
               <p className="text-xs text-purple-700 mt-1">Total cadastrados</p>
             </Card>
 
-            <Card className="p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+            <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-orange-900">Containers</span>
                 <Ship className="w-5 h-5 text-orange-600" />
               </div>
-              <p className="text-3xl font-bold text-orange-900">{estatisticas.totalContainers}</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-orange-900">{estatisticas.totalContainers}</p>
               <p className="text-xs text-orange-700 mt-1">{estatisticas.containersTransito} em trânsito</p>
             </Card>
 
-            <Card className="p-5 bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200">
+            <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-cyan-900">Ticket Médio</span>
                 <Target className="w-5 h-5 text-cyan-600" />
               </div>
-              <p className="text-3xl font-bold text-cyan-900">{formatCurrency(estatisticas.ticketMedio)}</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-cyan-900 break-words">{formatCurrency(estatisticas.ticketMedio)}</p>
               <p className="text-xs text-cyan-700 mt-1">Por cliente</p>
             </Card>
           </div>
@@ -367,7 +368,7 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                    <XAxis dataKey="mes" stroke="#64748B" />
+                    <XAxis dataKey="mes" stroke="#64748B" tick={{ fontSize: 11 }} />
                     <YAxis stroke="#64748B" />
                     <Tooltip
                       contentStyle={{
@@ -408,7 +409,7 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => percent > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
+                      label={({ name, percent }) => percent > 0 ? `${String(name).slice(0, 10)}: ${(percent * 100).toFixed(0)}%` : ''}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
@@ -563,7 +564,7 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
                     <Card key={cliente.id} className="bg-slate-50">
                       <CardContent className="p-3">
                         <h3 className="font-semibold mb-2">{cliente.usaNome}</h3>
-                        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
                           <div>
                             <p>CPF: {cliente.usaCpf}</p>
                             <p>Tel: {cliente.usaPhone}</p>
@@ -683,7 +684,7 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={categoriasDespesas}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                  <XAxis dataKey="categoria" stroke="#64748B" />
+                    <XAxis dataKey="categoria" stroke="#64748B" tick={{ fontSize: 11 }} />
                   <YAxis stroke="#64748B" />
                   <Tooltip
                     contentStyle={{
@@ -838,9 +839,9 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
               <div className="space-y-3">
                 {performanceAtendentes.map((atendente, index) => (
                   <Card key={atendente.nome} className="bg-slate-50">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 flex-1">
+                  <CardContent className="p-3 sm:p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${index === 0 ? 'bg-yellow-500' :
                             index === 1 ? 'bg-gray-400' :
                               index === 2 ? 'bg-orange-600' :
@@ -848,9 +849,9 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
                             }`}>
                             {index + 1}
                           </div>
-                          <div className="flex-1">
-                            <h3 className="font-semibold">{atendente.nome}</h3>
-                            <div className="flex gap-4 mt-1">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold break-words">{atendente.nome}</h3>
+                            <div className="flex flex-wrap gap-2 mt-1">
                               <Badge variant="outline" className="text-xs">
                                 {atendente.clientes} clientes
                               </Badge>
@@ -860,8 +861,8 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-green-600">
+                        <div className="text-left sm:text-right">
+                          <p className="text-xl sm:text-2xl font-bold text-green-600 break-words">
                             {formatCurrency(atendente.receitas)}
                           </p>
                           <p className="text-xs text-muted-foreground">Total em receitas</p>

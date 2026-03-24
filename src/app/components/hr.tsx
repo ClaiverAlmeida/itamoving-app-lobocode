@@ -366,21 +366,21 @@ export default function RHView() {
   const usuariosAtivos = usuarios.filter(f => f.status === 'ACTIVE').length;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 lg:space-y-6 p-4 sm:p-6 overflow-x-hidden">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
       >
         <div>
-          <h1 className="flex items-center gap-3">
+          <h1 className="flex items-center gap-3 text-xl sm:text-2xl lg:text-3xl font-bold">
             <div className="p-3 bg-gradient-to-br from-[#1E3A5F] to-[#5DADE2] rounded-xl">
               <Users className="w-8 h-8 text-white" />
             </div>
             Recursos Humanos
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground mt-2 text-sm sm:text-base">
             Gestão de funcionários e departamento pessoal
           </p>
         </div>
@@ -437,8 +437,8 @@ export default function RHView() {
       >
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="space-y-1">
                 <CardTitle>Cadastro de Funcionários</CardTitle>
                 <CardDescription>
                   Gerencie o cadastro completo da equipe
@@ -449,13 +449,13 @@ export default function RHView() {
                 if (!open) resetFormUsuario();
               }}
               >
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-[#1E3A5F] to-[#5DADE2] hover:opacity-90">
+              <DialogTrigger asChild>
+                  <Button className="w-full sm:w-auto bg-gradient-to-r from-[#1E3A5F] to-[#5DADE2] hover:opacity-90">
                     <Plus className="w-4 h-4 mr-2" />
                     Novo Funcionário
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-[40vw] sm:max-w-[40vw] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg">
                   <DialogHeader>
                     <DialogTitle>Cadastrar Novo Funcionário</DialogTitle>
                     <DialogDescription>
@@ -675,8 +675,9 @@ export default function RHView() {
                       </div>
                     </div>
 
-                    <div className="flex justify-end gap-2 pt-4 border-t">
+                    <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t">
                       <Button type="button" variant="outline"
+                        className="w-full sm:w-auto"
                         onClick={() => {
                           setIsDialogOpen(false);
                           resetFormUsuario();
@@ -686,7 +687,7 @@ export default function RHView() {
                       >
                         Cancelar
                       </Button>
-                      <Button type="submit" className="bg-gradient-to-r from-[#1E3A5F] to-[#5DADE2]">
+                      <Button type="submit" className="w-full sm:w-auto bg-gradient-to-r from-[#1E3A5F] to-[#5DADE2]">
                         Cadastrar
                       </Button>
                     </div>
@@ -697,7 +698,7 @@ export default function RHView() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Busca */}
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -707,13 +708,13 @@ export default function RHView() {
                   className="pl-10"
                 />
               </div>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="w-full sm:w-auto">
                 <Download className="w-4 h-4" />
               </Button>
             </div>
 
             {/* Tabela */}
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-hidden overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
@@ -847,7 +848,7 @@ export default function RHView() {
 
       {/* Dialog de Visualização de Funcionário */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold">Detalhes do Funcionário</DialogTitle>
           </DialogHeader>
@@ -870,7 +871,7 @@ export default function RHView() {
               </div>
 
               {/* Informações */}
-              <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">Email</Label>
                   <p className="flex items-center gap-2 text-sm">
@@ -929,7 +930,7 @@ export default function RHView() {
         }
       }
       }>
-        <DialogContent className="max-w-[40vw] sm:max-w-[40vw] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg">
           <DialogHeader>
             <DialogTitle>Editar Funcionário</DialogTitle>
             <DialogDescription>
@@ -1130,6 +1131,7 @@ export default function RHView() {
 
               <div className="col-span-1 sm:col-span-2">
                 <Button type="button" variant="default"
+                  className="w-full sm:w-auto"
                   onClick={() => {
                     setIsEditCredencialsDialogOpen(!isEditCredencialsDialogOpen);
                     setFormUsuario({ ...formUsuario, password: '' });
@@ -1169,8 +1171,9 @@ export default function RHView() {
 
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t">
               <Button type="button" variant="outline"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   setIsEditDialogOpen(false);
                   setSelectedUsuario(null);
@@ -1180,7 +1183,7 @@ export default function RHView() {
                 }>
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-gradient-to-r from-[#1E3A5F] to-[#5DADE2]">
+              <Button type="submit" className="w-full sm:w-auto bg-gradient-to-r from-[#1E3A5F] to-[#5DADE2]">
                 Salvar Alterações
               </Button>
             </div>

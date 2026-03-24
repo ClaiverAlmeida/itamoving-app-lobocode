@@ -30,7 +30,7 @@ function mapBackendRoleToFront(backendRole: string | undefined): UserRole {
   const r = backendRole.toUpperCase();
   if (r === 'SYSTEM_ADMIN' || r === 'ADMIN') return 'admin';
   if (r === 'GUARD' || r === 'DOORMAN' || r === 'DRIVER') return 'motorista';
-  if (r === 'SUPERVISOR' || r === 'HR' || r === 'EDITOR' || r === 'WRITER') return 'logistico';
+  if (r === 'LOGISTICS' || r === 'LOGISTICO') return 'logistico';
   return 'comercial';
 }
 

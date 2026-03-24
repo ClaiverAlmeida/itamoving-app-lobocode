@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import logo from "../../assets/2ac2fb95a59823c3119ddd194998db2f41de4a80.png";
+const logo = new URL('../assets/itamoving-logo.png', import.meta.url).href;
 
 // Identidade visual Itamoving (azul escuro e azul claro)
 const COLORS = {
