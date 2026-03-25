@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Package,
   DollarSign,
+  Trash,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -47,9 +48,12 @@ import OrdemServicoForm from "./driver-service-order/service-order-form";
 import { RECIBO_CATEGORY_LABEL, summarizeOrdemForRecibo } from "./driver-service-order/delivery-receipt-utils";
 import { serviceOrderFormService, type OrdemServicoView } from "../services/driver-service-order/service-order-form.service";
 import { cn } from "./ui/utils";
+import { toast } from "sonner";
+import { useAuth } from "../context/AuthContext";
 
 /** Dados de agendamento/empresa para a aba “Agendamento” (vindos do GET quando disponíveis). */
 type AgendamentoResumo = {
+  companyName: string;
   collectionDate: string;
   collectionTime: string;
   companyAddress: string;
@@ -133,9 +137,10 @@ function agendamentoResumoParaExibicao(ordem: OrdemServicoView): AgendamentoResu
   const comp = ordem.company;
   if (!apt && !comp) return null;
   return {
+    companyName: comp?.name ?? "—",
     collectionDate: apt?.collectionDate ?? "",
     collectionTime: apt?.collectionTime ?? "",
-    companyAddress: comp?.address ?? comp?.name ?? "—",
+    companyAddress: comp?.address ?? "—",
     companyPhone: comp?.contactPhone,
     isPeriodic: Boolean(apt?.isPeriodic),
   };
@@ -167,17 +172,15 @@ function statusBadgeClass(status: OrdemServicoMotorista["status"]) {
 export default function OrdemDeServicoView() {
   const [ordens, setOrdens] = useState<OrdemServicoView[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
   const carregarOrdens = useCallback(async () => {
     setLoading(true);
-    setLoadError(null);
     const result = await serviceOrderFormService.getAll();
     if (result.success && result.data) {
       setOrdens(result.data);
     } else {
       setOrdens([]);
-      setLoadError(result.error ?? "Não foi possível carregar as ordens.");
+      toast.error(result.error ?? "Não foi possível carregar as ordens.");
     }
     setLoading(false);
   }, []);
@@ -193,6 +196,7 @@ export default function OrdemDeServicoView() {
   const [reciboOrdem, setReciboOrdem] = useState<OrdemServicoView | null>(null);
   const [reciboLoading, setReciboLoading] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
+  const { user } = useAuth();
 
   const iniciarEdicao = useCallback(async (o: OrdemServicoView) => {
     setEditingOrdemLoading(true);
@@ -217,21 +221,32 @@ export default function OrdemDeServicoView() {
 
   const ordensFiltradas = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    if (!q) return ordens;
-    return ordens.filter((o) => {
-      const blob = [
-        o.id,
-        o.appointmentId,
-        o.sender?.usaName,
-        o.recipient?.brazilName,
-        o.driverName,
-        o.status,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return blob.includes(q);
-    });
+    const base = !q
+      ? ordens
+      : ordens.filter((o) => {
+        const blob = [
+          o.id,
+          o.appointmentId,
+          o.sender?.usaName,
+          o.recipient?.brazilName,
+          o.driverName,
+          o.status,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return blob.includes(q);
+      });
+
+    // Ordena por "atualizado" (mais recente primeiro). Caso `updatedAt` venha ausente,
+    // cai para `signatureDate`.
+    const ts = (o: OrdemServicoView) => {
+      const raw = o.updatedAt;
+      const d = raw ? new Date(raw) : null;
+      return d && !Number.isNaN(d.getTime()) ? d.getTime() : 0;
+    };
+
+    return [...base].sort((a, b) => ts(b) - ts(a));
   }, [ordens, searchTerm]);
 
   const stats = useMemo(() => {
@@ -247,6 +262,21 @@ export default function OrdemDeServicoView() {
     setViewOrdem(o);
     setViewOpen(true);
   };
+
+  const excluirOrdem = useCallback(async (order: OrdemServicoView) => {
+    if (!user?.role.includes('admin')) return;
+
+    const confirm = window.confirm(`Você está excluindo uma Ordem de Serviço:\n\nCliente (EUA): ${order.sender.usaName}\nNúmero: #${order.id}\n\nConfirmar ação de exclusão?`);
+    if (confirm) {
+      const result = await serviceOrderFormService.delete(order.id!);
+      if (!result.success) {
+        toast.error(result.error || "Erro ao excluir ordem de serviço");
+        return;
+      }
+      toast.success("Ordem de serviço excluída com sucesso");
+      void carregarOrdens();
+    }
+  }, []);
 
   const fecharRecibo = useCallback(() => setReciboOrdem(null), []);
 
@@ -386,17 +416,11 @@ export default function OrdemDeServicoView() {
         </motion.div>
       </div>
 
-      {loadError ? (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {loadError}
-        </div>
-      ) : null}
-
       <Card>
         <CardHeader className="pb-3">
           <CardTitle>Ordens registradas</CardTitle>
           <CardDescription>
-            Dados carregados da API. Busque por cliente, motorista, número da ordem ou agendamento.
+            Busque por cliente, motorista, número da ordem ou agendamento.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -404,197 +428,206 @@ export default function OrdemDeServicoView() {
             <p className="text-center py-14 text-muted-foreground">Carregando ordens…</p>
           ) : (
             <>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
 
-          {/* Desktop: tabela */}
-          <div className="hidden md:block border rounded-lg overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="text-center">Nº</TableHead>
-                  <TableHead className="text-center">Cliente (remetente)</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-center">Data assinatura</TableHead>
-                  <TableHead className="text-center">Valor (USD)</TableHead>
-                  <TableHead className="text-center w-[200px]">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ordensFiltradas.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                      Nenhuma ordem encontrada.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  ordensFiltradas.map((o) => (
-                    <TableRow key={o.id} className="hover:bg-muted/30 text-center">
-                      <TableCell className="font-mono text-sm">#{o.id}</TableCell>
-                      <TableCell className="text-center">
-                        <div className="font-medium">{o.sender.usaName}</div>
-                        <div className="text-xs text-muted-foreground truncate max-w-[240px]">
-                          Ag. {o.appointmentId}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant={
-                            o.status === "COMPLETED"
-                              ? "default"
-                              : o.status === "IN_PROGRESS"
-                                ? "secondary"
-                                : "outline"
-                          }
-                          className={
-                            o.status === "COMPLETED"
-                              ? "bg-green-100 text-green-900 hover:bg-green-100"
-                              : ""
-                          }
-                        >
-                          {STATUS_LABEL[o.status]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center text-sm text-muted-foreground">
-                        {formatDateTime(o.signatureDate)}
-                      </TableCell>
-                      <TableCell className="text-center font-semibold tabular-nums">
-                        {formatUsd(o.chargedValue ?? 0)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex justify-center gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            title="Visualizar"
-                            onClick={() => openView(o)}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            title="Editar"
-                            onClick={() => void iniciarEdicao(o)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            title="Recibo"
-                            onClick={() => void abrirRecibo(o)}
-                          >
-                            <Printer className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+              {/* Desktop: tabela */}
+              <div className="hidden md:block border rounded-lg overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="text-center">Nº</TableHead>
+                      <TableHead className="text-center">Cliente (remetente)</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                      <TableHead className="text-center">Data assinatura</TableHead>
+                      <TableHead className="text-center">Valor (USD)</TableHead>
+                      <TableHead className="text-center w-[200px]">Ações</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {ordensFiltradas.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                          Nenhuma ordem de serviço encontrada.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      ordensFiltradas.map((o) => (
+                        <TableRow key={o.id} className="hover:bg-muted/30 text-center">
+                          <TableCell className="font-mono text-sm">#{o.id}</TableCell>
+                          <TableCell className="text-center">
+                            <div className="font-medium">{o.sender.usaName}</div>
+                            <div className="font-normal text-xs text-muted-foreground">{o.sender.usaAddress.rua}, {o.sender.usaAddress.numero}, {o.sender.usaAddress.cidade}, {o.sender.usaAddress.estado}, {o.sender.usaAddress.zipCode}</div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge
+                              variant={
+                                o.status === "COMPLETED"
+                                  ? "default"
+                                  : o.status === "IN_PROGRESS"
+                                    ? "secondary"
+                                    : "outline"
+                              }
+                              className={
+                                o.status === "COMPLETED"
+                                  ? "bg-green-100 text-green-900 hover:bg-green-100"
+                                  : ""
+                              }
+                            >
+                              {STATUS_LABEL[o.status]}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center text-sm text-muted-foreground">
+                            {formatDateTime(o.signatureDate)}
+                          </TableCell>
+                          <TableCell className="text-center font-semibold tabular-nums">
+                            {formatUsd(o.chargedValue ?? 0)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex justify-center gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                title="Visualizar"
+                                onClick={() => openView(o)}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                title="Editar"
+                                onClick={() => void iniciarEdicao(o)}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                title="Excluir"
+                                onClick={() => void excluirOrdem(o)}
+                                disabled={!user?.role.includes('admin')}
+                                className={`${!user?.role.includes('admin') ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+                              >
+                                <Trash className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                title="Recibo"
+                                onClick={() => void abrirRecibo(o)}
+                              >
+                                <Printer className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
 
-          {/* Mobile: cards */}
-          <div className="md:hidden grid gap-3">
-            {ordensFiltradas.length === 0 ? (
-              <Card>
-                <CardContent className="py-10 text-center text-muted-foreground">
-                  Nenhuma ordem encontrada.
-                </CardContent>
-              </Card>
-            ) : (
-              ordensFiltradas.map((o, index) => (
-                <motion.div
-                  key={o.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card className="border-l-4 border-l-[#F5A623] overflow-hidden">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <CardTitle className="text-base break-words">
-                            {o.sender.usaName}
-                          </CardTitle>
-                          <p className="text-xs text-muted-foreground font-mono mt-1">
-                            #{o.id}
-                          </p>
-                        </div>
-                        <Badge
-                          variant={o.status === "COMPLETED" ? "default" : "secondary"}
-                          className={
-                            o.status === "COMPLETED"
-                              ? "bg-green-100 text-green-900 shrink-0"
-                              : "shrink-0"
-                          }
-                        >
-                          {STATUS_LABEL[o.status]}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                      <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground">Valor</span>
-                        <span className="font-semibold tabular-nums">
-                          {formatUsd(o.chargedValue ?? 0)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground">Assinatura</span>
-                        <span className="text-right text-xs">
-                          {formatDateTime(o.signatureDate)}
-                        </span>
-                      </div>
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="flex-1"
-                          size="sm"
-                          onClick={() => openView(o)}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          Ver
-                        </Button>
-                        <Button
-                          type="button"
-                          className="flex-1 bg-[#1E3A5F]"
-                          size="sm"
-                          onClick={() => void iniciarEdicao(o)}
-                        >
-                          <Pencil className="w-4 h-4 mr-1" />
-                          Editar
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          className="flex-1"
-                          size="sm"
-                          onClick={() => void abrirRecibo(o)}
-                        >
-                          <Printer className="w-4 h-4 mr-1" />
-                          Recibo
-                        </Button>
-                      </div>
+              {/* Mobile: cards */}
+              <div className="md:hidden grid gap-3">
+                {ordensFiltradas.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-10 text-center text-muted-foreground">
+                      Nenhuma ordem de serviço encontrada.
                     </CardContent>
                   </Card>
-                </motion.div>
-              ))
-            )}
-          </div>
+                ) : (
+                  ordensFiltradas.map((o, index) => (
+                    <motion.div
+                      key={o.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <Card className="border-l-4 border-l-[#F5A623] overflow-hidden">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <CardTitle className="text-base break-words">
+                                {o.sender.usaName}
+                              </CardTitle>
+                              <p className="text-xs text-muted-foreground font-mono mt-1">
+                                #{o.id}
+                              </p>
+                            </div>
+                            <Badge
+                              variant={o.status === "COMPLETED" ? "default" : "secondary"}
+                              className={
+                                o.status === "COMPLETED"
+                                  ? "bg-green-100 text-green-900 shrink-0"
+                                  : "shrink-0"
+                              }
+                            >
+                              {STATUS_LABEL[o.status]}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-2 text-sm">
+                          <div className="flex justify-between gap-2">
+                            <span className="text-muted-foreground">Valor</span>
+                            <span className="font-semibold tabular-nums">
+                              {formatUsd(o.chargedValue ?? 0)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span className="text-muted-foreground">Assinatura</span>
+                            <span className="text-right text-xs">
+                              {formatDateTime(o.signatureDate)}
+                            </span>
+                          </div>
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="flex-1"
+                              size="sm"
+                              onClick={() => openView(o)}
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              Ver
+                            </Button>
+                            <Button
+                              type="button"
+                              className="flex-1 bg-[#1E3A5F]"
+                              size="sm"
+                              onClick={() => void iniciarEdicao(o)}
+                            >
+                              <Pencil className="w-4 h-4 mr-1" />
+                              Editar
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              className="flex-1"
+                              size="sm"
+                              onClick={() => void abrirRecibo(o)}
+                            >
+                              <Printer className="w-4 h-4 mr-1" />
+                              Recibo
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))
+                )}
+              </div>
             </>
           )}
         </CardContent>
@@ -621,8 +654,10 @@ export default function OrdemDeServicoView() {
                     </DialogTitle>
                     <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                       <span className="font-mono text-foreground/90">#{viewOrdem.id}</span>
-                      <span className="hidden sm:inline">·</span>
-                      <span className="font-mono text-xs sm:text-sm">Ag. {viewOrdem.appointmentId}</span>
+                    </div>
+                    <div className="flex flex-col gap-2 rounded-md mt-3 text-muted-foreground text-xs">
+                      <span>Data de Criação: {formatDateTime(viewOrdem.createdAt ?? "—")}</span>
+                      <span>Data de Edição: {formatDateTime(viewOrdem.updatedAt ?? "—")}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 lg:justify-end">
@@ -699,7 +734,7 @@ export default function OrdemDeServicoView() {
                       </TabsList>
 
                       <TabsContent value="resumo" className="mt-4 space-y-4 sm:mt-5">
-                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                           <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
                             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                               Status
@@ -730,14 +765,45 @@ export default function OrdemDeServicoView() {
                               <span className="min-w-0">{o.driverName || "—"}</span>
                             </p>
                           </div>
-                          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm sm:col-span-2 xl:col-span-1">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                              Assinatura
-                            </p>
+                        </div>
+
+                        {/* Assinaturas */}
+                        <div className="grid gap-4 lg:grid-cols-3">
+                          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
+                            <p className="text-xs font-semibold text-[#1E3A5F]">Assinatura do Cliente</p>
+                            {o.clientSignature ? (
+                              <img
+                                src={o.clientSignature}
+                                alt="Assinatura do cliente"
+                                className="h-14 w-full rounded-md border border-border/60 bg-background object-contain mt-2 user-select-none select-none pointer-events-none"
+                              />
+                            ) : (
+                              <div className="h-14 w-full rounded-md border border-border/60 bg-background text-center text-xs text-muted-foreground flex items-center justify-center">
+                                —
+                              </div>
+                            )}
+                          </div>
+                          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
+                            <p className="text-xs font-semibold text-[#1E3A5F]">Assinatura do Agente</p>
+                            {o.agentSignature ? (
+                              <img
+                                src={o.agentSignature}
+                                alt="Assinatura do agente"
+                                className="h-14 w-full rounded-md border border-border/60 bg-background object-contain mt-2 user-select-none select-none pointer-events-none"
+                              />
+                            ) : (
+                              <div className="h-14 w-full rounded-md border border-border/60 bg-background text-center text-xs text-muted-foreground flex items-center justify-center">
+                                —
+                              </div>
+                            )}
+                          </div>
+                          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
+                            <p className="text-xs font-semibold text-[#1E3A5F]">Data de assinatura</p>
                             <p className="mt-2 text-sm text-foreground">{formatDateTime(o.signatureDate)}</p>
                           </div>
                         </div>
 
+                        {/* {Dados do Cliente Resumidos } */}
                         <div className="grid gap-4 lg:grid-cols-2">
                           <div className="rounded-xl border border-border/80 bg-muted/20 p-4">
                             <p className="text-xs font-semibold text-[#1E3A5F]">Remetente (EUA)</p>
@@ -832,9 +898,6 @@ export default function OrdemDeServicoView() {
                               Agendamento vinculado
                             </div>
                             <div className="grid gap-6 sm:grid-cols-2">
-                              <ViewField label="ID do agendamento">
-                                <span className="font-mono text-sm">{o.appointmentId}</span>
-                              </ViewField>
                               <ViewField label="Coleta">
                                 <span>
                                   {formatCollectionDate(agResumo.collectionDate)}
@@ -913,12 +976,11 @@ export default function OrdemDeServicoView() {
                             <Table className="min-w-[640px] sm:min-w-0">
                               <TableHeader>
                                 <TableRow className="border-b bg-muted/60 hover:bg-muted/60">
-                                  <TableHead className="w-[72px] font-semibold">Nº</TableHead>
-                                  <TableHead className="min-w-[200px] font-semibold">Tipo / conteúdo</TableHead>
-                                  <TableHead className="text-right font-semibold tabular-nums">
+                                  <TableHead className="min-w-[200px] font-semibold text-center">Tipo / conteúdo</TableHead>
+                                  <TableHead className="text-center font-semibold tabular-nums">
                                     Peso (kg)
                                   </TableHead>
-                                  <TableHead className="text-right font-semibold tabular-nums">Valor</TableHead>
+                                  <TableHead className="text-center font-semibold tabular-nums">Valor</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -927,10 +989,7 @@ export default function OrdemDeServicoView() {
                                     key={p.id}
                                     className={rowIdx % 2 === 1 ? "bg-muted/20" : undefined}
                                   >
-                                    <TableCell className="align-top font-mono font-semibold tabular-nums">
-                                      {p.number}
-                                    </TableCell>
-                                    <TableCell className="align-top">
+                                    <TableCell className="align-top text-center">
                                       <div className="max-w-xl text-sm font-medium leading-snug">{p.type}</div>
                                       {(p.driverServiceOrderProductsItems?.length ?? 0) > 0 ? (
                                         <ul className="mt-2 space-y-1.5 rounded-lg border border-border/60 bg-muted/25 px-3 py-2 text-xs text-muted-foreground">
@@ -951,10 +1010,10 @@ export default function OrdemDeServicoView() {
                                         <p className="mt-2 text-xs text-muted-foreground">Sem itens listados.</p>
                                       )}
                                     </TableCell>
-                                    <TableCell className="align-top text-right text-sm tabular-nums">
+                                    <TableCell className="align-top text-center text-sm tabular-nums">
                                       {Number(p.weight).toFixed(2)}
                                     </TableCell>
-                                    <TableCell className="align-top text-right text-sm font-medium tabular-nums">
+                                    <TableCell className="align-top text-center text-sm font-medium tabular-nums">
                                       {formatUsd(p.value)}
                                     </TableCell>
                                   </TableRow>

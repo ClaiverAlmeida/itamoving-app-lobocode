@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -29,6 +29,7 @@ import {
   X,
   ArrowLeft,
   ClipboardList,
+  FileText,
 } from 'lucide-react';
 
 import { format } from 'date-fns';
@@ -38,6 +39,8 @@ import { toast } from 'sonner';
 import { productsService } from '../../services';
 import { Caixa, Item, OrdemServicoFormProps, serviceOrderFormService } from '../../services/driver-service-order/service-order-form.service';
 import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from '../stock';
+import { ResponsavelSelect } from '../forms';
+import { DriverUser, usersService } from '../../services/hr/users.service';
 
 /** Valor do Select (`SelectItem value`) — igual a `atualizarCaixa` / payload visual. */
 function valorSelectCaixa(p: PrecoProduto): string {
@@ -106,14 +109,41 @@ export default function OrdemServicoForm({
   const [isDrawingCliente, setIsDrawingCliente] = useState(false);
   const [isDrawingAgente, setIsDrawingAgente] = useState(false);
   const [precosProdutos, setPrecosProdutos] = useState<PrecoProduto[]>([]);
+  const [motoristas, setMotoristas] = useState<DriverUser[]>([]);
+  const [produtosLoading, setProdutosLoading] = useState(false);
+  const [motoristasLoading, setMotoristasLoading] = useState(false);
+  const [hydrationReady, setHydrationReady] = useState(false);
+  const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
+  // ids dos produtos que já existem no backend (quando estamos em edição)
+  // usados para decidir se o PATCH deve enviar `id` (update) ou omitir (create).
+  const existingProductIdsRef = useRef<Set<string>>(new Set());
+
+  const carregarMotoristas = async () => {
+    setMotoristasLoading(true);
+    try {
+      const result = await usersService.getAllDrivers();
+      if (result.success && result.data) {
+        setMotoristas(result.data.data);
+      } else if (result.error) {
+        toast.error(result.error ?? 'Não foi possível carregar os motoristas.');
+      }
+    } finally {
+      setMotoristasLoading(false);
+    }
+  };
 
   const carregarProdutos = async () => {
+    setProdutosLoading(true);
     const result = await productsService.getAll();
-    if (result.success && result.data) {
-      setPrecosProdutos(result.data);
-      return result.data;
+    try {
+      if (result.success && result.data) {
+        setPrecosProdutos(result.data);
+        return result.data;
+      }
+      return [] as PrecoProduto[];
+    } finally {
+      setProdutosLoading(false);
     }
-    return [] as PrecoProduto[];
   }
 
   // Filtrar opções de caixa
@@ -168,9 +198,13 @@ export default function OrdemServicoForm({
   // Estado para valor pago
   const [valorPago, setValorPago] = useState('0.00');
 
+  const [observations, setObservations] = useState('');
+
   const [ordemStatus, setOrdemStatus] = useState<OrdemServicoMotorista['status']>('COMPLETED');
   const [ordemObservacoes, setOrdemObservacoes] = useState('');
   const [motoristaResponsavel, setMotoristaResponsavel] = useState('');
+  // `motoristaResponsavel` é o `id` do motorista usado no `ResponsavelSelect`.
+  const motoristaResponsavelNome = motoristas.find((m) => m.id === motoristaResponsavel)?.name;
 
   // Calcular valor total das caixas
   const valorTotalCaixas = caixas.reduce((sum, c) => sum + c.value, 0);
@@ -178,7 +212,7 @@ export default function OrdemServicoForm({
   const renumerarCaixas = (lista: Caixa[]) =>
     lista.map((caixa, index) => ({
       ...caixa,
-      number: `A${index + 1}`,
+      number: '',
     }));
 
   const novoIdItem = () =>
@@ -187,10 +221,9 @@ export default function OrdemServicoForm({
   /** Mesma regra usada ao salvar a ordem: tipo, nº, valor e peso válidos. */
   const caixaTemTodosCamposPreenchidos = (c: Caixa) => {
     const tipoValido = Boolean(String(c.type ?? '').trim());
-    const numeroValido = Boolean(String(c.number ?? '').trim());
     const valorValido = Number.isFinite(Number(c.value)) && Number(c.value) > 0;
     const pesoValido = Number.isFinite(Number(c.weight)) && Number(c.weight) > 0;
-    return tipoValido && numeroValido && valorValido && pesoValido;
+    return tipoValido && valorValido && pesoValido;
   };
 
   const obterTipoProdutoDaCaixa = (caixa: Caixa) => {
@@ -269,7 +302,7 @@ export default function OrdemServicoForm({
   const adicionarItens = (caixaId: string) => {
     const caixa = caixas.find((c) => c.id === caixaId);
     if (!caixa || !caixaTemTodosCamposPreenchidos(caixa)) {
-      toast.error('Preencha tipo, número, peso e valor da caixa antes de adicionar itens');
+      toast.error('Preencha tipo, peso e valor da caixa antes de adicionar itens');
       return;
     }
     setItens((prev) => [
@@ -338,11 +371,9 @@ export default function OrdemServicoForm({
     setIsDrawingCliente(false);
     const canvas = canvasClienteRef.current;
     if (canvas) {
-      if (clienteAssinaturaDirtyRef.current) {
-        setAssinaturaCliente(canvas.toDataURL());
-      } else {
-        setAssinaturaCliente('');
-      }
+      // Só atualiza o estado se o usuário realmente desenhou.
+      // Isso evita que eventos `mouseUp`/`touchEnd` sem `startDrawing` zerem a assinatura.
+      if (clienteAssinaturaDirtyRef.current) setAssinaturaCliente(canvas.toDataURL());
     }
   };
 
@@ -401,11 +432,9 @@ export default function OrdemServicoForm({
     setIsDrawingAgente(false);
     const canvas = canvasAgenteRef.current;
     if (canvas) {
-      if (agenteAssinaturaDirtyRef.current) {
-        setAssinaturaAgente(canvas.toDataURL());
-      } else {
-        setAssinaturaAgente('');
-      }
+      // Só atualiza o estado se o usuário realmente desenhou.
+      // Isso evita que eventos `mouseUp`/`touchEnd` sem `startDrawing` zerem a assinatura.
+      if (agenteAssinaturaDirtyRef.current) setAssinaturaAgente(canvas.toDataURL());
     }
   };
 
@@ -425,7 +454,25 @@ export default function OrdemServicoForm({
     void carregarProdutos();
   }, []);
 
+  useEffect(() => {
+    void carregarMotoristas();
+  }, []);
+
+  /** Criação por motorista: o responsável é sempre o próprio usuário (select desabilitado). */
+  useEffect(() => {
+    if (existingOrdem?.id) return;
+    if (user?.role === 'motorista' && user?.id) {
+      setMotoristaResponsavel(user.id);
+    }
+  }, [appointmentId, existingOrdem?.id, user?.role, user?.id]);
+
   const hydratedKeyRef = useRef<string>('');
+
+  // Ao trocar de ordem em edição, zera o snapshot/estado de prontidão
+  useEffect(() => {
+    setInitialSnapshot(null);
+    setHydrationReady(false);
+  }, [existingOrdem?.id]);
 
   /** Nova ordem (motorista): limpa assinaturas ao trocar agendamento. Em edição, o efeito seguinte preenche. */
   useEffect(() => {
@@ -440,6 +487,9 @@ export default function OrdemServicoForm({
     clearCanvas(canvasAgenteRef.current);
     setAssinaturaCliente('');
     setAssinaturaAgente('');
+    setHydrationReady(false);
+    setInitialSnapshot(null);
+    existingProductIdsRef.current = new Set();
     clienteAssinaturaDirtyRef.current = false;
     agenteAssinaturaDirtyRef.current = false;
   }, [appointmentId, existingOrdem?.id]);
@@ -488,26 +538,34 @@ export default function OrdemServicoForm({
 
     setOrdemStatus(existingOrdem.status);
     setOrdemObservacoes(existingOrdem.observations ?? '');
-    setMotoristaResponsavel(existingOrdem.driverName || '');
+    // `ResponsavelSelect` trabalha com `id` (userId do motorista).
+    setMotoristaResponsavel(existingOrdem.userId || '');
 
-    setCaixas(
-      renumerarCaixas(
-        existingOrdem.driverServiceOrderProducts.map((p) => ({
-          id: p.id,
-          type: resolveCaixaDisplayType(p.type, prods),
-          number: p.number,
-          value: p.value,
-          weight: p.weight,
-        })),
-      ),
+    existingProductIdsRef.current = new Set(
+      (existingOrdem.driverServiceOrderProducts ?? [])
+        .map((p) => p.id)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0),
     );
+
+    const hydratedCaixas = renumerarCaixas(
+      existingOrdem.driverServiceOrderProducts.map((p) => ({
+        id: p.id!,
+        type: resolveCaixaDisplayType(p.type, prods),
+        number: '',
+        value: p.value,
+        weight: p.weight,
+      })),
+    );
+    setCaixas(hydratedCaixas);
 
     const mappedItens: Item[] = [];
     for (const p of existingOrdem.driverServiceOrderProducts) {
       for (const it of p.driverServiceOrderProductsItems ?? []) {
         mappedItens.push({
-          id: novoIdItem(),
-          caixaId: p.id,
+          // Mantém o id do item existente (se vier do backend) para permitir PATCH incremental.
+          // Para itens novos (quando não houver existingOrdem), usamos id local.
+          id: it.id ?? novoIdItem(),
+          caixaId: p.id!,
           name: it.name,
           quantity: it.quantity,
           weight: it.weight,
@@ -518,7 +576,8 @@ export default function OrdemServicoForm({
     setItens(mappedItens);
 
     const cv = existingOrdem.chargedValue ?? 0;
-    setValorPago(Number.isFinite(Number(cv)) ? String(cv) : '0');
+    const valorPagoInicial = Number.isFinite(Number(cv)) ? String(cv) : '0';
+    setValorPago(valorPagoInicial);
 
     const sigC = existingOrdem.clientSignature || '';
     const sigA = existingOrdem.agentSignature || '';
@@ -528,11 +587,187 @@ export default function OrdemServicoForm({
     requestAnimationFrame(() => {
       loadDataUrlOnCanvas(sigC, canvasClienteRef);
       loadDataUrlOnCanvas(sigA, canvasAgenteRef);
+      // Só consideramos a hidratação "pronta" para o dirty-check quando os preços
+      // já foram carregados (senão o resolveCaixaDisplayType pode mudar depois).
+      if (precosProdutos.length > 0) setHydrationReady(true);
+      else setHydrationReady(false);
     });
   }, [existingOrdem, precosProdutos]);
 
+  // Garanta que o `value` do select corresponda ao `id` do motorista.
+  // Isso evita abrir a tela de edição com placeholder quando:
+  // - o GET vier com `driverName` (nome) e não com `id`; ou
+  // - o carregamento de motoristas chegar depois da hidratação.
+  useEffect(() => {
+    if (!existingOrdem?.id) return;
+    if (!motoristas.length) return;
+
+    const matchesId = motoristas.some((m) => m.id === motoristaResponsavel);
+    if (matchesId) return;
+
+    const matchByName = motoristas.find((m) => m.name === existingOrdem.driverName);
+    if (matchByName) setMotoristaResponsavel(matchByName.id);
+  }, [existingOrdem?.id, existingOrdem?.driverName, motoristas, motoristaResponsavel]);
+
+  const editSnapshot = useMemo(() => {
+    if (!isEditMode) return null;
+
+    return JSON.stringify({
+      remetente: {
+        usaName: remetenteNome,
+        usaPhone: remetenteTel,
+        usaCpf: remetenteCpfRg,
+        usaAddress: {
+          rua: remetenteEndereco,
+          numero: remetenteNumero,
+          cidade: remetenteCidade,
+          estado: remetenteEstado,
+          zipCode: remetenteZipCode,
+          complemento: remetenteComplemento,
+        },
+      },
+      destinatario: {
+        brazilName: destinatarioNome,
+        brazilCpf: destinatarioCpfRg,
+        brazilPhone: destinatarioTelefone,
+        brazilAddress: {
+          rua: destinatarioEndereco,
+          bairro: destinatarioBairro,
+          cidade: destinatarioCidade,
+          estado: destinatarioEstado,
+          cep: destinatarioCep,
+          complemento: destinatarioComplemento,
+          numero: destinatarioNumero,
+        },
+      },
+      ordem: {
+        status: ordemStatus,
+        observations: ordemObservacoes.trim(),
+        chargedValue: valorPago,
+      },
+      motoristaResponsavel,
+      assinaturas: {
+        clientSignature: assinaturaCliente.trim(),
+        agentSignature: assinaturaAgente.trim(),
+      },
+      caixas: caixas.map((c) => ({
+        id: c.id,
+        type: c.type,
+        value: c.value,
+        weight: c.weight,
+      })),
+      itens: itens.map((i) => ({
+        id: i.id,
+        caixaId: i.caixaId,
+        name: i.name,
+        quantity: i.quantity,
+        weight: i.weight,
+        observations: i.observations ?? '',
+      })),
+    });
+  }, [
+    isEditMode,
+    remetenteNome,
+    remetenteTel,
+    remetenteCpfRg,
+    remetenteEndereco,
+    remetenteNumero,
+    remetenteCidade,
+    remetenteEstado,
+    remetenteZipCode,
+    remetenteComplemento,
+    destinatarioNome,
+    destinatarioCpfRg,
+    destinatarioTelefone,
+    destinatarioEndereco,
+    destinatarioBairro,
+    destinatarioCidade,
+    destinatarioEstado,
+    destinatarioCep,
+    destinatarioComplemento,
+    destinatarioNumero,
+    ordemStatus,
+    ordemObservacoes,
+    valorPago,
+    motoristaResponsavel,
+    assinaturaCliente,
+    assinaturaAgente,
+    caixas,
+    itens,
+  ]);
+
+  const isDirty = useMemo(() => {
+    if (!isEditMode) return true;
+    if (!initialSnapshot || !editSnapshot) return false;
+    return editSnapshot !== initialSnapshot;
+  }, [isEditMode, initialSnapshot, editSnapshot]);
+
+  const canSave = useMemo(() => {
+    if (!isEditMode) return true;
+    return Boolean(initialSnapshot) && Boolean(editSnapshot) && isDirty;
+  }, [isEditMode, initialSnapshot, editSnapshot, isDirty]);
+
+  // Snapshot inicial (dirty-check) deve ser capturado SOMENTE quando:
+  // - a ordem terminou de hidratar
+  // - os motoristas terminaram de carregar
+  // - o `motoristaResponsavel` já está resolvido para o id esperado
+  useEffect(() => {
+    if (!isEditMode) return;
+    if (!existingOrdem?.id) return;
+    if (!hydrationReady) return;
+    if (motoristasLoading) return;
+    if (produtosLoading) return;
+    if (initialSnapshot) return;
+    if (!editSnapshot) return;
+
+    // Garanta que assinaturas e produtos/itens já estão 100% carregados.
+    const expectedClientSig = String(existingOrdem.clientSignature ?? '').trim();
+    const expectedAgentSig = String(existingOrdem.agentSignature ?? '').trim();
+    if (assinaturaCliente.trim() !== expectedClientSig) return;
+    if (assinaturaAgente.trim() !== expectedAgentSig) return;
+
+    const expectedCaixasCount = existingOrdem.driverServiceOrderProducts?.length ?? 0;
+    if (caixas.length !== expectedCaixasCount) return;
+
+    const expectedItensCount = (existingOrdem.driverServiceOrderProducts ?? []).reduce(
+      (sum, p) => sum + (p.driverServiceOrderProductsItems?.length ?? 0),
+      0,
+    );
+    if (itens.length !== expectedItensCount) return;
+
+    let expectedMotoristaId = existingOrdem.userId || '';
+    if (motoristas.length) {
+      const matchByName = motoristas.find((m) => m.name === existingOrdem.driverName);
+      if (matchByName) expectedMotoristaId = matchByName.id;
+    }
+
+    if (motoristaResponsavel !== expectedMotoristaId) return;
+
+    setInitialSnapshot(editSnapshot);
+  }, [
+    isEditMode,
+    existingOrdem?.id,
+    existingOrdem?.userId,
+    existingOrdem?.driverName,
+    hydrationReady,
+    motoristasLoading,
+    produtosLoading,
+    initialSnapshot,
+    editSnapshot,
+    motoristaResponsavel,
+    motoristas,
+    assinaturaCliente,
+    assinaturaAgente,
+    caixas,
+    itens,
+  ]);
+
   // Salvar ordem de serviço
   const salvarOrdemServico = async () => {
+    if (isEditMode && !canSave) {
+      toast.info('Nenhum campo alterado.');
+      return;
+    }
     // Validações básicas
     if (!remetenteNome || !remetenteTel || !remetenteEndereco || !remetenteNumero || !remetenteCidade || !remetenteEstado || !remetenteZipCode || !remetenteComplemento) {
       toast.error('Preencha todos os campos obrigatórios do remetente');
@@ -605,6 +840,47 @@ export default function OrdemServicoForm({
       return;
     }
 
+    const criandoComoMotorista = !isEditMode && user?.role === 'motorista';
+
+    let idMotoristaResponsavel: string;
+
+    if (criandoComoMotorista) {
+      const uid = String(user?.id ?? '').trim();
+      if (!uid) {
+        toast.error('Sessão inválida. Faça login novamente.');
+        return;
+      }
+      idMotoristaResponsavel = uid;
+    } else {
+      if (motoristasLoading) {
+        toast.error('Aguarde o carregamento da lista de motoristas.');
+        return;
+      }
+
+      if (!motoristas.length) {
+        toast.error('Não há motoristas disponíveis. Tente novamente em instantes.');
+        return;
+      }
+
+      idMotoristaResponsavel = String(motoristaResponsavel ?? '').trim();
+      if (!idMotoristaResponsavel) {
+        toast.error('Selecione um motorista responsável');
+        return;
+      }
+
+      const motoristaNaLista = motoristas.some((m) => m.id === idMotoristaResponsavel);
+      if (!motoristaNaLista) {
+        const motoristaEhUsuarioLogado =
+          isEditMode && user?.role === 'motorista' && idMotoristaResponsavel === user?.id;
+        if (!motoristaEhUsuarioLogado) {
+          toast.error(
+            'Selecione um motorista válido na lista. O valor atual não corresponde a um motorista (ex.: ordem criada por admin — escolha o motorista no campo).',
+          );
+          return;
+        }
+      }
+    }
+
     const payload: OrdemServicoMotorista = {
       appointmentId,
       sender: {
@@ -635,14 +911,16 @@ export default function OrdemServicoForm({
         brazilPhone: destinatarioTelefone,
       },
       driverServiceOrderProducts: caixas.map((c) => ({
-        id: c.id,
+        // Quando o produto (caixa) já existe no backend, enviamos `id` para permitir update.
+        // Quando for criado durante a edição, omitimos `id` para o backend criar um novo record.
+        ...(existingProductIdsRef.current.has(c.id) ? { id: c.id } : {}),
         type: `${c.type} - ${ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[obterTipoProdutoDaCaixa(c) as keyof typeof PRODUCT_TYPE_TO_ITEM_KEY]]}`,
-        number: c.number,
         value: c.value,
         weight: c.weight,
         driverServiceOrderProductsItems: itens
           .filter((i) => i.caixaId === c.id)
           .map((i) => ({
+            id: i.id,
             name: i.name,
             quantity: Number(i.quantity) || 0,
             weight: Number(i.weight) || 0,
@@ -653,24 +931,164 @@ export default function OrdemServicoForm({
       agentSignature: assinaturaAgenteFinal,
       signatureDate: new Date().toISOString(),
       driverName: isEditMode
-        ? (motoristaResponsavel.trim() || user?.nome || 'Motorista')
-        : (user?.nome || 'Motorista'),
-      userId: isEditMode ? (existingOrdem!.userId || user?.id || '1') : (user?.id || '1'),
-      status: isEditMode ? ordemStatus : 'COMPLETED',
+        ? (motoristaResponsavelNome || existingOrdem?.driverName || user?.nome || 'Motorista')
+        : criandoComoMotorista
+          ? (user?.nome || 'Motorista')
+          : (motoristaResponsavelNome || 'Motorista'),
+      userId: idMotoristaResponsavel,
+      status: criandoComoMotorista ? 'COMPLETED' : ordemStatus,
       chargedValue: parseFloat(valorPago),
-      observations: ordemObservacoes.trim() || undefined,
+      observations: !isEditMode ? observations : ordemObservacoes.trim() || undefined,
     };
 
     if (isEditMode && existingOrdem?.id) {
-      const merged: OrdemServicoMotorista = {
-        ...payload,
-        id: existingOrdem.id,
-        userId: existingOrdem.userId || payload.userId,
-      };
-      if (onSave) onSave(merged);
-      void Promise.resolve(onAgendamentosAtualizados?.()).catch(() => { });
-      toast.success('Ordem de serviço atualizada com sucesso!');
-      onClose();
+      if (!initialSnapshot || !editSnapshot) {
+        toast.info('Nenhum campo alterado.');
+        return;
+      }
+
+      let initialObj: any = null;
+      let currentObj: any = null;
+      try {
+        initialObj = JSON.parse(initialSnapshot);
+        currentObj = JSON.parse(editSnapshot);
+      } catch {
+        // Fallback: se algo falhar ao parsear, não envia atualização parcial (evita PATCH incorreto).
+        toast.error('Erro ao comparar campos alterados. Tente novamente.');
+        return;
+      }
+
+      const patch: Partial<OrdemServicoMotorista> = {};
+
+      const remetenteChanged = JSON.stringify(currentObj?.remetente) !== JSON.stringify(initialObj?.remetente);
+      const destinatarioChanged = JSON.stringify(currentObj?.destinatario) !== JSON.stringify(initialObj?.destinatario);
+
+      const statusChanged = currentObj?.ordem?.status !== initialObj?.ordem?.status;
+      const observationsChanged = currentObj?.ordem?.observations !== initialObj?.ordem?.observations;
+      const chargedValueChanged = currentObj?.ordem?.chargedValue !== initialObj?.ordem?.chargedValue;
+
+      const clientSignatureChanged = currentObj?.assinaturas?.clientSignature !== initialObj?.assinaturas?.clientSignature;
+      const agentSignatureChanged = currentObj?.assinaturas?.agentSignature !== initialObj?.assinaturas?.agentSignature;
+
+      const caixasChanged = JSON.stringify(currentObj?.caixas) !== JSON.stringify(initialObj?.caixas);
+      const itensChanged = JSON.stringify(currentObj?.itens) !== JSON.stringify(initialObj?.itens);
+
+      if (remetenteChanged) patch.sender = payload.sender;
+      if (destinatarioChanged) patch.recipient = payload.recipient;
+
+      if (statusChanged) patch.status = payload.status;
+      if (observationsChanged) patch.observations = currentObj?.ordem?.observations ?? '';
+      if (chargedValueChanged) patch.chargedValue = payload.chargedValue;
+
+      // Assinaturas
+      if (clientSignatureChanged) patch.clientSignature = payload.clientSignature;
+      if (agentSignatureChanged) patch.agentSignature = payload.agentSignature;
+      // Só atualiza `signatureDate` quando a assinatura foi alterada (desenho/alteração no frontend).
+      // Se o usuário não mexeu nas assinaturas, mantemos a data original no backend.
+      if (clientSignatureChanged || agentSignatureChanged) {
+        patch.signatureDate = payload.signatureDate;
+      }
+
+      // Produtos/itens (só quando caixas ou itens realmente mudaram)
+      if (caixasChanged || itensChanged) {
+        const initialCaixas: Array<any> = initialObj?.caixas ?? [];
+        const currentCaixas: Array<any> = currentObj?.caixas ?? [];
+        const initialItens: Array<any> = initialObj?.itens ?? [];
+        const currentItens: Array<any> = currentObj?.itens ?? [];
+
+        const initialCaixaById = new Map<string, any>(
+          initialCaixas.map((c: any) => [String(c.id), c]),
+        );
+
+        const sortItems = (arr: Array<any>) =>
+          [...arr].sort((a, b) => String(a.id ?? '').localeCompare(String(b.id ?? '')));
+
+        const getItemsByCaixaId = (arr: Array<any>, caixaId: string) =>
+          sortItems(arr.filter((i: any) => String(i.caixaId) === caixaId));
+
+        const changedCaixaIds = new Set<string>();
+        for (const cur of currentCaixas) {
+          const curId = String(cur.id);
+          const init = initialCaixaById.get(curId);
+
+          if (!init) {
+            changedCaixaIds.add(curId);
+            continue;
+          }
+
+          const caixaDiff =
+            cur.type !== init.type || cur.value !== init.value || cur.weight !== init.weight;
+          if (caixaDiff) {
+            changedCaixaIds.add(curId);
+            continue;
+          }
+
+          const initItems = getItemsByCaixaId(initialItens, curId);
+          const curItems = getItemsByCaixaId(currentItens, curId);
+          if (JSON.stringify(curItems) !== JSON.stringify(initItems)) {
+            changedCaixaIds.add(curId);
+          }
+        }
+
+        const currentCaixaIdSet = new Set(currentCaixas.map((c: any) => String(c.id)));
+        const removedBackendProductIds = initialCaixas
+          .map((c: any) => String(c.id))
+          .filter(
+            (bid) => existingProductIdsRef.current.has(bid) && !currentCaixaIdSet.has(bid),
+          );
+        if (removedBackendProductIds.length) {
+          patch.deletedDriverServiceOrderProductIds = removedBackendProductIds;
+        }
+
+        if (changedCaixaIds.size) {
+          patch.driverServiceOrderProducts = caixas
+            .filter((c) => changedCaixaIds.has(String(c.id)))
+            .map((c) => ({
+              // Quando o produto existe no backend, enviamos `id` para update.
+              // Quando for criado durante a edição, omitimos `id` para o backend criar.
+              ...(existingProductIdsRef.current.has(c.id) ? { id: c.id } : {}),
+              type: `${c.type} - ${ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[obterTipoProdutoDaCaixa(c) as keyof typeof PRODUCT_TYPE_TO_ITEM_KEY]]}`,
+              value: c.value,
+              weight: c.weight,
+              driverServiceOrderProductsItems: itens
+                .filter((i) => i.caixaId === c.id)
+                .map((i) => ({
+                  id: i.id,
+                  name: i.name,
+                  quantity: Number(i.quantity) || 0,
+                  weight: Number(i.weight) || 0,
+                  observations: i.observations ?? '',
+                })),
+            }));
+        }
+      }
+
+      // Sempre envia motorista atual no PATCH (backend mapeia `userId` → `driver`; evita `user` inválido no Prisma).
+      if (Object.keys(patch).length > 0) {
+        patch.userId = payload.userId;
+        patch.driverName = payload.driverName;
+      }
+
+      // Remove campos undefined para não enviar “chaves vazias” no PATCH.
+      for (const [k, v] of Object.entries(patch)) {
+        if (v === undefined) delete (patch as any)[k];
+      }
+
+      if (Object.keys(patch).length === 0) {
+        toast.info('Nenhum campo alterado.');
+        return;
+      }
+
+      const result = await serviceOrderFormService.update(existingOrdem.id, patch);
+      if (result.success && result.data) {
+        if (onSave) onSave(result.data);
+        void Promise.resolve(onAgendamentosAtualizados?.()).catch(() => { });
+        toast.success('Ordem de serviço atualizada com sucesso!');
+        onClose();
+        return;
+      }
+
+      toast.error(result.error || 'Erro ao atualizar ordem de serviço');
       return;
     }
 
@@ -748,28 +1166,33 @@ export default function OrdemServicoForm({
           </CardContent>
         </Card>
 
-        {isEditMode ? (
+        {isEditMode || user?.role !== 'motorista' ? (
           <Card className="border-[#1E3A5F] border-2">
-            <CardHeader className="bg-slate-50 dark:bg-slate-900/40">
+            <CardHeader className="bg-slate-50 dark:bg-slate-900/40 border-[#1E3A5F] border-0 rounded-t-lg">
               <CardTitle className="flex items-center gap-2 text-[#1E3A5F]">
                 <ClipboardList className="w-5 h-5" />
                 Gestão da ordem (back-office)
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div
+                className={`grid grid-cols-1 gap-4 ${isEditMode ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}
+              >
+                {isEditMode ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="osIdInterno">Nº da ordem</Label>
+                    <Input
+                      id="osIdInterno"
+                      value={existingOrdem?.id ?? ''}
+                      readOnly
+                      className="bg-muted font-mono"
+                    />
+                  </div>
+                ) : null}
                 <div className="space-y-2">
-                  <Label htmlFor="osIdInterno">Nº da ordem</Label>
-                  <Input
-                    id="osIdInterno"
-                    value={existingOrdem?.id ?? ''}
-                    readOnly
-                    className="bg-muted font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
+                  <Label>Status *</Label>
                   <Select
+                    required
                     value={ordemStatus}
                     onValueChange={(v: OrdemServicoMotorista['status']) => setOrdemStatus(v)}
                   >
@@ -784,12 +1207,15 @@ export default function OrdemServicoForm({
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="motoristaResp">Motorista responsável</Label>
-                  <Input
-                    id="motoristaResp"
+                  <ResponsavelSelect
+                    items={motoristas}
+                    label="Motorista responsável *"
                     value={motoristaResponsavel}
-                    onChange={(e) => setMotoristaResponsavel(e.target.value)}
-                    placeholder="Nome do motorista"
+                    onValueChange={(v: string) => setMotoristaResponsavel(v)}
+                    placeholder="Selecione o motorista responsável..."
+                    searchPlaceholder="Buscar motorista responsável..."
+                    emptyMessage="Nenhum motorista responsável encontrado."
+                    disabled={user?.role === 'motorista'}
                   />
                 </div>
               </div>
@@ -798,8 +1224,12 @@ export default function OrdemServicoForm({
                 <Textarea
                   id="obsInternas"
                   rows={3}
-                  value={ordemObservacoes}
-                  onChange={(e) => setOrdemObservacoes(e.target.value)}
+                  value={isEditMode ? ordemObservacoes : observations}
+                  onChange={(e) =>
+                    isEditMode
+                      ? setOrdemObservacoes(e.target.value)
+                      : setObservations(e.target.value)
+                  }
                   placeholder="Notas visíveis apenas na gestão da ordem..."
                   className="resize-y min-h-[80px]"
                 />
@@ -810,7 +1240,7 @@ export default function OrdemServicoForm({
 
         {/* Seção Remetente (USA) */}
         <Card>
-          <CardHeader className="bg-blue-50">
+          <CardHeader className="bg-blue-50 rounded-t-lg border-0">
             <CardTitle className="flex items-center gap-2 text-[#1E3A5F]">
               <User className="w-5 h-5" />
               Remetente (USA)
@@ -919,7 +1349,7 @@ export default function OrdemServicoForm({
 
         {/* Seção Destinatário (Brasil) */}
         <Card>
-          <CardHeader className="bg-green-50">
+          <CardHeader className="bg-green-50 rounded-t-lg border-0">
             <CardTitle className="flex items-center gap-2 text-[#1E3A5F]">
               <MapPin className="w-5 h-5" />
               Destinatário (Brasil)
@@ -1038,7 +1468,7 @@ export default function OrdemServicoForm({
 
         {/* Seção Produtos e Valores */}
         <Card>
-          <CardHeader className="bg-orange-50">
+          <CardHeader className="bg-orange-50 rounded-t-lg border-0">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <CardTitle className="flex items-center gap-2 text-[#1E3A5F]">
                 <Package className="w-5 h-5" />
@@ -1064,9 +1494,8 @@ export default function OrdemServicoForm({
             ) : (
               <div className="space-y-3">
                 {/* Cabeçalho da tabela */}
-                <div className="hidden md:grid md:grid-cols-13 gap-3 text-sm font-semibold text-muted-foreground border-b pb-2">
+                <div className="hidden md:grid md:grid-cols-11 gap-3 text-sm font-semibold text-muted-foreground border-b pb-2">
                   <div className="col-span-5 text-center">Tipo da Caixa ou Produto</div>
-                  <div className="col-span-2 text-center">Nº</div>
                   <div className="col-span-2 text-center">Peso (kg)</div>
                   <div className="col-span-3 text-center">Valor ($)</div>
                   <div className="col-span-1 text-center"></div>
@@ -1087,7 +1516,7 @@ export default function OrdemServicoForm({
                       animate={{ opacity: 1, y: 0 }}
                       className="rounded-xl border border-border bg-gray-50/90 p-3 shadow-sm space-y-3"
                     >
-                      <div className="grid grid-cols-1 md:grid-cols-13 gap-3 items-end">
+                      <div className="grid grid-cols-1 md:grid-cols-11 gap-3 items-end">
                         <div className="md:col-span-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-2 min-w-0">
                           <div className="flex-1 min-w-0 space-y-1">
                             <Label className="md:hidden">Tipo da Caixa ou Produto</Label>
@@ -1117,7 +1546,7 @@ export default function OrdemServicoForm({
                               title={
                                 podeAdicionarItens
                                   ? 'Adicionar itens nesta caixa'
-                                  : 'Preencha tipo, número, peso e valor da caixa antes de adicionar itens'
+                                  : 'Preencha tipo, peso e valor da caixa antes de adicionar itens'
                               }
                               onClick={() => adicionarItens(caixa.id)}
                             >
@@ -1125,15 +1554,6 @@ export default function OrdemServicoForm({
                               Itens
                             </Button>
                           )}
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label className="md:hidden mb-2">Número</Label>
-                          <Input
-                            value={caixa.number}
-                            onChange={(e) => atualizarCaixa(caixa.id, 'number', e.target.value)}
-                            placeholder="A1, A2, A3, etc."
-                            readOnly
-                          />
                         </div>
                         <div className="md:col-span-2">
                           <Label className="md:hidden mb-2">Peso (kg)</Label>
@@ -1183,7 +1603,7 @@ export default function OrdemServicoForm({
                       {itensDaCaixa.length > 0 && (
                         <div className="rounded-lg border border-dashed border-border bg-white p-3 space-y-2">
                           <p className="text-xs font-semibold text-muted-foreground">
-                            Itens da caixa: <span className="text-foreground">{caixa.number}</span>
+                            Itens da caixa
                           </p>
                           <div className="hidden sm:grid sm:grid-cols-11 gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground px-1">
                             <span className="col-span-1 text-center">Item #</span>
@@ -1309,7 +1729,7 @@ export default function OrdemServicoForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Assinatura Cliente */}
           <Card>
-            <CardHeader className="bg-purple-50">
+            <CardHeader className="bg-purple-50 rounded-t-lg border-0">
               <CardTitle className="flex items-center gap-2 text-[#1E3A5F]">
                 <Signature className="w-5 h-5" />
                 Assinatura Cliente *
@@ -1344,7 +1764,7 @@ export default function OrdemServicoForm({
 
           {/* Assinatura Agente */}
           <Card>
-            <CardHeader className="bg-blue-50">
+            <CardHeader className="bg-blue-50 rounded-t-lg border-0">
               <CardTitle className="flex items-center gap-2 text-[#1E3A5F]">
                 <Signature className="w-5 h-5" />
                 Assinatura Agente *
@@ -1380,7 +1800,7 @@ export default function OrdemServicoForm({
 
         {/* Seção Pagamento em Espécie */}
         <Card className="border-2 border-green-500">
-          <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+          <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg border-0">
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="w-6 h-6" />
               Pagamento em Espécie
@@ -1438,6 +1858,29 @@ export default function OrdemServicoForm({
           </CardContent>
         </Card>
 
+        {/* Observações (somente criação pelo próprio motorista; admin usa o card de gestão) */}
+        {!isEditMode && user?.role === 'motorista' && (
+          <>
+            <Card>
+              <CardHeader className="bg-gray-50 rounded-t-lg border-0">
+                <CardTitle className="flex items-center gap-2 text-[#1E3A5F]">
+                  <FileText className="w-5 h-5" />
+                  Observações da Ordem de Serviço
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-3">
+                <Textarea
+                  id="observations"
+                  placeholder="Digite suas observações aqui"
+                  value={observations}
+                  onChange={(e) => setObservations(e.target.value)}
+                  className="resize-none h-24 border-2 border-border rounded-lg p-2 bg-white"
+                />
+              </CardContent>
+            </Card>
+          </>
+        )}
+
         {/* Nota Importante */}
         <Card className="border-yellow-300 bg-yellow-50">
           <CardContent className="pt-4">
@@ -1461,8 +1904,10 @@ export default function OrdemServicoForm({
           <p>
             Agente:{' '}
             {isEditMode
-              ? motoristaResponsavel || user?.nome || 'Motorista'
-              : user?.nome || 'Motorista'}
+              ? motoristaResponsavelNome || existingOrdem?.driverName || user?.nome || 'Motorista'
+              : user?.role === 'motorista'
+                ? user?.nome || 'Motorista'
+                : motoristaResponsavelNome || '—'}
           </p>
         </div>
         <div className="flex flex-col-reverse sm:flex-row w-full sm:w-auto gap-2 sm:gap-3">
@@ -1471,6 +1916,7 @@ export default function OrdemServicoForm({
           </Button>
           <Button
             onClick={salvarOrdemServico}
+            disabled={isEditMode ? !canSave : false}
             className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 w-full sm:w-auto"
           >
             <Save className="w-4 h-4 mr-2" />
@@ -1478,7 +1924,7 @@ export default function OrdemServicoForm({
           </Button>
         </div>
       </div>
-    </motion.div>
+    </motion.div >
   );
 
   if (embedded) {

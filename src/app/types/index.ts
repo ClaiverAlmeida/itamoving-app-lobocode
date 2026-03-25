@@ -230,13 +230,16 @@ export interface OrdemServicoMotorista {
 
   // Caixas e Valores
   driverServiceOrderProducts: {
-    id: string;
-    number: string;
+    id?: string;
+    // number: string; - // TODO - Será adicionado no container
     type: string; // tipo da caixa
     weight: number;
     value: number;
     /** Itens adicionais dentro desta caixa (ordem de serviço) */
     driverServiceOrderProductsItems?: {
+      id?: string;
+      /** Id da ordem de serviço (denormalizado no item) */
+      driverServiceOrderId?: string;
       name: string;
       quantity: number;
       weight: number;
@@ -257,4 +260,7 @@ export interface OrdemServicoMotorista {
 
   // Observações
   observations?: string;
+
+  /** PATCH: remover produtos (caixas) já persistidos no backend */
+  deletedDriverServiceOrderProductIds?: string[];
 }

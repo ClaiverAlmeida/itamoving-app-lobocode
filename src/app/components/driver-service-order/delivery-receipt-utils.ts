@@ -88,7 +88,6 @@ export function getOrdemProductsList(
 
 export type ReciboRow = {
   key: string;
-  number: string;
   tipoPrincipal: string;
   tipoCadastro: string;
   weight: number | undefined;
@@ -116,7 +115,6 @@ export function summarizeOrdemForRecibo(ordem: OrdemServicoMotorista) {
 
     return {
       key: String(p.id ?? `box-${idx}`),
-      number: p.number ?? String(idx + 1),
       tipoPrincipal,
       tipoCadastro: rawType || "—",
       weight: p.weight,

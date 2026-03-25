@@ -206,7 +206,6 @@ export function DeliveryReceipt({
             <table className="w-full text-sm min-w-[280px]">
               <thead className="border-b">
                 <tr className="text-center">
-                  <th className="pb-2 pr-2 text-center">Nº</th>
                   <th className="pb-2 pr-2 text-center">Tipo do Produto</th>
                   <th className="pb-2 text-center whitespace-nowrap">Peso (kg)</th>
                   <th className="pb-2 text-center whitespace-nowrap">Valor (USD)</th>
@@ -215,9 +214,6 @@ export function DeliveryReceipt({
               <tbody className="divide-y">
                 {reciboRows.map((row) => (
                   <tr key={row.key}>
-                    <td className="py-2 pr-2 align-top font-medium whitespace-nowrap text-center">
-                      {row.number}
-                    </td>
                     <td className="py-2 pr-2 align-top text-center">
                       <div className="font-medium">{row.tipoPrincipal}</div>
                     </td>

@@ -7,6 +7,8 @@ function asRecord(v: unknown): Record<string, unknown> | null {
 
 /** Ordem no formato do app + metadados opcionais vindos do GET (appointment / company). */
 export type OrdemServicoView = OrdemServicoMotorista & {
+  createdAt?: string;
+  updatedAt?: string;
   appointment?: {
     id: string;
     collectionDate?: string;
@@ -87,14 +89,17 @@ function mapProducts(raw: unknown): OrdemServicoMotorista["driverServiceOrderPro
     const itemsRaw = pickItemsArray(row);
     const items = Array.isArray(itemsRaw)
       ? itemsRaw.map((it) => {
-          const i = asRecord(it) ?? {};
-          return {
-            name: String(i.name ?? ""),
-            quantity: Number(i.quantity) || 0,
-            weight: Number(i.weight) || 0,
-            observations: i.observations != null ? String(i.observations) : undefined,
-          };
-        })
+        const i = asRecord(it) ?? {};
+        return {
+          id: String(i.id ?? ''),
+          driverServiceOrderId:
+            i.driverServiceOrderId != null ? String(i.driverServiceOrderId) : undefined,
+          name: String(i.name ?? ""),
+          quantity: Number(i.quantity) || 0,
+          weight: Number(i.weight) || 0,
+          observations: i.observations != null ? String(i.observations) : undefined,
+        };
+      })
       : [];
     return {
       id: String(row.id ?? ""),
@@ -131,6 +136,8 @@ export function mapDriverServiceOrderApiToView(raw: unknown): OrdemServicoView |
 
   const ordem: OrdemServicoView = {
     id,
+    createdAt: toIso(r.createdAt),
+    updatedAt: toIso(r.updatedAt),
     appointmentId,
     sender: normalizeSender(r.sender),
     recipient: normalizeRecipient(r.recipient),
