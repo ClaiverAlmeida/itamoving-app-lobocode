@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { authService, type AuthUser, type UserRole } from '../services/auth.service';
-import { connectSocket, disconnectSocket } from '../services/socket.service';
-import { pushService } from '../services/push.service';
+import { authService, connectSocket, disconnectSocket, pushService } from '../api';
+import type { AuthUser, UserRole } from '../api';
 
 export type { UserRole };
 

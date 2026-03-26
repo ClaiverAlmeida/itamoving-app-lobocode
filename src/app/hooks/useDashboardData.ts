@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { clientsService, containersServices, stockService, appointmentsService } from '../services';
-import type { Cliente, Container, Estoque, Agendamento } from '../types';
+import { clientsService, containersServices, stockService, appointmentsService } from '../api';
+import type { Cliente, Container, Estoque, Agendamento } from '../api';
 
 /** Quais fontes de dados do dashboard devem ser carregadas. Omitir = true (carrega). */
 export interface DashboardDataConfig {
@@ -69,7 +69,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): UseDashboard
     let idx = 0;
     if (opts.clientes) {
       const res = results[idx++] as Awaited<ReturnType<typeof clientsService.getAll>>;
-      if (res.success && res.data?.data) setClientes(res.data.data);
+      if (res.success && res.data) setClientes(res.data);
       else if (res.error) toast.error(res.error);
     }
     if (opts.containers) {
@@ -79,8 +79,8 @@ export function useDashboardData(config: DashboardDataConfig = {}): UseDashboard
     }
     if (opts.estoque) {
       const res = results[idx++] as Awaited<ReturnType<typeof stockService.getAll>>;
-      if (res.success && res.data?.data?.length) {
-        const first = res.data.data[0];
+      if (res.success && res.data?.length) {
+        const first = res.data[0];
         setEstoque({
           smallBoxes: first.smallBoxes ?? 0,
           mediumBoxes: first.mediumBoxes ?? 0,

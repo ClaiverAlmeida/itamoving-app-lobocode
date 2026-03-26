@@ -41,12 +41,11 @@ import {
   TableRow,
 } from "./ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { ScrollArea } from "./ui/scroll-area";
-import type { OrdemServicoMotorista } from "../types";
+import type { OrdemServicoMotorista } from "../api";
 import { DeliveryReceipt } from "./driver-service-order/delivery-receipt";
 import OrdemServicoForm from "./driver-service-order/service-order-form";
 import { RECIBO_CATEGORY_LABEL, summarizeOrdemForRecibo } from "./driver-service-order/delivery-receipt-utils";
-import { serviceOrderFormService, type OrdemServicoView } from "../services/driver-service-order/service-order-form.service";
+import { serviceOrderFormService, type OrdemServicoView } from "../api";
 import { cn } from "./ui/utils";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
@@ -156,9 +155,9 @@ function ViewField({
   className?: string;
 }) {
   return (
-    <div className={className}>
+    <div className={cn("min-w-0", className)}>
       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <div className="mt-1.5 text-sm text-foreground leading-snug">{children}</div>
+      <div className="mt-1.5 break-words text-sm leading-snug text-foreground">{children}</div>
     </div>
   );
 }
@@ -637,7 +636,7 @@ export default function OrdemDeServicoView() {
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent
           className={cn(
-            "flex flex-col gap-0 overflow-hidden rounded-xl border border-border/80 p-0 shadow-lg",
+            "flex flex-col gap-0 overflow-x-auto overflow-y-hidden rounded-xl border border-border/80 p-0 shadow-lg",
             // Mobile: altura limitada (não ocupa 100% do ecrã)
             "h-[min(85dvh,100svh)] max-h-[min(85dvh,680px)] w-[calc(100vw-0.75rem)] max-w-[calc(100vw-0.75rem)]",
             // Desktop: mais baixo (~72vh / 600px máx.); override do sm:max-w-lg do Dialog
@@ -647,7 +646,7 @@ export default function OrdemDeServicoView() {
           {viewOrdem ? (
             <>
               <DialogHeader className="shrink-0 space-y-0 border-b border-border/80 bg-gradient-to-br from-[#1E3A5F]/[0.07] via-background to-background px-4 py-4 pr-12 text-left sm:px-6 sm:py-5 sm:pr-14">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0 space-y-1">
                     <DialogTitle className="text-xl font-semibold tracking-tight text-[#1E3A5F] sm:text-2xl">
                       Ordem de serviço
@@ -679,9 +678,9 @@ export default function OrdemDeServicoView() {
                 </DialogDescription>
               </DialogHeader>
 
-              <ScrollArea
+              <div
                 className={cn(
-                  "min-h-0 flex-1 px-3 pb-4 pt-0 sm:px-6",
+                  "min-h-0 flex-1 overflow-auto px-3 pb-4 pt-0 sm:px-6",
                   // Ocupa o espaço restante sob o cabeçalho (flex no DialogContent)
                   "max-h-[calc(min(85dvh,680px)-9rem)] sm:max-h-[calc(min(72vh,600px)-10.5rem)]",
                 )}
@@ -693,45 +692,46 @@ export default function OrdemDeServicoView() {
                   const { summary, totalUnidades } = summarizeOrdemForRecibo(o);
                   return (
                     <Tabs defaultValue="resumo" className="pb-4 pt-3 sm:pb-6 sm:pt-4">
-                      <TabsList
-                        className={cn(
-                          "h-auto w-full gap-1 rounded-lg bg-muted/60 p-1",
-                          // Mobile: uma linha com scroll horizontal (evita grelha quebrada)
-                          "flex flex-nowrap justify-start overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-                          "sm:grid sm:grid-cols-5 sm:overflow-visible",
-                        )}
-                      >
-                        <TabsTrigger
-                          value="resumo"
-                          className="flex-none shrink-0 px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm"
+                      <div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:overflow-visible sm:px-0">
+                        <TabsList
+                          className={cn(
+                            "h-auto w-max min-w-max gap-1 rounded-lg bg-muted/60 p-1",
+                            "flex flex-nowrap justify-start",
+                            "sm:grid sm:w-full sm:min-w-0 sm:grid-cols-5",
+                          )}
                         >
-                          Resumo
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="cliente"
-                          className="flex-none shrink-0 px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm"
-                        >
-                          Remetente
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="destino"
-                          className="flex-none shrink-0 px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm"
-                        >
-                          Destino
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="agendamento"
-                          className="flex-none shrink-0 px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm"
-                        >
-                          Agendamento
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="caixas"
-                          className="flex-none shrink-0 px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm"
-                        >
-                          Caixas ({nCaixas})
-                        </TabsTrigger>
-                      </TabsList>
+                          <TabsTrigger
+                            value="resumo"
+                            className="flex-none shrink-0 whitespace-nowrap px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm"
+                          >
+                            Resumo
+                          </TabsTrigger>
+                          <TabsTrigger
+                            value="cliente"
+                            className="flex-none shrink-0 whitespace-nowrap px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm"
+                          >
+                            Remetente
+                          </TabsTrigger>
+                          <TabsTrigger
+                            value="destino"
+                            className="flex-none shrink-0 whitespace-nowrap px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm"
+                          >
+                            Destino
+                          </TabsTrigger>
+                          <TabsTrigger
+                            value="agendamento"
+                            className="flex-none shrink-0 whitespace-nowrap px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm"
+                          >
+                            Agendamento
+                          </TabsTrigger>
+                          <TabsTrigger
+                            value="caixas"
+                            className="flex-none shrink-0 whitespace-nowrap px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm"
+                          >
+                            Caixas ({nCaixas})
+                          </TabsTrigger>
+                        </TabsList>
+                      </div>
 
                       <TabsContent value="resumo" className="mt-4 space-y-4 sm:mt-5">
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -769,30 +769,30 @@ export default function OrdemDeServicoView() {
 
                         {/* Assinaturas */}
                         <div className="grid gap-4 lg:grid-cols-3">
-                          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
+                          <div className="min-w-0 overflow-hidden rounded-xl border border-border/80 bg-card p-4 shadow-sm">
                             <p className="text-xs font-semibold text-[#1E3A5F]">Assinatura do Cliente</p>
                             {o.clientSignature ? (
                               <img
                                 src={o.clientSignature}
                                 alt="Assinatura do cliente"
-                                className="h-14 w-full rounded-md border border-border/60 bg-background object-contain mt-2 user-select-none select-none pointer-events-none"
+                                className="mt-2 block h-10 w-full max-w-full rounded-md border border-border/60 bg-background object-contain object-center sm:h-14 user-select-none pointer-events-none select-none"
                               />
                             ) : (
-                              <div className="h-14 w-full rounded-md border border-border/60 bg-background text-center text-xs text-muted-foreground flex items-center justify-center">
+                              <div className="h-10 w-full rounded-md border border-border/60 bg-background text-center text-xs text-muted-foreground flex items-center justify-center sm:h-14">
                                 —
                               </div>
                             )}
                           </div>
-                          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
+                          <div className="min-w-0 overflow-hidden rounded-xl border border-border/80 bg-card p-4 shadow-sm">
                             <p className="text-xs font-semibold text-[#1E3A5F]">Assinatura do Agente</p>
                             {o.agentSignature ? (
                               <img
                                 src={o.agentSignature}
                                 alt="Assinatura do agente"
-                                className="h-14 w-full rounded-md border border-border/60 bg-background object-contain mt-2 user-select-none select-none pointer-events-none"
+                                className="mt-2 block h-10 w-full max-w-full rounded-md border border-border/60 bg-background object-contain object-center sm:h-14 user-select-none pointer-events-none select-none"
                               />
                             ) : (
-                              <div className="h-14 w-full rounded-md border border-border/60 bg-background text-center text-xs text-muted-foreground flex items-center justify-center">
+                              <div className="h-10 w-full rounded-md border border-border/60 bg-background text-center text-xs text-muted-foreground flex items-center justify-center sm:h-14">
                                 —
                               </div>
                             )}
@@ -839,7 +839,7 @@ export default function OrdemDeServicoView() {
                           <div className="grid gap-6 sm:grid-cols-2">
                             <ViewField label="Nome completo">{o.sender.usaName}</ViewField>
                             <ViewField label="Telefone">
-                              <span className="inline-flex items-center gap-2">
+                              <span className="inline-flex min-w-0 items-center gap-2 break-words">
                                 <Phone className="h-3.5 w-3.5 text-muted-foreground" />
                                 {o.sender.usaPhone}
                               </span>
@@ -869,7 +869,7 @@ export default function OrdemDeServicoView() {
                             <ViewField label="Nome completo">{o.recipient.brazilName}</ViewField>
                             <ViewField label="CPF">{o.recipient.brazilCpf}</ViewField>
                             <ViewField label="Telefone">
-                              <span className="inline-flex items-center gap-2">
+                              <span className="inline-flex min-w-0 items-center gap-2 break-words">
                                 <Phone className="h-3.5 w-3.5 text-muted-foreground" />
                                 {o.recipient.brazilPhone}
                               </span>
@@ -917,14 +917,14 @@ export default function OrdemDeServicoView() {
                                 </Badge>
                               </ViewField>
                               <ViewField label="Endereço / base (empresa)" className="sm:col-span-2">
-                                <span className="inline-flex items-start gap-2">
+                                <span className="inline-flex min-w-0 items-start gap-2 break-words">
                                   <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                                   {agResumo.companyAddress}
                                 </span>
                               </ViewField>
                               {agResumo.companyPhone ? (
                                 <ViewField label="Contato da empresa" className="sm:col-span-2">
-                                  <span className="inline-flex items-center gap-2">
+                                  <span className="inline-flex min-w-0 items-center gap-2 break-words">
                                     <Phone className="h-3.5 w-3.5 text-muted-foreground" />
                                     {agResumo.companyPhone}
                                   </span>
@@ -947,24 +947,26 @@ export default function OrdemDeServicoView() {
                       </TabsContent>
 
                       <TabsContent value="caixas" className="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="flex items-center gap-2 text-sm font-semibold text-[#1E3A5F]">
-                            <Package className="h-4 w-4" />
-                            Caixas e itens ({nCaixas})
+                        <div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:overflow-visible sm:px-0">
+                          <div className="flex min-w-max items-center justify-between gap-3 sm:min-w-0">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-[#1E3A5F]">
+                              <Package className="h-4 w-4" />
+                              Caixas e itens ({nCaixas})
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-9 whitespace-nowrap px-3 text-xs sm:w-auto sm:text-sm"
+                              onClick={() => {
+                                setViewOpen(false);
+                                void abrirRecibo(o);
+                              }}
+                            >
+                              <Printer className="mr-2 h-4 w-4 shrink-0" />
+                              Abrir recibo
+                            </Button>
                           </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="w-full shrink-0 sm:w-auto"
-                            onClick={() => {
-                              setViewOpen(false);
-                              void abrirRecibo(o);
-                            }}
-                          >
-                            <Printer className="mr-2 h-4 w-4" />
-                            Abrir recibo
-                          </Button>
                         </div>
 
                         {nCaixas === 0 ? (
@@ -1049,7 +1051,7 @@ export default function OrdemDeServicoView() {
                     </Tabs>
                   );
                 })()}
-              </ScrollArea>
+              </div>
             </>
           ) : (
             <DialogHeader className="px-6 py-6">

@@ -1,11 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
-import { connectSocket, getSocket, onceConnected } from '../services/socket.service';
-import {
-  notificationsService,
-  type NotificationItem,
-} from '../services/notifications.service';
+import { connectSocket, getSocket, notificationsService, onceConnected } from '../api';
+import type { NotificationItem } from '../api';
 
 /** Payload enviado pelo backend no evento new_notification (WebSocket) */
 export interface NewNotificationPayload {

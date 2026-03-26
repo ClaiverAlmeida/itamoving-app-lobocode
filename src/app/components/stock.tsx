@@ -59,14 +59,10 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { stockService, productsService, usersService } from "../services";
-import { DriverUser } from "../services/hr/users.service";
+import { stockService, productsService, usersService } from "../api";
+import type { CriarMovimentacao, DriverUser, EstoqueAtualizado } from "../api";
 
-import {
-  EstoqueAtualizado,
-  CriarMovimentacao,
-} from "../services/stock.service";
-import { PrecoProduto } from "../types";
+import { PrecoProduto } from "../api";
 import { ResponsavelSelect } from "./forms";
 import { EmptyStateAlert } from "./alerts";
 
@@ -262,8 +258,8 @@ export default function EstoqueView() {
   useEffect(() => {
     const carregarEstoque = async () => {
       const result = await stockService.getAll();
-      if (result.success && result.data?.data?.length) {
-        const stock = result.data.data[0];
+      if (result.success && result.data?.length) {
+        const stock = result.data[0];
         updateEstoque({
           smallBoxes: stock.smallBoxes ?? 0,
           mediumBoxes: stock.mediumBoxes ?? 0,
@@ -296,7 +292,7 @@ export default function EstoqueView() {
   const carregarMotoristas = async () => {
     const result = await usersService.getAllDrivers();
     if (result.success && result.data) {
-      setMotoristas(result.data.data);
+      setMotoristas(result.data);
     } else if (result.error) {
       toast.error(result.error);
     }
@@ -309,8 +305,9 @@ export default function EstoqueView() {
     }
 
     const itemKey = selectedItem as keyof typeof estoque;
+    const estoqueAtual = Number(estoque[itemKey] ?? 0);
 
-    if (dialogType === "EXIT" && estoque[itemKey] < quantidade) {
+    if (dialogType === "EXIT" && estoqueAtual < quantidade) {
       toast.error("Estoque insuficiente");
       return;
     }
@@ -318,8 +315,8 @@ export default function EstoqueView() {
     // Atualizar estoque
     const novoValor =
       dialogType === "ENTRY"
-        ? estoque[itemKey] + quantidade
-        : estoque[itemKey] - quantidade;
+        ? estoqueAtual + quantidade
+        : estoqueAtual - quantidade;
 
     updateEstoque({
       [itemKey]: novoValor,
@@ -437,14 +434,14 @@ export default function EstoqueView() {
 
   const statistics = useMemo(() => {
     const totalItens = Object.values(estoque).reduce(
-      (sum, val) => sum + val,
+      (sum, val) => sum + Number(val ?? 0),
       0,
     );
     const itensCriticos = itensEstoque.filter(
-      (item) => estoque[item.key] < item.minimo,
+      (item) => Number(estoque[item.key] ?? 0) < item.minimo,
     ).length;
     const itensOk = itensEstoque.filter(
-      (item) => estoque[item.key] >= item.ideal,
+      (item) => Number(estoque[item.key] ?? 0) >= item.ideal,
     ).length;
 
     const entradas7dias = movimentacoes
@@ -787,7 +784,7 @@ export default function EstoqueView() {
       {/* Cards de Estoque */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {itensEstoque.map((item) => {
-          const quantidade = estoque[item.key];
+          const quantidade = Number(estoque[item.key] ?? 0);
           const nivel = getNivelEstoque(quantidade, item.minimo, item.ideal);
           const percentual = (quantidade / item.ideal) * 100;
           const Icon = item.icon;
@@ -976,7 +973,7 @@ export default function EstoqueView() {
             <CardContent>
               <div className="space-y-3">
                 {itensEstoque.map((item) => {
-                  const quantidade = estoque[item.key];
+                  const quantidade = Number(estoque[item.key] ?? 0);
                   const nivel = getNivelEstoque(
                     quantidade,
                     item.minimo,

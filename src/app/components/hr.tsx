@@ -44,12 +44,13 @@ import {
   UserMinus,
   Pencil
 } from 'lucide-react';
-import { Usuario } from '../types';
+import { Usuario } from '../api';
 import {
   EUA_STATES,
   formatNumberTelephoneEUA,
 } from "../utils";
-import { usersService, UpdateUsersDTO, CreateUsersDTO } from '../services/hr/users.service';
+import { usersService } from '../api';
+import type { CreateUsersDTO, UpdateUsersDTO } from '../api';
 import { useAuth } from "../context/AuthContext";
 
 export default function RHView() {

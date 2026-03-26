@@ -27,7 +27,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { useData } from "../context/DataContext";
-import { Container, Container as ContainerType } from "../types";
+import { Container, Container as ContainerType } from "../api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { format } from "date-fns";
@@ -77,10 +77,8 @@ import {
   Edit,
   Gauge,
 } from "lucide-react";
-import { containersServices } from "../services";
-import {
-  UpdateContainersDTO,
-} from "../services/containers.service";
+import { containersServices } from "../api";
+import type { UpdateContainersDTO } from "../api";
 import {
   StatusSelect,
   type StatusSelectItem,

@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import { OrdemServicoMotorista, PrecoProduto } from '../../types';
+import { OrdemServicoMotorista, PrecoProduto } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'motion/react';
 import {
@@ -36,11 +36,10 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { toast } from 'sonner';
 
-import { productsService } from '../../services';
-import { Caixa, Item, OrdemServicoFormProps, serviceOrderFormService } from '../../services/driver-service-order/service-order-form.service';
+import { productsService, serviceOrderFormService, usersService } from '../../api';
+import type { Caixa, DriverUser, Item, OrdemServicoFormProps } from '../../api';
 import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from '../stock';
 import { ResponsavelSelect } from '../forms';
-import { DriverUser, usersService } from '../../services/hr/users.service';
 
 /** Valor do Select (`SelectItem value`) — igual a `atualizarCaixa` / payload visual. */
 function valorSelectCaixa(p: PrecoProduto): string {
@@ -123,7 +122,7 @@ export default function OrdemServicoForm({
     try {
       const result = await usersService.getAllDrivers();
       if (result.success && result.data) {
-        setMotoristas(result.data.data);
+        setMotoristas(result.data);
       } else if (result.error) {
         toast.error(result.error ?? 'Não foi possível carregar os motoristas.');
       }
@@ -970,6 +969,9 @@ export default function OrdemServicoForm({
       const clientSignatureChanged = currentObj?.assinaturas?.clientSignature !== initialObj?.assinaturas?.clientSignature;
       const agentSignatureChanged = currentObj?.assinaturas?.agentSignature !== initialObj?.assinaturas?.agentSignature;
 
+      const motoristaChanged =
+        String(currentObj?.motoristaResponsavel ?? '').trim() !==
+        String(initialObj?.motoristaResponsavel ?? '').trim();
       const caixasChanged = JSON.stringify(currentObj?.caixas) !== JSON.stringify(initialObj?.caixas);
       const itensChanged = JSON.stringify(currentObj?.itens) !== JSON.stringify(initialObj?.itens);
 
@@ -979,6 +981,10 @@ export default function OrdemServicoForm({
       if (statusChanged) patch.status = payload.status;
       if (observationsChanged) patch.observations = currentObj?.ordem?.observations ?? '';
       if (chargedValueChanged) patch.chargedValue = payload.chargedValue;
+      if (motoristaChanged) {
+        patch.userId = payload.userId;
+        patch.driverName = payload.driverName;
+      }
 
       // Assinaturas
       if (clientSignatureChanged) patch.clientSignature = payload.clientSignature;

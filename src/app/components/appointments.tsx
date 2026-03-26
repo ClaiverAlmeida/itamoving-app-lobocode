@@ -42,7 +42,7 @@ import {
 import { Calendar } from "./ui/calendar";
 import { Badge } from "./ui/badge";
 import { useData } from "../context/DataContext";
-import { Agendamento, Cliente } from "../types";
+import { Agendamento, Cliente } from "../api";
 import {
   Plus,
   Calendar as CalendarIcon,
@@ -91,9 +91,13 @@ import { motion, AnimatePresence } from "motion/react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { AtendenteSelect, StatusSelect, type StatusSelectItem } from "./forms";
 import { EmptyStateAlert, AppointmentBoxesPerDayAlert, AppointmentBoxesPerPeriodAlert } from "./alerts";
-import { clientsService } from "../services/clients.service";
-import { appointmentsService, CreateAppointmentsDTO, CreateAppointmentsPeriodsDTO, UpdateAppointmentsDTO, UpdateAppointmentsPeriodsDTO } from "../services/appointments.service";
-import { connectSocket, getSocket } from "../services/socket.service";
+import { appointmentsService, clientsService, connectSocket, getSocket } from "../api";
+import type {
+  CreateAppointmentsDTO,
+  CreateAppointmentsPeriodsDTO,
+  UpdateAppointmentsDTO,
+  UpdateAppointmentsPeriodsDTO,
+} from "../api";
 import { toDateOnly, formatDateOnlyToBR } from "../utils";
 
 const AGENDAMENTO_STATUS_ITEMS = [
@@ -154,6 +158,8 @@ export default function AgendamentosView() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("calendar");
+  const [listVisibleCount, setListVisibleCount] = useState(40);
+  const listContainerRef = useRef<HTMLDivElement | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [isPeriodic, setIsPeriodic] = useState<boolean>(false);
@@ -845,8 +851,8 @@ export default function AgendamentosView() {
 
   const carregarClientes = async () => {
     const result = await clientsService.getAll();
-    if (result.success && result.data?.data) {
-      setClientes(result.data.data);
+    if (result.success && result.data) {
+      setClientes(result.data);
     } else if (result.error) {
       toast.error(result.error);
     }
@@ -905,6 +911,28 @@ export default function AgendamentosView() {
       return true;
     });
   }, [agendamentos, searchTerm, filters]);
+
+  const sortedFilteredAgendamentos = useMemo(
+    () =>
+      filteredAgendamentos.slice().sort((a, b) => {
+        const dateCompare = (a.collectionDate ?? "").localeCompare(
+          b.collectionDate ?? "",
+        );
+        if (dateCompare !== 0) return dateCompare;
+        return a.collectionTime.localeCompare(b.collectionTime);
+      }),
+    [filteredAgendamentos],
+  );
+
+  const renderedAgendamentosList = useMemo(
+    () => sortedFilteredAgendamentos.slice(0, listVisibleCount),
+    [sortedFilteredAgendamentos, listVisibleCount],
+  );
+
+  useEffect(() => {
+    setListVisibleCount(40);
+    if (listContainerRef.current) listContainerRef.current.scrollTop = 0;
+  }, [searchTerm, filters, viewMode, selectedDate, selectedPeriod?.id, selectedDayInPeriod]);
 
   const agendamentosDosDia = useMemo(() => {
     return filteredAgendamentos.filter((ag) =>
@@ -2733,16 +2761,20 @@ export default function AgendamentosView() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {filteredAgendamentos
-                  .sort((a, b) => {
-                    const dateCompare = (a.collectionDate ?? "").localeCompare(
-                      b.collectionDate ?? "",
+              <div
+                ref={listContainerRef}
+                className="space-y-3 max-h-[72vh] overflow-y-auto pr-1"
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 160;
+                  if (nearBottom && listVisibleCount < sortedFilteredAgendamentos.length) {
+                    setListVisibleCount((prev) =>
+                      Math.min(prev + 30, sortedFilteredAgendamentos.length),
                     );
-                    if (dateCompare !== 0) return dateCompare;
-                    return a.collectionTime.localeCompare(b.collectionTime);
-                  })
-                  .map((agendamento) => {
+                  }
+                }}
+              >
+                {renderedAgendamentosList.map((agendamento) => {
                     const config = getStatusConfig(agendamento.status);
                     const StatusIcon = config.icon;
                     const dateStr = (agendamento.collectionDate ?? "").slice(
@@ -2870,6 +2902,22 @@ export default function AgendamentosView() {
                       </motion.div>
                     );
                   })}
+
+                {listVisibleCount < sortedFilteredAgendamentos.length && (
+                  <div className="flex justify-center py-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setListVisibleCount((prev) =>
+                          Math.min(prev + 30, sortedFilteredAgendamentos.length),
+                        )
+                      }
+                    >
+                      Carregar mais
+                    </Button>
+                  </div>
+                )}
 
                 {filteredAgendamentos.length === 0 && (
                   <div className="text-center py-12 text-muted-foreground">

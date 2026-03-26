@@ -47,14 +47,16 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { PrecoEntrega } from "../../types";
+import { PrecoEntrega } from "../../api";
 import { BRASIL_STATES, EUA_STATES, exportDocument } from "../../utils/";
 import {
+  deliveryPricesService,
+} from "../../api";
+import type {
   CreateDeliveryPriceDTO,
   DeliveryPricesPagination,
   UpdateDeliveryPriceEntregaDTO,
-  deliveryPricesService,
-} from "../../services/prices/delivery.service";
+} from "../../api";
 
 function toUfBrasil(val: string): string {
   if (!val) return val;

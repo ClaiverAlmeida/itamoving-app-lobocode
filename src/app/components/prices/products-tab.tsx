@@ -50,13 +50,15 @@ import {
   ChevronRight,
   Minus,
 } from "lucide-react";
-import { PrecoProduto } from "../../types";
+import { PrecoProduto } from "../../api";
 import {
   productsService,
+} from "../../api";
+import type {
   CreateProductPriceDTO,
-  UpdateProductPriceDTO,
   ProductPricePagination,
-} from "../../services/prices/products.service";
+  UpdateProductPriceDTO,
+} from "../../api";
 
 import { exportDocument } from "../../utils";
 // import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY, ProductType } from "../stock";

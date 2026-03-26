@@ -1,4 +1,4 @@
-import type { OrdemServicoMotorista } from "../../types";
+import type { OrdemServicoMotorista } from "../../api";
 
 export type ReciboBoxCategory =
   | "pequena"

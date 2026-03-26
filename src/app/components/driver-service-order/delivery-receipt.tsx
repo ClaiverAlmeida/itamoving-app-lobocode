@@ -4,7 +4,7 @@ import { ptBR } from "date-fns/locale/pt-BR";
 import { Truck, CheckCircle, User, Box, Download } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import type { OrdemServicoMotorista } from "../../types";
+import type { OrdemServicoMotorista } from "../../api";
 import {
   RECIBO_CATEGORY_LABEL,
   summarizeOrdemForRecibo,

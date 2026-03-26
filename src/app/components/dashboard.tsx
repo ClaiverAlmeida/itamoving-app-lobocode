@@ -114,13 +114,13 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
   const lucro = receitaTotal - despesaTotal;
   const margemLucro = receitaTotal > 0 ? ((lucro / receitaTotal) * 100).toFixed(1) : 0;
 
-  const estoqueTotal = estoque.smallBoxes + estoque.mediumBoxes + estoque.largeBoxes + estoque.adhesiveTape + estoque.personalizedItems;
+  const estoqueTotal = Number(estoque.smallBoxes) + Number(estoque.mediumBoxes) + Number(estoque.largeBoxes) + Number(estoque.adhesiveTape) + Number(estoque.personalizedItems);
   const estoqueBaixo = [
-    { tipo: 'Caixas Pequenas', qtd: estoque.smallBoxes, minimo: 50 },
-    { tipo: 'Caixas Médias', qtd: estoque.mediumBoxes, minimo: 30 },
-    { tipo: 'Caixas Grandes', qtd: estoque.largeBoxes, minimo: 20 },
-    { tipo: 'Itens Personalizados', qtd: estoque.personalizedItems, minimo: 10 },
-    { tipo: 'Fitas', qtd: estoque.adhesiveTape, minimo: 40 },
+    { tipo: 'Caixas Pequenas', qtd: Number(estoque.smallBoxes), minimo: 50 },
+    { tipo: 'Caixas Médias', qtd: Number(estoque.mediumBoxes), minimo: 30 },
+    { tipo: 'Caixas Grandes', qtd: Number(estoque.largeBoxes), minimo: 20 },
+    { tipo: 'Itens Personalizados', qtd: Number(estoque.personalizedItems), minimo: 10 },
+    { tipo: 'Fitas', qtd: Number(estoque.adhesiveTape), minimo: 40 },
   ].filter(item => item.qtd < item.minimo);
 
   const containersAtivos = containers.filter(c =>
@@ -838,15 +838,15 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {agendamentos.slice(0, 6).map((agendamento) => {
-            const dateRaw = agendamento.collectionDate ?? "";
-            const dateStr = dateRaw.slice(0, 10);
-            const dataAgendamento =
-              dateStr.length === 10 ? new Date(dateStr + "T00:00:00") : null;
-            const ehHoje = dataAgendamento ? isToday(dataAgendamento) : false;
-            const ehAmanha = dataAgendamento ? isTomorrow(dataAgendamento) : false;
+            {agendamentos.slice(0, 6).map((agendamento) => {
+              const dateRaw = agendamento.collectionDate ?? "";
+              const dateStr = dateRaw.slice(0, 10);
+              const dataAgendamento =
+                dateStr.length === 10 ? new Date(dateStr + "T00:00:00") : null;
+              const ehHoje = dataAgendamento ? isToday(dataAgendamento) : false;
+              const ehAmanha = dataAgendamento ? isTomorrow(dataAgendamento) : false;
 
-            return (
+              return (
                 <motion.div
                   key={agendamento.id}
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -867,7 +867,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
                               agendamento.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
                                 'bg-slate-100 text-slate-700'
                           }>
-                            {agendamento.status ===  'PENDING' ? 'Pendente' : agendamento.status === 'CONFIRMED' ? 'Confirmado' : agendamento.status === 'COLLECTED' ? 'Coletado' : 'Cancelado'}
+                            {agendamento.status === 'PENDING' ? 'Pendente' : agendamento.status === 'CONFIRMED' ? 'Confirmado' : agendamento.status === 'COLLECTED' ? 'Coletado' : 'Cancelado'}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -9,8 +9,7 @@ import {
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { motion, AnimatePresence } from "motion/react";
-import OrdemServicoForm from "./service-order-form";
-import { Estoque, OrdemServicoMotorista } from "../../types";
+import { Estoque, OrdemServicoMotorista } from "../../api";
 import type { LucideIcon } from "lucide-react";
 import {
   Truck,
@@ -23,10 +22,15 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { stockService, driverAppService } from "../../services";
-import { AgendamentoConfirmedBackend } from "../../services/driver-service-order/driver-app.service";
-import { DeliveryReceipt } from "./delivery-receipt";
+import { stockService, driverAppService } from "../../api";
+import type { AgendamentoConfirmedBackend } from "../../api";
 import { useNavigate } from "react-router-dom";
+
+const OrdemServicoForm = lazy(() => import("./service-order-form"));
+const DeliveryReceipt = lazy(async () => {
+  const mod = await import("./delivery-receipt");
+  return { default: mod.DeliveryReceipt };
+});
 
 type TruckStockItem = {
   label: string;
@@ -80,8 +84,7 @@ export default function MotoristaApp() {
       }
 
       if (estoqueResult.success && estoqueResult.data) {
-        const arr = (estoqueResult.data as any)?.data;
-        const first = Array.isArray(arr) ? arr[0] : null;
+        const first = Array.isArray(estoqueResult.data) ? estoqueResult.data[0] : null;
         if (first) setEstoque(first as Estoque);
       }
     };
@@ -96,12 +99,32 @@ export default function MotoristaApp() {
 
   // Filter confirmed agendamentos
   const agendamentosConfirmados = agendamentos.filter((a) => a.status === "CONFIRMED");
+  const listScrollRef = useRef<HTMLDivElement | null>(null);
+  const [listWindowStart, setListWindowStart] = useState(0);
+  const CARD_ESTIMATED_HEIGHT = 300;
+  const WINDOW_SIZE = 12;
+  const WINDOW_OVERSCAN = 4;
+
+  const windowedAgendamentos = useMemo(() => {
+    const start = Math.max(0, listWindowStart - WINDOW_OVERSCAN);
+    const end = Math.min(
+      agendamentosConfirmados.length,
+      listWindowStart + WINDOW_SIZE + WINDOW_OVERSCAN,
+    );
+    return {
+      start,
+      end,
+      items: agendamentosConfirmados.slice(start, end),
+      topSpacer: start * CARD_ESTIMATED_HEIGHT,
+      bottomSpacer: Math.max(0, (agendamentosConfirmados.length - end) * CARD_ESTIMATED_HEIGHT),
+    };
+  }, [agendamentosConfirmados, listWindowStart]);
 
   const estoqueCaminhaoItens = useMemo<TruckStockItem[]>(
     () => [
       {
         label: "Pequenas",
-        value: estoque.smallBoxes,
+        value: Number(estoque.smallBoxes) ?? 0,
         Icon: Box,
         iconBg: "bg-red-50 dark:bg-red-950/40",
         iconClass: "text-red-600 dark:text-red-400",
@@ -109,7 +132,7 @@ export default function MotoristaApp() {
       },
       {
         label: "Médias",
-        value: estoque.mediumBoxes,
+        value: Number(estoque.mediumBoxes) ?? 0,
         Icon: Package,
         iconBg: "bg-green-50 dark:bg-green-950/40",
         iconClass: "text-green-600 dark:text-green-400",
@@ -117,7 +140,7 @@ export default function MotoristaApp() {
       },
       {
         label: "Grandes",
-        value: estoque.largeBoxes,
+        value: Number(estoque.largeBoxes) ?? 0,
         Icon: Box,
         iconBg: "bg-orange-50 dark:bg-orange-950/40",
         iconClass: "text-orange-600 dark:text-orange-400",
@@ -125,7 +148,7 @@ export default function MotoristaApp() {
       },
       {
         label: "Personalizados",
-        value: estoque.personalizedItems,
+        value: Number(estoque.personalizedItems) ?? 0,
         Icon: Box,
         iconBg: "bg-purple-50 dark:bg-purple-950/40",
         iconClass: "text-purple-600 dark:text-purple-400",
@@ -133,7 +156,7 @@ export default function MotoristaApp() {
       },
       {
         label: "Fitas",
-        value: estoque.adhesiveTape,
+        value: Number(estoque.adhesiveTape) ?? 0,
         Icon: Package,
         iconBg: "bg-blue-50 dark:bg-blue-950/40",
         iconClass: "text-blue-600 dark:text-blue-400",
@@ -166,26 +189,30 @@ export default function MotoristaApp() {
 
   if (viewMode === "recibo" && ordemConcluida) {
     return (
-      <DeliveryReceipt
-        ordem={ordemConcluida}
-        companyContactPhone={agendamentoSelecionado?.company?.contactPhone}
-        onShowOrdersScreen={() => navigate("/ordem-de-servico")}
-        onPrint={() => window.print()}
-      />
+      <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Carregando recibo...</div>}>
+        <DeliveryReceipt
+          ordem={ordemConcluida}
+          companyContactPhone={agendamentoSelecionado?.company?.contactPhone}
+          onShowOrdersScreen={() => navigate("/ordem-de-servico")}
+          onPrint={() => window.print()}
+        />
+      </Suspense>
     );
   }
 
   // If in Form view, render the embedded form
   if (viewMode === "form" && agendamentoSelecionado) {
     return (
-      <OrdemServicoForm
-        appointmentId={agendamentoSelecionado.id}
-        agendamento={agendamentoSelecionado}
-        onClose={handleFormClose}
-        onSave={handleFormSave}
-        onAgendamentosAtualizados={() => void carregarAgendamentosEEstoqueRef.current()}
-        embedded={true}
-      />
+      <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Carregando formulario...</div>}>
+        <OrdemServicoForm
+          appointmentId={agendamentoSelecionado.id}
+          agendamento={agendamentoSelecionado}
+          onClose={handleFormClose}
+          onSave={handleFormSave}
+          onAgendamentosAtualizados={() => void carregarAgendamentosEEstoqueRef.current()}
+          embedded={true}
+        />
+      </Suspense>
     );
   }
 
@@ -244,9 +271,25 @@ export default function MotoristaApp() {
       </Card>
 
       {/* Lista de Ordens */}
-      <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+      <div
+        ref={listScrollRef}
+        className="max-h-[72vh] overflow-y-auto pr-1"
+        onScroll={(e) => {
+          const scrollTop = e.currentTarget.scrollTop;
+          const next = Math.floor(scrollTop / CARD_ESTIMATED_HEIGHT) * 2;
+          if (next !== listWindowStart) setListWindowStart(next);
+        }}
+      >
+        <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+          {windowedAgendamentos.topSpacer > 0 && (
+            <div
+              className="md:col-span-2"
+              style={{ height: windowedAgendamentos.topSpacer }}
+              aria-hidden
+            />
+          )}
         <AnimatePresence>
-          {agendamentosConfirmados.map((agendamento, index) => {
+          {windowedAgendamentos.items.map((agendamento, index) => {
             return (
               <motion.div
                 key={agendamento.id}
@@ -321,6 +364,14 @@ export default function MotoristaApp() {
             );
           })}
         </AnimatePresence>
+          {windowedAgendamentos.bottomSpacer > 0 && (
+            <div
+              className="md:col-span-2"
+              style={{ height: windowedAgendamentos.bottomSpacer }}
+              aria-hidden
+            />
+          )}
+        </div>
       </div>
 
       {agendamentosConfirmados.length === 0 && (

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -27,7 +27,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { useData } from "../context/DataContext";
-import { Cliente } from "../types";
+import { Cliente } from "../api";
 import {
   Plus,
   Search,
@@ -69,14 +69,12 @@ import {
 } from "../utils";
 import {
   clientsService,
-  type CreateClientsDTO,
-  type UpdateClientsDTO,
-  type ClientHistoryItem,
-} from "../services/clients.service";
+} from "../api";
+import type { ClientHistoryItem, CreateClientsDTO, UpdateClientsDTO } from "../api";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { AtendenteSelect } from "./forms";
 
-const HISTORY_PAGE_SIZE = 5;
+const HISTORY_PAGE_SIZE = 10;
 
 interface HistoricoPaginado {
   items: ClienteAtividade[];
@@ -136,6 +134,8 @@ export default function ClientesView() {
     null,
   );
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [listVisibleCount, setListVisibleCount] = useState(40);
+  const listContainerRef = useRef<HTMLDivElement | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
   const [filters, setFilters] = useState({
@@ -147,8 +147,8 @@ export default function ClientesView() {
   useEffect(() => {
     const carregarClientes = async () => {
       const result = await clientsService.getAll();
-      if (result.success && result.data?.data) {
-        setClientes(result.data.data);
+      if (result.success && result.data) {
+        setClientes(result.data);
       } else if (result.error) {
         toast.error(result.error);
       }
@@ -785,6 +785,16 @@ export default function ClientesView() {
 
     return { total, novosUltimaSemana, estadosUnicos, cidadesBrasilUnicas };
   }, [filteredClientes]);
+
+  const clientesListRendered = useMemo(
+    () => filteredClientes.slice(0, listVisibleCount),
+    [filteredClientes, listVisibleCount],
+  );
+
+  useEffect(() => {
+    setListVisibleCount(40);
+    if (listContainerRef.current) listContainerRef.current.scrollTop = 0;
+  }, [searchTerm, filters, viewMode]);
 
   const getAtividadeIcon = (a: ClienteAtividade) => {
     if (a.origem === "appointment" || a.tipo === "agendamento") return Calendar;
@@ -1742,9 +1752,19 @@ export default function ClientesView() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div
+              ref={listContainerRef}
+              className="space-y-3 max-h-[70vh] overflow-y-auto pr-1"
+              onScroll={(e) => {
+                const el = e.currentTarget;
+                const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 160;
+                if (nearBottom && listVisibleCount < filteredClientes.length) {
+                  setListVisibleCount((prev) => Math.min(prev + 30, filteredClientes.length));
+                }
+              }}
+            >
               <AnimatePresence>
-                {filteredClientes.map((cliente) => (
+                {clientesListRendered.map((cliente) => (
                   <motion.div
                     key={cliente.id}
                     initial={{ opacity: 0, x: -20 }}
@@ -1893,6 +1913,22 @@ export default function ClientesView() {
                   </motion.div>
                 ))}
               </AnimatePresence>
+
+              {listVisibleCount < filteredClientes.length && (
+                <div className="flex justify-center py-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setListVisibleCount((prev) =>
+                        Math.min(prev + 30, filteredClientes.length),
+                      )
+                    }
+                  >
+                    Carregar mais
+                  </Button>
+                </div>
+              )}
 
               {filteredClientes.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">

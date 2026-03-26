@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { configurationsService, Company, CompanyBackend, UpdateCompanyDTO } from '../services/configurations.service';
+import { configurationsService } from '../api';
+import type { Company, CompanyBackend, UpdateCompanyDTO } from '../api';
 
 export default function ConfiguracoesView() {
     const { hasPermission } = useAuth();

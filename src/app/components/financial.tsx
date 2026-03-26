@@ -7,7 +7,7 @@ import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { useData } from '../context/DataContext';
-import { Transacao } from '../types';
+import { Transacao } from '../api';
 import { 
   Plus, 
   DollarSign, 

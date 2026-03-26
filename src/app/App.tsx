@@ -1,20 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useRef } from 'react';
 import { BrowserRouter, useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
-import DashboardView from './components/dashboard';
-import ClientesView from './components/clients';
-import EstoqueView from './components/stock';
-import AgendamentosView from './components/appointments';
-import ContainersView from './components/containers';
-import FinanceiroView from './components/financial';
-import RelatoriosView from './components/reports';
-import AtendimentosView from './components/services';
-import PrecosView from './components/prices';
-import RHView from './components/hr';
 import Login from './components/login';
-import MotoristaApp from './components/driver-service-order/driver-app';
 import { DataProvider } from './context/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import {
@@ -51,9 +40,20 @@ import {
   PopoverTrigger,
 } from './components/ui/popover';
 import { useNotifications } from './hooks/useNotifications';
-import { notificationsService } from './services/notifications.service';
-import ConfiguracoesView from './components/configurations';
-import OrdemDeServicoView from './components/service-order';
+import { notificationsService } from './api';
+const DashboardView = lazy(() => import('./components/dashboard'));
+const ClientesView = lazy(() => import('./components/clients'));
+const EstoqueView = lazy(() => import('./components/stock'));
+const AgendamentosView = lazy(() => import('./components/appointments'));
+const ContainersView = lazy(() => import('./components/containers'));
+const FinanceiroView = lazy(() => import('./components/financial'));
+const RelatoriosView = lazy(() => import('./components/reports'));
+const AtendimentosView = lazy(() => import('./components/services'));
+const PrecosView = lazy(() => import('./components/prices'));
+const RHView = lazy(() => import('./components/hr'));
+const MotoristaApp = lazy(() => import('./components/driver-service-order/driver-app'));
+const ConfiguracoesView = lazy(() => import('./components/configurations'));
+const OrdemDeServicoView = lazy(() => import('./components/service-order'));
 
 const logo = new URL('../assets/itamoving-logo.png', import.meta.url).href;
 const STORAGE_KEY = 'itamoving_last_route';
@@ -112,6 +112,12 @@ function pathToView(pathname: string): View {
 }
 
 function MainApp() {
+  const viewFallback = (
+    <div className="flex items-center justify-center min-h-[30vh] text-muted-foreground">
+      Carregando modulo...
+    </div>
+  );
+
   const { user, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -217,26 +223,34 @@ function MainApp() {
     // Motorista pode acessar Minhas Entregas e Ordem de Serviço
     if (user.role === 'motorista') {
       if (activeView === 'ordem-de-servico') {
-        return <OrdemDeServicoView />;
+        return (
+          <Suspense fallback={viewFallback}>
+            <OrdemDeServicoView />
+          </Suspense>
+        );
       }
-      return <MotoristaApp />;
+      return (
+        <Suspense fallback={viewFallback}>
+          <MotoristaApp />
+        </Suspense>
+      );
     }
 
     switch (activeView) {
-      case 'dashboard': return <DashboardView onNavigate={setActiveView} />;
-      case 'clientes': return hasPermission('clientes', 'read') ? <ClientesView /> : <AcessoNegado />;
-      case 'precos': return hasPermission('financeiro', 'read') ? <PrecosView /> : <AcessoNegado />;
-      case 'estoque': return hasPermission('estoque', 'read') ? <EstoqueView /> : <AcessoNegado />;
-      case 'agendamentos': return hasPermission('agendamentos', 'read') ? <AgendamentosView /> : <AcessoNegado />;
-      case 'containers': return hasPermission('containers', 'read') ? <ContainersView /> : <AcessoNegado />;
-      case 'financeiro': return hasPermission('financeiro', 'read') ? <FinanceiroView /> : <AcessoNegado />;
-      case 'relatorios': return hasPermission('relatorios', 'read') ? <RelatoriosView /> : <AcessoNegado />;
-      case 'atendimentos': return hasPermission('atendimentos', 'read') ? <AtendimentosView /> : <AcessoNegado />;
-      case 'rh': return hasPermission('rh', 'read') ? <RHView /> : <AcessoNegado />;
-      case 'motorista': return hasPermission('motorista', 'read') ? <MotoristaApp /> : <AcessoNegado />;
-      case 'ordem-de-servico': return hasPermission('ordem-de-servico', 'read') ? <OrdemDeServicoView /> : <AcessoNegado />;
-      case 'configuracoes': return hasPermission('configuracoes', 'read') ? <ConfiguracoesView /> : <AcessoNegado />;
-      default: return <DashboardView onNavigate={setActiveView} />;
+      case 'dashboard': return <Suspense fallback={viewFallback}><DashboardView onNavigate={setActiveView} /></Suspense>;
+      case 'clientes': return hasPermission('clientes', 'read') ? <Suspense fallback={viewFallback}><ClientesView /></Suspense> : <AcessoNegado />;
+      case 'precos': return hasPermission('financeiro', 'read') ? <Suspense fallback={viewFallback}><PrecosView /></Suspense> : <AcessoNegado />;
+      case 'estoque': return hasPermission('estoque', 'read') ? <Suspense fallback={viewFallback}><EstoqueView /></Suspense> : <AcessoNegado />;
+      case 'agendamentos': return hasPermission('agendamentos', 'read') ? <Suspense fallback={viewFallback}><AgendamentosView /></Suspense> : <AcessoNegado />;
+      case 'containers': return hasPermission('containers', 'read') ? <Suspense fallback={viewFallback}><ContainersView /></Suspense> : <AcessoNegado />;
+      case 'financeiro': return hasPermission('financeiro', 'read') ? <Suspense fallback={viewFallback}><FinanceiroView /></Suspense> : <AcessoNegado />;
+      case 'relatorios': return hasPermission('relatorios', 'read') ? <Suspense fallback={viewFallback}><RelatoriosView /></Suspense> : <AcessoNegado />;
+      case 'atendimentos': return hasPermission('atendimentos', 'read') ? <Suspense fallback={viewFallback}><AtendimentosView /></Suspense> : <AcessoNegado />;
+      case 'rh': return hasPermission('rh', 'read') ? <Suspense fallback={viewFallback}><RHView /></Suspense> : <AcessoNegado />;
+      case 'motorista': return hasPermission('motorista', 'read') ? <Suspense fallback={viewFallback}><MotoristaApp /></Suspense> : <AcessoNegado />;
+      case 'ordem-de-servico': return hasPermission('ordem-de-servico', 'read') ? <Suspense fallback={viewFallback}><OrdemDeServicoView /></Suspense> : <AcessoNegado />;
+      case 'configuracoes': return hasPermission('configuracoes', 'read') ? <Suspense fallback={viewFallback}><ConfiguracoesView /></Suspense> : <AcessoNegado />;
+      default: return <Suspense fallback={viewFallback}><DashboardView onNavigate={setActiveView} /></Suspense>;
     }
   };
 
