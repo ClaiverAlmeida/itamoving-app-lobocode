@@ -7,7 +7,7 @@ import { ptBR } from "date-fns/locale/pt-BR";
 
 export type FinanceiroDataPoint = { mes: string; receitas: number; despesas: number; lucro: number };
 export type ContainerStatusDataPoint = { name: string; value: number; color: string };
-export type EstoqueDataPoint = { tipo: string; quantidade: number | string; fill: string };
+export type EstoqueDataPoint = { tipo: string; quantidade: number; fill: string };
 export type PerformanceDataPoint = { dia: string; clientes: number; agendamentos: number; containers: number };
 
 export function getAgendamentosCounts(agendamentos: Agendamento[]) {
@@ -81,13 +81,13 @@ export function buildContainersStatusData(containers: Container[]): ContainerSta
   ];
 }
 
-export function buildEstoqueData(estoque: Estoque): EstoqueDataPoint[] {
+export function buildEstoqueData(estoque: Pick<Estoque, "smallBoxes" | "mediumBoxes" | "largeBoxes" | "personalizedItems" | "adhesiveTape">): EstoqueDataPoint[] {
   return [
-    { tipo: "Pequenas", quantidade: estoque.smallBoxes, fill: "#5DADE2" },
-    { tipo: "Médias", quantidade: estoque.mediumBoxes, fill: "#F5A623" },
-    { tipo: "Grandes", quantidade: estoque.largeBoxes, fill: "#1E3A5F" },
-    { tipo: "Itens Personalizados", quantidade: estoque.personalizedItems, fill: "#94A3B8" },
-    { tipo: "Fitas", quantidade: estoque.adhesiveTape, fill: "#94A3B8" },
+    { tipo: "Pequenas", quantidade: Number(estoque.smallBoxes ?? 0), fill: "#5DADE2" },
+    { tipo: "Médias", quantidade: Number(estoque.mediumBoxes ?? 0), fill: "#F5A623" },
+    { tipo: "Grandes", quantidade: Number(estoque.largeBoxes ?? 0), fill: "#1E3A5F" },
+    { tipo: "Itens Personalizados", quantidade: Number(estoque.personalizedItems ?? 0), fill: "#94A3B8" },
+    { tipo: "Fitas", quantidade: Number(estoque.adhesiveTape ?? 0), fill: "#94A3B8" },
   ];
 }
 

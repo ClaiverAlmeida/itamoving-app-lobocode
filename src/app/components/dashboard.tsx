@@ -9,6 +9,13 @@ import { DashboardSecondaryKpiCardsSection } from './dashboard/components/Dashbo
 import { DashboardChartsSection } from './dashboard/components/DashboardChartsSection';
 import { DashboardNextAppointmentsCard } from './dashboard/components/DashboardNextAppointmentsCard';
 import {
+  buildContainersStatusData,
+  buildEstoqueData,
+  buildFinanceiroData,
+  buildPerformanceData,
+  formatCurrencyCompactUSD,
+} from './dashboard/dashboard.utils';
+import {
   Users,
   Calendar,
   Container,
@@ -209,52 +216,11 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
     return atividades.sort((a, b) => b.data.getTime() - a.data.getTime()).slice(0, 5);
   }, [clientes, agendamentos, containers]);
 
-  // Dados para gráfico de receitas vs despesas
-  const financeiroData = [
-    { mes: 'Jul', receitas: 45000, despesas: 28000, lucro: 17000 },
-    { mes: 'Ago', receitas: 52000, despesas: 31000, lucro: 21000 },
-    { mes: 'Set', receitas: 48000, despesas: 29000, lucro: 19000 },
-    { mes: 'Out', receitas: 61000, despesas: 35000, lucro: 26000 },
-    { mes: 'Nov', receitas: 58000, despesas: 33000, lucro: 25000 },
-    { mes: 'Dez', receitas: receitaTotal, despesas: despesaTotal, lucro: lucro },
-  ];
-
-  // Dados para gráfico de status de containers
-  const containersStatusData = [
-    { name: 'Em Preparação', value: containers.filter(c => c.status === 'PREPARATION').length, color: '#F5A623' },
-    { name: 'Em Trânsito', value: containers.filter(c => c.status === 'IN_TRANSIT').length, color: '#5DADE2' },
-    { name: 'Entregue', value: containers.filter(c => c.status === 'DELIVERED').length, color: '#10B981' },
-    { name: 'Cancelado', value: containers.filter(c => c.status === 'CANCELLED').length, color: '#EF4444' },
-  ];
-
-  // Dados para gráfico de estoque
-  const estoqueData = [
-    { tipo: 'Pequenas', quantidade: estoqueSafe.smallBoxes, fill: '#5DADE2' },
-    { tipo: 'Médias', quantidade: estoqueSafe.mediumBoxes, fill: '#F5A623' },
-    { tipo: 'Grandes', quantidade: estoqueSafe.largeBoxes, fill: '#1E3A5F' },
-    { tipo: 'Itens Personalizados', quantidade: estoqueSafe.personalizedItems, fill: '#94A3B8' },
-    { tipo: 'Fitas', quantidade: estoqueSafe.adhesiveTape, fill: '#94A3B8' },
-  ];
-
-  // Dados de performance semanal
-  const performanceData = [
-    { dia: 'Seg', clientes: 5, agendamentos: 8, containers: 2 },
-    { dia: 'Ter', clientes: 7, agendamentos: 6, containers: 3 },
-    { dia: 'Qua', clientes: 4, agendamentos: 10, containers: 1 },
-    { dia: 'Qui', clientes: 6, agendamentos: 7, containers: 2 },
-    { dia: 'Sex', clientes: 8, agendamentos: 9, containers: 4 },
-    { dia: 'Sáb', clientes: 3, agendamentos: 4, containers: 1 },
-    { dia: 'Dom', clientes: 2, agendamentos: 2, containers: 0 },
-  ];
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'USD',
-      notation: 'compact',
-      maximumFractionDigits: 1
-    }).format(value);
-  };
+  // Dados para gráficos
+  const financeiroData = buildFinanceiroData(receitaTotal, despesaTotal, lucro);
+  const containersStatusData = buildContainersStatusData(containers);
+  const estoqueData = buildEstoqueData(estoqueSafe);
+  const performanceData = buildPerformanceData();
 
   return (
     <div className="space-y-4 lg:space-y-6 overflow-x-hidden">
@@ -285,13 +251,13 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
         estoqueTotal={estoqueTotal}
         estoqueBaixoCount={estoqueBaixo.length}
         estoqueBaixoLength={estoqueBaixo.length}
-        formatCurrency={(v) => formatCurrency(v)}
+        formatCurrency={formatCurrencyCompactUSD}
       />
 
       {/* KPI Cards Secundários */}
       <DashboardSecondaryKpiCardsSection containersAtivos={containersAtivos} containersEmTransito={containersEmTransito} />
 
-      <DashboardChartsSection
+        <DashboardChartsSection
         hasPermissionFinanceiroRead={hasPermission("financeiro", "read")}
         financeiroData={financeiroData}
         containersStatusData={containersStatusData}

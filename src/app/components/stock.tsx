@@ -146,7 +146,7 @@ export default function EstoqueView() {
       onSuccess: () => {
         toast.success(dialogType === "ENTRY" ? "Entrada registrada com sucesso!" : "Saída registrada com sucesso!");
         resetDialogForm();
-        setIsDialogOpen(false);
+    setIsDialogOpen(false);
       },
     });
   };

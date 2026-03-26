@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { motion } from "motion/react";
 import { Tag, MapPin, Package } from "lucide-react";
-import { PrecosEntregaTab } from "./prices/delivery-tab";
-import { ProdutosTab } from "./prices/products-tab";
+import { useData } from "../context/DataContext";
+import { DeliveryPricesTab } from "./prices/delivery-prices";
+import { ProductsPricesTab } from "./prices/products-prices";
 
 export default function PrecosView() {
+  const { setPrecosEntrega, deletePrecoEntrega, setPrecosProdutos, deletePrecoProduto } = useData();
   const [activeTab, setActiveTab] = useState("entregas");
 
   return (
@@ -47,11 +49,17 @@ export default function PrecosView() {
         </TabsList>
 
         <TabsContent value="entregas" className="space-y-4">
-          <PrecosEntregaTab />
+          <DeliveryPricesTab
+            setPrecosEntrega={setPrecosEntrega}
+            deletePrecoEntrega={deletePrecoEntrega}
+          />
         </TabsContent>
 
         <TabsContent value="produtos" className="space-y-4">
-          <ProdutosTab />
+          <ProductsPricesTab
+            setPrecosProdutos={setPrecosProdutos}
+            deletePrecoProduto={deletePrecoProduto}
+          />
         </TabsContent>
       </Tabs>
     </div>
