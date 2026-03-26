@@ -1,0 +1,458 @@
+import React, { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import type { Caixa, DriverUser, Item, PrecoProduto } from "../../../api";
+import { serviceOrderFormCrud } from "./service-order-form.crud";
+import { loadDataUrlOnCanvas, resolveCaixaDisplayType } from "./service-order-form.utils";
+import { caixaTemTodosCamposPreenchidos, novoIdItem, renumerarCaixas } from "./service-order-form.verifications";
+
+type Params = {
+  appointmentId: string;
+  agendamento: any;
+  existingOrdem: any;
+  user: { id?: string; role?: string } | null;
+};
+
+export function useServiceOrderFormState({
+  appointmentId,
+  agendamento,
+  existingOrdem,
+  user,
+}: Params) {
+  const isEditMode = Boolean(existingOrdem?.id);
+  const canvasClienteRef = useRef<HTMLCanvasElement>(null);
+  const canvasAgenteRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawingCliente, setIsDrawingCliente] = useState(false);
+  const [isDrawingAgente, setIsDrawingAgente] = useState(false);
+  const [precosProdutos, setPrecosProdutos] = useState<PrecoProduto[]>([]);
+  const [motoristas, setMotoristas] = useState<DriverUser[]>([]);
+  const [produtosLoading, setProdutosLoading] = useState(false);
+  const [motoristasLoading, setMotoristasLoading] = useState(false);
+  const [hydrationReady, setHydrationReady] = useState(false);
+  const existingProductIdsRef = useRef<Set<string>>(new Set());
+
+  const opcoesCaixa = precosProdutos.filter(
+    (p) =>
+      (p.type === "SMALL_BOX" ||
+        p.type === "MEDIUM_BOX" ||
+        p.type === "LARGE_BOX" ||
+        p.type === "PERSONALIZED_ITEM" ||
+        p.type === "TAPE_ADHESIVE") &&
+      p.active,
+  );
+
+  const [remetenteNome, setRemetenteNome] = useState(agendamento.client.usaName || "");
+  const [remetenteTel, setRemetenteTel] = useState(agendamento.client.usaPhone || "");
+  const [remetenteEndereco, setRemetenteEndereco] = useState(agendamento.client.usaAddress.rua || "");
+  const [remetenteCidade, setRemetenteCidade] = useState(agendamento.client.usaAddress.cidade || "");
+  const [remetenteEstado, setRemetenteEstado] = useState(agendamento.client.usaAddress.estado || "");
+  const [remetenteZipCode, setRemetenteZipCode] = useState(agendamento.client.usaAddress.zipCode || "");
+  const [remetenteNumero, setRemetenteNumero] = useState(agendamento.client.usaAddress.numero || "");
+  const [remetenteComplemento, setRemetenteComplemento] = useState(agendamento.client.usaAddress.complemento || "");
+  const [remetenteCpfRg, setRemetenteCpfRg] = useState(agendamento.client.usaCpf || "");
+
+  const [destinatarioNome, setDestinatarioNome] = useState(agendamento.client.brazilName || "");
+  const [destinatarioCpfRg, setDestinatarioCpfRg] = useState(agendamento.client.brazilCpf || "");
+  const [destinatarioEndereco, setDestinatarioEndereco] = useState(agendamento.client.brazilAddress.rua || "");
+  const [destinatarioBairro, setDestinatarioBairro] = useState(agendamento.client.brazilAddress.bairro || "");
+  const [destinatarioCidade, setDestinatarioCidade] = useState(agendamento.client.brazilAddress.cidade || "");
+  const [destinatarioEstado, setDestinatarioEstado] = useState(agendamento.client.brazilAddress.estado || "");
+  const [destinatarioCep, setDestinatarioCep] = useState(agendamento.client.brazilAddress.cep || "");
+  const [destinatarioTelefone, setDestinatarioTelefone] = useState(agendamento.client.brazilPhone || "");
+  const [destinatarioNumero, setDestinatarioNumero] = useState(agendamento.client.brazilAddress.numero || "");
+  const [destinatarioComplemento, setDestinatarioComplemento] = useState(agendamento.client.brazilAddress.complemento || "");
+
+  const [caixas, setCaixas] = useState<Caixa[]>([]);
+  const [itens, setItens] = useState<Item[]>([]);
+  const [assinaturaCliente, setAssinaturaCliente] = useState("");
+  const [assinaturaAgente, setAssinaturaAgente] = useState("");
+  const clienteAssinaturaDirtyRef = useRef(false);
+  const agenteAssinaturaDirtyRef = useRef(false);
+  const [valorPago, setValorPago] = useState("0.00");
+  const [observations, setObservations] = useState("");
+  const [ordemStatus, setOrdemStatus] = useState<any>("COMPLETED");
+  const [ordemObservacoes, setOrdemObservacoes] = useState("");
+  const [motoristaResponsavel, setMotoristaResponsavel] = useState("");
+  const motoristaResponsavelNome = motoristas.find((m) => m.id === motoristaResponsavel)?.name;
+  const valorTotalCaixas = caixas.reduce((sum, c) => sum + c.value, 0);
+
+  const carregarMotoristas = async () => {
+    setMotoristasLoading(true);
+    try {
+      const result = await serviceOrderFormCrud.getDrivers();
+      if (result.success && result.data) setMotoristas(result.data);
+      else if (result.error) toast.error(result.error ?? "Nao foi possivel carregar os motoristas.");
+    } finally {
+      setMotoristasLoading(false);
+    }
+  };
+
+  const carregarProdutos = async () => {
+    setProdutosLoading(true);
+    const result = await serviceOrderFormCrud.getProducts();
+    try {
+      if (result.success && result.data) {
+        setPrecosProdutos(result.data);
+        return result.data;
+      }
+      return [] as PrecoProduto[];
+    } finally {
+      setProdutosLoading(false);
+    }
+  };
+
+  const adicionarCaixa = async () => {
+    const produtos = await carregarProdutos();
+    const opcoesAtivas = produtos.filter(
+      (p) =>
+        (p.type === "SMALL_BOX" ||
+          p.type === "MEDIUM_BOX" ||
+          p.type === "LARGE_BOX" ||
+          p.type === "PERSONALIZED_ITEM" ||
+          p.type === "TAPE_ADHESIVE") &&
+        p.active,
+    );
+    if (opcoesAtivas.length === 0) {
+      toast.info("Nao ha produtos ativos para adicionar caixas, cadastre um produto para continuar");
+      return;
+    }
+    setCaixas((prev) =>
+      renumerarCaixas([...prev, { id: Date.now().toString(), type: "", number: "", value: 0, weight: 0 }]),
+    );
+  };
+
+  const atualizarCaixa = (id: string, campo: keyof Caixa, valor: string | number) => {
+    setCaixas((prev) =>
+      prev.map((c) => {
+        if (c.id !== id) return c;
+        const novaCaixa = { ...c, [campo]: valor };
+        if (campo === "type") {
+          const produto = opcoesCaixa.find((p) => p.size === valor || p.name === valor);
+          if (produto) {
+            novaCaixa.value = produto.salePrice;
+            novaCaixa.weight = produto.maxWeight ?? 0;
+          }
+        }
+        return novaCaixa;
+      }),
+    );
+  };
+
+  const removerCaixa = (id: string) => {
+    setItens((prev) => prev.filter((i) => i.caixaId !== id));
+    setCaixas((prev) => renumerarCaixas(prev.filter((c) => c.id !== id)));
+  };
+
+  const adicionarItens = (caixaId: string) => {
+    const caixa = caixas.find((c) => c.id === caixaId);
+    if (!caixa || !caixaTemTodosCamposPreenchidos(caixa)) {
+      toast.error("Preencha tipo, peso e valor da caixa antes de adicionar itens");
+      return;
+    }
+    setItens((prev) => [...prev, { id: novoIdItem(), caixaId, name: "", quantity: 0, weight: 0, observations: "" }]);
+  };
+
+  const atualizarItem = (id: string, campo: keyof Item, valor: string | number) => {
+    setItens((prev) => prev.map((i) => (i.id === id ? { ...i, [campo]: valor } : i)));
+  };
+
+  const removerItens = (id: string) => {
+    setItens((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const startDrawingCliente = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasClienteRef.current;
+    if (!canvas) return;
+    setIsDrawingCliente(true);
+    clienteAssinaturaDirtyRef.current = false;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = "touches" in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = "touches" in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const drawCliente = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawingCliente) return;
+    const canvas = canvasClienteRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = "touches" in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = "touches" in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    clienteAssinaturaDirtyRef.current = true;
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#1E3A5F";
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawingCliente = () => {
+    setIsDrawingCliente(false);
+    const canvas = canvasClienteRef.current;
+    if (canvas && clienteAssinaturaDirtyRef.current) setAssinaturaCliente(canvas.toDataURL());
+  };
+
+  const limparAssinaturaCliente = () => {
+    const canvas = canvasClienteRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setAssinaturaCliente("");
+    clienteAssinaturaDirtyRef.current = false;
+  };
+
+  const startDrawingAgente = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasAgenteRef.current;
+    if (!canvas) return;
+    setIsDrawingAgente(true);
+    agenteAssinaturaDirtyRef.current = false;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = "touches" in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = "touches" in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const drawAgente = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawingAgente) return;
+    const canvas = canvasAgenteRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = "touches" in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = "touches" in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    agenteAssinaturaDirtyRef.current = true;
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#1E3A5F";
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawingAgente = () => {
+    setIsDrawingAgente(false);
+    const canvas = canvasAgenteRef.current;
+    if (canvas && agenteAssinaturaDirtyRef.current) setAssinaturaAgente(canvas.toDataURL());
+  };
+
+  const limparAssinaturaAgente = () => {
+    const canvas = canvasAgenteRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setAssinaturaAgente("");
+    agenteAssinaturaDirtyRef.current = false;
+  };
+
+  useEffect(() => {
+    void carregarProdutos();
+    void carregarMotoristas();
+  }, []);
+
+  useEffect(() => {
+    if (existingOrdem?.id) return;
+    if (user?.role === "motorista" && user?.id) setMotoristaResponsavel(user.id);
+  }, [appointmentId, existingOrdem?.id, user?.role, user?.id]);
+
+  const hydratedKeyRef = useRef<string>("");
+  useEffect(() => {
+    setHydrationReady(false);
+  }, [existingOrdem?.id]);
+
+  useEffect(() => {
+    if (existingOrdem?.id) return;
+    const clearCanvas = (c: HTMLCanvasElement | null) => c?.getContext("2d")?.clearRect(0, 0, c.width, c.height);
+    clearCanvas(canvasClienteRef.current);
+    clearCanvas(canvasAgenteRef.current);
+    setAssinaturaCliente("");
+    setAssinaturaAgente("");
+    setHydrationReady(false);
+    existingProductIdsRef.current = new Set();
+    clienteAssinaturaDirtyRef.current = false;
+    agenteAssinaturaDirtyRef.current = false;
+  }, [appointmentId, existingOrdem?.id]);
+
+  useEffect(() => {
+    if (!existingOrdem?.id) return;
+    const nProdutos = existingOrdem.driverServiceOrderProducts?.length ?? 0;
+    const key = `${existingOrdem.id}:${precosProdutos.length}:${nProdutos}`;
+    if (hydratedKeyRef.current === key) return;
+    hydratedKeyRef.current = key;
+
+    const prods = precosProdutos.filter(
+      (p) =>
+        (p.type === "SMALL_BOX" ||
+          p.type === "MEDIUM_BOX" ||
+          p.type === "LARGE_BOX" ||
+          p.type === "PERSONALIZED_ITEM" ||
+          p.type === "TAPE_ADHESIVE") &&
+        p.active,
+    );
+
+    setRemetenteNome(existingOrdem.sender.usaName || "");
+    setRemetenteTel(existingOrdem.sender.usaPhone || "");
+    setRemetenteEndereco(existingOrdem.sender.usaAddress.rua || "");
+    setRemetenteCidade(existingOrdem.sender.usaAddress.cidade || "");
+    setRemetenteEstado(existingOrdem.sender.usaAddress.estado || "");
+    setRemetenteZipCode(existingOrdem.sender.usaAddress.zipCode || "");
+    setRemetenteNumero(existingOrdem.sender.usaAddress.numero || "");
+    setRemetenteComplemento(existingOrdem.sender.usaAddress.complemento?.trim() || "-");
+    setRemetenteCpfRg(existingOrdem.sender.usaCpf || "");
+    setDestinatarioNome(existingOrdem.recipient.brazilName || "");
+    setDestinatarioCpfRg(existingOrdem.recipient.brazilCpf || "");
+    setDestinatarioEndereco(existingOrdem.recipient.brazilAddress.rua || "");
+    setDestinatarioBairro(existingOrdem.recipient.brazilAddress.bairro || "");
+    setDestinatarioCidade(existingOrdem.recipient.brazilAddress.cidade || "");
+    setDestinatarioEstado(existingOrdem.recipient.brazilAddress.estado || "");
+    setDestinatarioCep(existingOrdem.recipient.brazilAddress.cep || "");
+    setDestinatarioTelefone(existingOrdem.recipient.brazilPhone || "");
+    setDestinatarioNumero(existingOrdem.recipient.brazilAddress.numero || "");
+    setDestinatarioComplemento(existingOrdem.recipient.brazilAddress.complemento?.trim() || "-");
+    setOrdemStatus(existingOrdem.status);
+    setOrdemObservacoes(existingOrdem.observations ?? "");
+    setMotoristaResponsavel(existingOrdem.userId || "");
+
+    existingProductIdsRef.current = new Set(
+      (existingOrdem.driverServiceOrderProducts ?? [])
+        .map((p: any) => p.id)
+        .filter((id: any): id is string => typeof id === "string" && id.length > 0),
+    );
+
+    setCaixas(
+      renumerarCaixas(
+        existingOrdem.driverServiceOrderProducts.map((p: any) => ({
+          id: p.id!,
+          type: resolveCaixaDisplayType(p.type, prods),
+          number: "",
+          value: p.value,
+          weight: p.weight,
+        })),
+      ),
+    );
+
+    const mappedItens: Item[] = [];
+    for (const p of existingOrdem.driverServiceOrderProducts) {
+      for (const it of p.driverServiceOrderProductsItems ?? []) {
+        mappedItens.push({
+          id: it.id ?? novoIdItem(),
+          caixaId: p.id!,
+          name: it.name,
+          quantity: it.quantity,
+          weight: it.weight,
+          observations: it.observations ?? "",
+        });
+      }
+    }
+    setItens(mappedItens);
+
+    const cv = existingOrdem.chargedValue ?? 0;
+    setValorPago(Number.isFinite(Number(cv)) ? String(cv) : "0");
+    const sigC = existingOrdem.clientSignature || "";
+    const sigA = existingOrdem.agentSignature || "";
+    setAssinaturaCliente(sigC);
+    setAssinaturaAgente(sigA);
+
+    requestAnimationFrame(() => {
+      loadDataUrlOnCanvas(sigC, canvasClienteRef);
+      loadDataUrlOnCanvas(sigA, canvasAgenteRef);
+      setHydrationReady(precosProdutos.length > 0);
+    });
+  }, [existingOrdem, precosProdutos]);
+
+  useEffect(() => {
+    if (!existingOrdem?.id || !motoristas.length) return;
+    if (motoristas.some((m) => m.id === motoristaResponsavel)) return;
+    const matchByName = motoristas.find((m) => m.name === existingOrdem.driverName);
+    if (matchByName) setMotoristaResponsavel(matchByName.id);
+  }, [existingOrdem?.id, existingOrdem?.driverName, motoristas, motoristaResponsavel]);
+
+  return {
+    isEditMode,
+    canvasClienteRef,
+    canvasAgenteRef,
+    motoristas,
+    produtosLoading,
+    motoristasLoading,
+    hydrationReady,
+    opcoesCaixa,
+    remetenteNome,
+    setRemetenteNome,
+    remetenteTel,
+    setRemetenteTel,
+    remetenteEndereco,
+    setRemetenteEndereco,
+    remetenteCidade,
+    setRemetenteCidade,
+    remetenteEstado,
+    setRemetenteEstado,
+    remetenteZipCode,
+    setRemetenteZipCode,
+    remetenteNumero,
+    setRemetenteNumero,
+    remetenteComplemento,
+    setRemetenteComplemento,
+    remetenteCpfRg,
+    setRemetenteCpfRg,
+    destinatarioNome,
+    setDestinatarioNome,
+    destinatarioCpfRg,
+    setDestinatarioCpfRg,
+    destinatarioEndereco,
+    setDestinatarioEndereco,
+    destinatarioBairro,
+    setDestinatarioBairro,
+    destinatarioCidade,
+    setDestinatarioCidade,
+    destinatarioEstado,
+    setDestinatarioEstado,
+    destinatarioCep,
+    setDestinatarioCep,
+    destinatarioTelefone,
+    setDestinatarioTelefone,
+    destinatarioNumero,
+    setDestinatarioNumero,
+    destinatarioComplemento,
+    setDestinatarioComplemento,
+    caixas,
+    itens,
+    assinaturaCliente,
+    assinaturaAgente,
+    valorPago,
+    setValorPago,
+    observations,
+    setObservations,
+    ordemStatus,
+    setOrdemStatus,
+    ordemObservacoes,
+    setOrdemObservacoes,
+    motoristaResponsavel,
+    setMotoristaResponsavel,
+    motoristaResponsavelNome,
+    valorTotalCaixas,
+    adicionarCaixa,
+    atualizarCaixa,
+    removerCaixa,
+    adicionarItens,
+    atualizarItem,
+    removerItens,
+    startDrawingCliente,
+    drawCliente,
+    stopDrawingCliente,
+    limparAssinaturaCliente,
+    startDrawingAgente,
+    drawAgente,
+    stopDrawingAgente,
+    limparAssinaturaAgente,
+    existingProductIdsRef,
+  };
+}
+

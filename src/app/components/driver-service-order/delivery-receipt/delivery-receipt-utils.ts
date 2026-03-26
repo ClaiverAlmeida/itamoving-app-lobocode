@@ -1,4 +1,4 @@
-import type { OrdemServicoMotorista } from "../../api";
+import type { OrdemServicoMotorista } from "../../../api";
 
 export type ReciboBoxCategory =
   | "pequena"
@@ -9,7 +9,7 @@ export type ReciboBoxCategory =
 
 export const RECIBO_CATEGORY_LABEL: Record<ReciboBoxCategory, string> = {
   pequena: "Pequena",
-  media: "Média",
+  media: "Media",
   grande: "Grande",
   fita: "Fita adesiva",
   personalizada: "Personalizada",
@@ -55,8 +55,8 @@ export function classifyDriverProductType(type: string): ReciboBoxCategory | nul
   if (
     /\bmedium\b/i.test(raw) ||
     key === "media" ||
-    /\bm(e|é)dia\b/i.test(raw) ||
-    /\bcaixa\s+m(e|é)dia\b/i.test(raw)
+    /\bm(e|e)dia\b/i.test(raw) ||
+    /\bcaixa\s+m(e|e)dia\b/i.test(raw)
   ) {
     return "media";
   }
@@ -110,13 +110,13 @@ export function summarizeOrdemForRecibo(ordem: OrdemServicoMotorista) {
     const category = classifyDriverProductType(rawType);
     if (category) summary[category] += 1;
 
-  const tipoPrincipal = `${rawType}`;
+    const tipoPrincipal = `${rawType}`;
     const valor = `$${Number(p.value ?? 0).toFixed(2)}`;
 
     return {
       key: String(p.id ?? `box-${idx}`),
       tipoPrincipal,
-      tipoCadastro: rawType || "—",
+      tipoCadastro: rawType || "-",
       weight: p.weight,
       value: valor,
     };
@@ -124,3 +124,4 @@ export function summarizeOrdemForRecibo(ordem: OrdemServicoMotorista) {
 
   return { rows, summary, totalUnidades: products.length };
 }
+

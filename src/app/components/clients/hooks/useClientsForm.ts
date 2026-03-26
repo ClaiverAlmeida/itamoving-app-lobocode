@@ -1,0 +1,161 @@
+import { useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
+import type { Cliente, CreateClientsDTO } from '../../../api';
+
+export type ClientFormData = {
+  usaName: string;
+  usaCpf: string;
+  usaPhone: string;
+  usaAddress: {
+    rua: string;
+    numero: string;
+    cidade: string;
+    estado: string;
+    zipCode: string;
+    complemento: string;
+  };
+  brazilName: string;
+  brazilCpf: string;
+  brazilPhone: string;
+  brazilAddress: {
+    rua: string;
+    bairro: string;
+    numero: string;
+    cidade: string;
+    estado: string;
+    cep: string;
+    complemento: string;
+  };
+  userId: string;
+  status: 'ACTIVE' | 'INACTIVE';
+};
+
+const getInitialFormData = (): ClientFormData => ({
+  usaName: '',
+  usaCpf: '',
+  usaPhone: '',
+  usaAddress: {
+    rua: '',
+    numero: '',
+    cidade: '',
+    estado: '',
+    zipCode: '',
+    complemento: '',
+  },
+  brazilName: '',
+  brazilCpf: '',
+  brazilPhone: '',
+  brazilAddress: {
+    rua: '',
+    bairro: '',
+    numero: '',
+    cidade: '',
+    estado: '',
+    cep: '',
+    complemento: '',
+  },
+  userId: '',
+  status: 'ACTIVE',
+});
+
+export function useClientsForm(args: {
+  setEditingCliente: Dispatch<SetStateAction<Cliente | null>>;
+  setIsDialogOpen: Dispatch<SetStateAction<boolean>>;
+}) {
+  const { setEditingCliente, setIsDialogOpen } = args;
+  const [formData, setFormData] = useState<ClientFormData>(getInitialFormData);
+
+  const resetForm = () => {
+    setFormData(getInitialFormData());
+    setEditingCliente(null);
+  };
+
+  const handleEdit = (cliente: Cliente) => {
+    setEditingCliente(cliente);
+    const usaAddr = cliente.usaAddress as {
+      rua?: string;
+      numero?: string;
+      cidade?: string;
+      estado?: string;
+      zipCode?: string;
+      complemento?: string;
+    };
+    const brAddr = cliente.brazilAddress as {
+      rua?: string;
+      bairro?: string;
+      numero?: string;
+      cidade?: string;
+      estado?: string;
+      cep?: string;
+      complemento?: string;
+    };
+
+    setFormData({
+      usaName: cliente.usaNome ?? '',
+      usaCpf: cliente.usaCpf ?? '',
+      usaPhone: cliente.usaPhone ?? '',
+      usaAddress: {
+        rua: usaAddr?.rua ?? '',
+        numero: usaAddr?.numero ?? '',
+        cidade: usaAddr?.cidade ?? '',
+        estado: usaAddr?.estado ?? '',
+        zipCode: usaAddr?.zipCode ?? '',
+        complemento: usaAddr?.complemento ?? '',
+      },
+      brazilName: cliente.brazilNome ?? '',
+      brazilCpf: cliente.brazilCpf ?? '',
+      brazilPhone: cliente.brazilPhone ?? '',
+      brazilAddress: {
+        rua: brAddr?.rua ?? '',
+        bairro: brAddr?.bairro ?? '',
+        numero: brAddr?.numero ?? '',
+        cidade: brAddr?.cidade ?? '',
+        estado: brAddr?.estado ?? '',
+        cep: brAddr?.cep ?? '',
+        complemento: brAddr?.complemento ?? '',
+      },
+      userId: cliente.user?.id ?? '',
+      status: cliente.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+    });
+    setIsDialogOpen(true);
+  };
+
+  const getCreatePayload = (): CreateClientsDTO => {
+    const trim = (s: string) => (s ?? '').trim();
+    return {
+      usaName: trim(formData.usaName),
+      usaCpf: trim(formData.usaCpf) || '',
+      usaPhone: trim(formData.usaPhone),
+      usaAddress: {
+        rua: trim(formData.usaAddress.rua),
+        numero: trim(formData.usaAddress.numero),
+        cidade: trim(formData.usaAddress.cidade),
+        estado: trim(formData.usaAddress.estado),
+        zipCode: trim(formData.usaAddress.zipCode),
+        complemento: trim(formData.usaAddress.complemento) || '',
+      },
+      brazilName: trim(formData.brazilName),
+      brazilCpf: trim(formData.brazilCpf) || '',
+      brazilPhone: trim(formData.brazilPhone),
+      brazilAddress: {
+        rua: trim(formData.brazilAddress.rua),
+        bairro: trim(formData.brazilAddress.bairro),
+        numero: trim(formData.brazilAddress.numero),
+        cidade: trim(formData.brazilAddress.cidade),
+        estado: trim(formData.brazilAddress.estado),
+        cep: trim(formData.brazilAddress.cep),
+        complemento: trim(formData.brazilAddress.complemento) || '',
+      },
+      userId: trim(formData.userId),
+      status: formData.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+    };
+  };
+
+  return {
+    formData,
+    setFormData,
+    resetForm,
+    handleEdit,
+    getCreatePayload,
+  };
+}

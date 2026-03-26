@@ -10,7 +10,6 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { motion, AnimatePresence } from "motion/react";
 import { Estoque, OrdemServicoMotorista } from "../../api";
-import type { LucideIcon } from "lucide-react";
 import {
   Truck,
   Package,
@@ -20,43 +19,22 @@ import {
   Box,
   Home,
 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { stockService, driverAppService } from "../../api";
 import type { AgendamentoConfirmedBackend } from "../../api";
 import { useNavigate } from "react-router-dom";
+import {
+  CARD_ESTIMATED_HEIGHT,
+  WINDOW_OVERSCAN,
+  WINDOW_SIZE,
+  driverAppCrud,
+  formatCollectionDate,
+  type TruckStockItem,
+} from "./driver-app/index";
 
 const OrdemServicoForm = lazy(() => import("./service-order-form"));
 const DeliveryReceipt = lazy(async () => {
   const mod = await import("./delivery-receipt");
   return { default: mod.DeliveryReceipt };
 });
-
-type TruckStockItem = {
-  label: string;
-  value: number;
-  Icon: LucideIcon;
-  iconBg: string;
-  iconClass: string;
-  valueClass: string;
-};
-
-function formatCollectionDate(dateStr: string | undefined): string {
-  if (!dateStr) return "-";
-
-  // Evita bug de timezone com datas no formato "YYYY-MM-DD" (new Date(...) pode virar "dia -1")
-  const prefix = dateStr.slice(0, 10);
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(prefix);
-  if (m) {
-    const year = Number(m[1]);
-    const month = Number(m[2]);
-    const day = Number(m[3]);
-    const localDate = new Date(year, month - 1, day);
-    return format(localDate, "dd/MM/yyyy", { locale: ptBR });
-  }
-
-  return format(new Date(dateStr), "dd/MM/yyyy", { locale: ptBR });
-}
 
 export default function MotoristaApp() {
   const navigate = useNavigate();
@@ -75,8 +53,8 @@ export default function MotoristaApp() {
   useEffect(() => {
     const carregar = async () => {
       const [agendamentosResult, estoqueResult] = await Promise.all([
-        driverAppService.getConfirmedAppointments(),
-        stockService.getAll(),
+        driverAppCrud.getConfirmedAppointments(),
+        driverAppCrud.getStock(),
       ]);
 
       if (agendamentosResult.success && agendamentosResult.data) {
@@ -101,9 +79,6 @@ export default function MotoristaApp() {
   const agendamentosConfirmados = agendamentos.filter((a) => a.status === "CONFIRMED");
   const listScrollRef = useRef<HTMLDivElement | null>(null);
   const [listWindowStart, setListWindowStart] = useState(0);
-  const CARD_ESTIMATED_HEIGHT = 300;
-  const WINDOW_SIZE = 12;
-  const WINDOW_OVERSCAN = 4;
 
   const windowedAgendamentos = useMemo(() => {
     const start = Math.max(0, listWindowStart - WINDOW_OVERSCAN);

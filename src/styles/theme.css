@@ -235,10 +235,18 @@ button.calendar-day-agendado,
 .rdp-day.calendar-day-agendado,
 .rdp .rdp-day.calendar-day-agendado,
 [data-rdp-day].calendar-day-agendado {
+  background: rgba(139, 92, 246, 0.6) !important;
   color: #fff !important;
   font-weight: 600 !important;
   border: 1px solid rgb(255, 255, 255) !important;
   border-radius: 6px;
+}
+.dark button.calendar-day-agendado,
+.dark .rdp-day.calendar-day-agendado,
+.dark .rdp .rdp-day.calendar-day-agendado,
+.dark [data-rdp-day].calendar-day-agendado {
+  background: rgba(139, 92, 246, 0.6) !important;
+  color: #fff !important;
 }
 
 /* Período com agendamento: meio a meio — roxo (esq.) + verde (dir.) */
@@ -457,12 +465,24 @@ button.calendar-day-period-appointment,
 .calendar-appointments button.rdp-day.calendar-day-selected,
 .calendar-appointments .rdp-day.calendar-day-selected {
   border: 1px solid #0f172a !important; /* slate-900, contrasta bem com verde/roxo/laranja */
-  color: #0f172a !important;
+  box-shadow: inset 0 0 0 1px #0f172a !important;
   font-weight: 700 !important;
 }
 .dark .calendar-appointments button.rdp-day.calendar-day-selected,
 .dark .calendar-appointments .rdp-day.calendar-day-selected {
   border: 1px solid #e5e7eb !important; /* slate-200 no dark */
-  color: #e5e7eb !important;
+  box-shadow: inset 0 0 0 1px #e5e7eb !important;
   font-weight: 700 !important;
+}
+
+/* Fallback robusto para garantir destaque da seleção (inclusive em combinações com modificadores) */
+.calendar-appointments button.rdp-day[aria-selected="true"],
+.calendar-appointments .rdp-day[aria-selected="true"] {
+  border: 1px solid #0f172a !important;
+  box-shadow: inset 0 0 0 1px #0f172a !important;
+}
+.dark .calendar-appointments button.rdp-day[aria-selected="true"],
+.dark .calendar-appointments .rdp-day[aria-selected="true"] {
+  border: 1px solid #e5e7eb !important;
+  box-shadow: inset 0 0 0 1px #e5e7eb !important;
 }
