@@ -2,9 +2,19 @@ import { Container } from "../types";
 import { toDateOnly } from "../../utils";
 import type { ContainersBackend, CreateContainersDTO, UpdateContainersDTO } from "../types";
 import { BaseCrudService } from "./base-crud.service";
+import { api } from "./api.service";
 
 function mapBackendToFrontend(container: ContainersBackend): Container {
-  const boxes = container.boxes ?? [];
+  const fromProducts = Array.isArray(container.products)
+    ? container.products.map((p) => ({
+        clientId: p.clientId ?? "",
+        clientName: p.clientName ?? "",
+        boxNumber: p.boxNumber,
+        size: p.size,
+        weight: p.weight,
+      }))
+    : [];
+  const boxes = fromProducts.length ? fromProducts : container.boxes ?? [];
   const totalWeight =
     container.totalWeight ?? boxes.reduce((s, b) => s + (b?.weight ?? 0), 0);
   return {
@@ -18,13 +28,24 @@ function mapBackendToFrontend(container: ContainersBackend): Container {
     boardingDate: toDateOnly(container.boardingDate),
     estimatedArrival: toDateOnly(container.estimatedArrival),
     volume: container.volume,
-    weightLimit: container.weightLimit ?? 0,
+    emptyWeight: container.emptyWeight ?? undefined,
+    fullWeight: container.fullWeight ?? undefined,
     trackingLink: container.trackingLink,
     status: container.status as Container["status"],
     totalWeight,
     boxes,
+    volumeLetter: container.volumeLetter ?? undefined,
+    volumeCapacity: container.volumeCapacity ?? 220,
+    linkedServiceOrderCount: Array.isArray(container.driverServiceOrders)
+      ? container.driverServiceOrders.length
+      : undefined,
   };
 }
+
+export type AssignContainerServiceOrderPayload = {
+  driverServiceOrderId: string;
+  volumeLetter?: string;
+};
 
 export class ContainersService extends BaseCrudService<
   Container,
@@ -39,6 +60,35 @@ export class ContainersService extends BaseCrudService<
       updateError: "Erro ao atualizar container",
       deleteError: "Erro ao excluir container",
     });
+  }
+
+  async getById(id: string): Promise<{ success: boolean; data?: Container; error?: string }> {
+    const result = await api.get<ContainersBackend | { data: ContainersBackend }>(
+      `${this.resource}/${id}`,
+      { useCache: false },
+    );
+    if (!result.success) {
+      return { success: false, error: result.error || "Erro ao buscar container" };
+    }
+    const raw = this.unwrapData(result.data);
+    if (!raw) return { success: false, error: "Erro ao buscar container" };
+    return { success: true, data: mapBackendToFrontend(raw as ContainersBackend) };
+  }
+
+  async assignServiceOrder(
+    containerId: string,
+    payload: AssignContainerServiceOrderPayload,
+  ): Promise<{ success: boolean; data?: Container; error?: string }> {
+    const result = await api.post<ContainersBackend | { data: ContainersBackend }>(
+      `${this.resource}/${containerId}/assign-service-order`,
+      payload,
+    );
+    if (!result.success) {
+      return { success: false, error: result.error || "Erro ao vincular ordem de serviço" };
+    }
+    const raw = this.unwrapData(result.data);
+    if (!raw) return { success: false, error: "Erro ao vincular ordem de serviço" };
+    return { success: true, data: mapBackendToFrontend(raw as ContainersBackend) };
   }
 }
 

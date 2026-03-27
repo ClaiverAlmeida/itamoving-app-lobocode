@@ -62,7 +62,7 @@ export const handleUpdateContainer = async (args: UpdateArgs) => {
 
   const result = await update(selectedContainer.id!, patchPayload);
   if (result.success && result.data) {
-    updateContainer(selectedContainer.id!, patchPayload);
+    updateContainer(selectedContainer.id!, result.data);
     setSelectedContainer(result.data);
     toast.success("Container atualizado com sucesso!");
     onSuccess();

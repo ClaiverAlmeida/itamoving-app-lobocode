@@ -64,9 +64,18 @@ export interface Container {
   boardingDate?: string;
   estimatedArrival?: string;
   volume?: number;
-  weightLimit: number;
+  /** Peso do container vazio — tara (kg). */
+  emptyWeight?: number | null;
+  /** Peso do container cheio — bruto (kg); limite de peso da carga. */
+  fullWeight?: number | null;
   trackingLink?: string;
   status: "PREPARATION" | "SHIPPED" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
+  /** Letra do volume (ex.: A, B) — numeração 1-A, 2-A… (gravada após a primeira ordem com caixas). */
+  volumeLetter?: string;
+  /** Limite alvo de volumes por container (padrão ~220). */
+  volumeCapacity?: number;
+  /** Quantidade de ordens de serviço já vinculadas a este container. */
+  linkedServiceOrderCount?: number;
   boxes?: {
     clientId: string;
     clientName: string;
@@ -183,6 +192,8 @@ export interface OrdemServicoMotorista {
   };
   driverServiceOrderProducts: {
     id?: string;
+    /** Número da caixa na ordem (referência operacional). */
+    number?: string;
     productId?: string;
     type: string;
     weight: number;

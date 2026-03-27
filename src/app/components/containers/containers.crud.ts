@@ -2,11 +2,16 @@ import { containersServices, serviceOrderFormService } from "../../api";
 
 export const containersCrud = {
   getAll: () => containersServices.getAll(),
+  getById: (id: string) => containersServices.getById(id),
   getAllCompletedAndNotAssignedToContainer: () => serviceOrderFormService.getAllCompletedAndNotAssignedToContainer(),
   create: (payload: Parameters<typeof containersServices.create>[0]) =>
     containersServices.create(payload),
   update: (id: string, payload: Parameters<typeof containersServices.update>[1]) =>
     containersServices.update(id, payload),
   delete: (id: string) => containersServices.delete(id),
+  assignServiceOrder: (
+    id: string,
+    payload: Parameters<typeof containersServices.assignServiceOrder>[1],
+  ) => containersServices.assignServiceOrder(id, payload),
 };
 

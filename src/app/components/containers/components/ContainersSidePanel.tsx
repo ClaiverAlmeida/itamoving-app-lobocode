@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { Container } from "../../../api";
+import { ContainerAssignServiceOrderCard } from "./ContainerAssignServiceOrderCard";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
@@ -12,7 +13,6 @@ import {
   Anchor,
   ArrowRight,
   ArrowUpRight,
-  Box,
   CheckCircle2,
   Container as ContainerIcon,
   Edit,
@@ -22,7 +22,6 @@ import {
   MapPin,
   Navigation,
   Package,
-  Plus,
   Ship,
   Trash2,
   Truck,
@@ -52,6 +51,7 @@ type Props = {
   setIsDeleteDialogOpen: (open: boolean) => void;
   handleContainerStatusChange: (id: string, status: Container["status"]) => void | Promise<void>;
   statusItems: readonly { value: Container["status"]; label: string }[];
+  onContainerVolumesUpdated: (updated: Container) => void;
 };
 
 const getEventoIcon = (tipo: ContainerEvento["tipo"]) => {
@@ -83,6 +83,7 @@ export function ContainersSidePanel(props: Props) {
     setIsDeleteDialogOpen,
     handleContainerStatusChange,
     statusItems,
+    onContainerVolumesUpdated,
   } = props;
 
   return (
@@ -115,6 +116,10 @@ export function ContainersSidePanel(props: Props) {
                       <Badge className={getStatusColor(selectedContainer.status).badge}>
                         {getStatusLabel(selectedContainer.status)}
                       </Badge>
+                      {selectedContainer.volumeLetter &&
+                        (selectedContainer.boxes?.length ?? 0) > 0 && (
+                        <Badge variant="secondary">Volume {selectedContainer.volumeLetter.toUpperCase()}</Badge>
+                      )}
                       <Badge variant="outline">{selectedContainer.boxes?.length || 0} caixas</Badge>
                       <Badge variant="outline">{selectedContainer.totalWeight || 0} kg</Badge>
                     </div>
@@ -272,14 +277,24 @@ export function ContainersSidePanel(props: Props) {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Peso Utilizado</span>
+                    <span className="text-sm text-muted-foreground">Peso da carga</span>
                     <span className="font-semibold">
-                      {selectedContainer.totalWeight} / {selectedContainer.weightLimit} kg
+                      {selectedContainer.totalWeight} /{" "}
+                      {selectedContainer.fullWeight != null ? selectedContainer.fullWeight : "—"} kg
                     </span>
                   </div>
-                  <Progress value={((selectedContainer.totalWeight ?? 0) / (selectedContainer.weightLimit || 1)) * 100} className="h-3" />
+                  <Progress
+                    value={
+                      selectedContainer.fullWeight != null && selectedContainer.fullWeight > 0
+                        ? ((selectedContainer.totalWeight ?? 0) / selectedContainer.fullWeight) * 100
+                        : 0
+                    }
+                    className="h-3"
+                  />
                   <p className="text-xs text-muted-foreground">
-                    {(((selectedContainer.totalWeight ?? 0) / (selectedContainer.weightLimit || 1)) * 100).toFixed(1)}% da capacidade máxima
+                    {selectedContainer.fullWeight != null && selectedContainer.fullWeight > 0
+                      ? `${(((selectedContainer.totalWeight ?? 0) / selectedContainer.fullWeight) * 100).toFixed(1)}% do limite (peso cheio)`
+                      : "Defina o peso cheio do container para usar o limite."}
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
@@ -291,26 +306,30 @@ export function ContainersSidePanel(props: Props) {
                     <p className="text-sm text-muted-foreground mb-1">Tipo</p>
                     <p className="font-semibold">{selectedContainer.type}</p>
                   </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Peso vazio (tara)</p>
+                    <p className="font-semibold">
+                      {selectedContainer.emptyWeight != null
+                        ? `${selectedContainer.emptyWeight.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg`
+                        : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Peso cheio (bruto)</p>
+                    <p className="font-semibold">
+                      {selectedContainer.fullWeight != null
+                        ? `${selectedContainer.fullWeight.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg`
+                        : "—"}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Box className="w-5 h-5" />
-                  Adicionar Caixas ou Produtos
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-center">
-                <Button variant="outline" size="sm" className="w-full" onClick={() => {
-                  alert("Adicionar Caixas ou Produtos");
-                }}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Caixas ou Produtos
-                </Button>
-              </CardContent>
-            </Card>
+            <ContainerAssignServiceOrderCard
+              container={selectedContainer}
+              onAssigned={onContainerVolumesUpdated}
+            />
           </div>
         </motion.div>
       )}

@@ -12,7 +12,8 @@ const initialFormData: ContainerFormData = {
   estimatedArrival: "",
   status: "PREPARATION",
   volume: "",
-  weightLimit: "",
+  emptyWeight: "",
+  fullWeight: "",
   trackingLink: "",
 };
 
@@ -32,7 +33,14 @@ export function useContainersForm() {
       estimatedArrival: toDateOnlyForInput(container.estimatedArrival),
       status: container.status || "PREPARATION",
       volume: container.volume?.toString() || "0",
-      weightLimit: container.weightLimit?.toString() || "0",
+      emptyWeight:
+        container.emptyWeight !== undefined && container.emptyWeight !== null
+          ? String(container.emptyWeight)
+          : "",
+      fullWeight:
+        container.fullWeight !== undefined && container.fullWeight !== null
+          ? String(container.fullWeight)
+          : "",
       trackingLink: container.trackingLink || "",
     });
   };

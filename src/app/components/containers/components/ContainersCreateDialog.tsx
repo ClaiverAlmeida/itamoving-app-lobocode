@@ -82,10 +82,32 @@ export function ContainersCreateDialog({
               <Input id="create-volume" type="number" step="0.01" min="0.01" placeholder="Ex: 67.5" value={formData.volume} onChange={(e) => setFormData({ ...formData, volume: e.target.value })} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-weightLimit">Limite de Peso (kg) *</Label>
-              <Input id="create-weightLimit" type="number" step="0.01" min="0.01" placeholder="Ex: 28000" value={formData.weightLimit} onChange={(e) => setFormData({ ...formData, weightLimit: e.target.value })} required />
+              <Label htmlFor="create-emptyWeight">Peso do container vazio (kg)</Label>
+              <Input
+                id="create-emptyWeight"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Opcional — tara"
+                value={formData.emptyWeight}
+                onChange={(e) => setFormData({ ...formData, emptyWeight: e.target.value })}
+              />
             </div>
-            <div className="col-span-1 md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5 w-full">
+            <div className="col-span-1 md:col-span-3 lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5 w-full">
+              <div className="space-y-2">
+                <Label htmlFor="create-fullWeight">Peso do container cheio (kg) *</Label>
+                <Input
+                  id="create-fullWeight"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="Define o limite de peso da carga"
+                  value={formData.fullWeight}
+                  onChange={(e) => setFormData({ ...formData, fullWeight: e.target.value })}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Peso bruto máximo; usado como limite de capacidade da carga.</p>
+              </div>
               <div className="space-y-2 min-w-0">
                 <Label htmlFor="create-trackingLink">Link de Rastreamento</Label>
                 <Input id="create-trackingLink" type="url" placeholder="Ex: https://tracking.example.com/CNT123456" className="w-full max-w-full" value={formData.trackingLink} onChange={(e) => setFormData({ ...formData, trackingLink: e.target.value })} />

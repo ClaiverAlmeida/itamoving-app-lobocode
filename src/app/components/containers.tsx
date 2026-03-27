@@ -64,7 +64,6 @@ export default function ContainersView() {
     addContainer,
     updateContainer,
     deleteContainer,
-    clientes,
   } = useData();
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -163,6 +162,12 @@ export default function ContainersView() {
       setSelectedContainer,
     });
 
+  const handleContainerVolumesUpdated = (updated: Container) => {
+    if (!updated.id) return;
+    updateContainer(updated.id, updated);
+    setSelectedContainer(updated);
+  };
+
   const filteredContainers = useMemo(() => {
     return containers.filter((container) => {
       // Search
@@ -222,7 +227,7 @@ export default function ContainersView() {
     // const capacidadeMedia =
     //   filteredContainers.length > 0
     //     ? (filteredContainers.reduce(
-    //         (sum, c) => sum + c.totalWeight / c.weightLimit,
+    //         (sum, c) => sum + c.totalWeight / (c.fullWeight || 1),
     //         0,
     //       ) /
     //         filteredContainers.length) *
@@ -516,6 +521,7 @@ export default function ContainersView() {
         setIsDeleteDialogOpen={setIsDeleteDialogOpen}
         handleContainerStatusChange={handleContainerStatusChange}
         statusItems={CONTAINER_STATUS_ITEMS}
+        onContainerVolumesUpdated={handleContainerVolumesUpdated}
       />
 
       <ContainersEditDialog

@@ -1,4 +1,4 @@
-import type { Transacao } from "../../api";
+import { clientsService, type Transacao } from "../../api";
 
 export function createFinancialCrud(params: {
   addTransacao: (t: Transacao) => void;
@@ -10,3 +10,6 @@ export function createFinancialCrud(params: {
   };
 }
 
+export const financialCrud = {
+  getClients: () => clientsService.getAll(),
+};

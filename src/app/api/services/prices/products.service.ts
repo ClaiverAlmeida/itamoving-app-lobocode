@@ -38,6 +38,29 @@ export class ProductsService extends BaseCrudService<
     }, true);
   }
 
+  /**
+   * Lista produtos incluindo soft-deleted (somente para edição de ordem de serviço).
+   */
+  async getAllForServiceOrderEdit(driverServiceOrderId?: string): Promise<{
+    success: boolean;
+    data?: PrecoProduto[];
+    error?: string;
+  }> {
+    const result = await api.get<ProductPriceBackend[] | { data: ProductPriceBackend[] }>(
+      `${this.resource}/service-order-edit-options`,
+      {
+        ...(driverServiceOrderId
+          ? { params: { driverServiceOrderId } }
+          : {}),
+      },
+    );
+    if (!result.success) {
+      return { success: false, error: result.error || this.errorMessages.listError };
+    }
+    const items = this.unwrapList(result.data);
+    return { success: true, data: items.map(this.mapBackendToFrontend) };
+  }
+
   async export(): Promise<{ success: boolean; data?: PrecoProduto[]; error?: string }> {
     try {
       const result = await api.get<{ data: ProductPriceBackend }>("/product-prices/");

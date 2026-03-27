@@ -1,5 +1,5 @@
+import React from "react";
 import type { PrecoProduto } from "../../../api";
-
 export function valorSelectCaixa(p: PrecoProduto): string {
   return p.size || p.name;
 }

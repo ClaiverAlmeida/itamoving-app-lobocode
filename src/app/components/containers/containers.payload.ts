@@ -10,23 +10,46 @@ export type ContainerFormData = {
   estimatedArrival: string;
   status: Container["status"];
   volume: string;
-  weightLimit: string;
+  emptyWeight: string;
+  fullWeight: string;
   trackingLink: string;
 };
 
-export const buildCreateContainerPayload = (formData: ContainerFormData) => ({
-  number: formData.number,
-  type: formData.type,
-  seal: formData.seal,
-  origin: formData.origin,
-  destination: formData.destination,
-  boardingDate: formData.boardingDate,
-  estimatedArrival: formData.estimatedArrival,
-  volume: parseFloat(formData.volume) || 0,
-  trackingLink: formData.trackingLink,
-  weightLimit: parseFloat(formData.weightLimit) || 0,
-  status: formData.status as "PREPARATION" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED",
-});
+function optionalKg(value: string): number | undefined {
+  const t = value.trim();
+  if (t === "") return undefined;
+  const n = parseFloat(t.replace(",", "."));
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
+/** Para PATCH: string vazia → `null` (limpar); inválido → `undefined` (não alterar). */
+function optionalKgForUpdate(value: string): number | null | undefined {
+  const t = value.trim();
+  if (t === "") return null;
+  const n = parseFloat(t.replace(",", "."));
+  if (!Number.isFinite(n) || n < 0) return undefined;
+  return n;
+}
+
+export const buildCreateContainerPayload = (formData: ContainerFormData) => {
+  const ew = optionalKg(formData.emptyWeight);
+  const fwRaw = parseFloat(formData.fullWeight.replace(",", "."));
+  const fullWeight = Number.isFinite(fwRaw) && fwRaw >= 0.01 ? fwRaw : 0;
+  return {
+    number: formData.number,
+    type: formData.type,
+    seal: formData.seal,
+    origin: formData.origin,
+    destination: formData.destination,
+    boardingDate: formData.boardingDate,
+    estimatedArrival: formData.estimatedArrival,
+    volume: parseFloat(formData.volume) || 0,
+    trackingLink: formData.trackingLink,
+    ...(ew !== undefined ? { emptyWeight: ew } : {}),
+    fullWeight,
+    status: formData.status as "PREPARATION" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED",
+  };
+};
 
 export const buildUpdateContainerPayload = (
   formData: ContainerFormData,
@@ -43,9 +66,20 @@ export const buildUpdateContainerPayload = (
   if (current.boardingDate !== original.boardingDate) patch.boardingDate = current.boardingDate;
   if (current.estimatedArrival !== original.estimatedArrival) patch.estimatedArrival = current.estimatedArrival;
   if (current.volume !== original.volume) patch.volume = current.volume;
-  if (current.weightLimit !== original.weightLimit) patch.weightLimit = current.weightLimit;
   if (current.trackingLink !== original.trackingLink) patch.trackingLink = current.trackingLink;
   if (current.status !== original.status) patch.status = current.status;
+
+  const ew = optionalKgForUpdate(formData.emptyWeight);
+  if (ew !== undefined) {
+    const orig = original.emptyWeight ?? null;
+    if (ew !== orig) patch.emptyWeight = ew;
+  }
+
+  const fwRaw = parseFloat(formData.fullWeight.replace(",", "."));
+  if (Number.isFinite(fwRaw) && fwRaw >= 0.01) {
+    const orig = original.fullWeight ?? null;
+    if (fwRaw !== orig) patch.fullWeight = fwRaw;
+  }
 
   return patch;
 };

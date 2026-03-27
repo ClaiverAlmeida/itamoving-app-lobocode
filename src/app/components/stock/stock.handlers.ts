@@ -1,6 +1,6 @@
 import type { EstoqueMovimentacao, ItemKeyEn, MovementDialogType } from "./stock.types";
 import { buildEstoqueAtualizadoPayload, buildMovimentacaoPayload } from "./stock.payload";
-import { Estoque, EstoqueAtualizado } from "../../api";
+import type { CriarMovimentacao, Estoque, EstoqueAtualizado } from "../../api";
 
 type HandleMovementArgs = {
   selectedItem: ItemKeyEn | "";
@@ -12,7 +12,12 @@ type HandleMovementArgs = {
   estoqueAtual: Record<string, number>;
   idStock: string | null;
   updateEstoque: (data: Record<string, number>) => void;
-  updateStockRemote: (idStock: string, payload: Record<string, number>, movementPayload: any, type: MovementDialogType) => Promise<{ success: boolean; data?: { stockMovements?: EstoqueMovimentacao[] }; error?: string }>;
+  updateStockRemote: (
+    idStock: string,
+    payload: EstoqueAtualizado,
+    movementPayload: CriarMovimentacao,
+    type: MovementDialogType,
+  ) => Promise<{ success: boolean; data?: Estoque; error?: string }>;
   setMovimentacoes: (list: EstoqueMovimentacao[]) => void;
   onSuccess: () => void;
   onError: (message: string) => void;

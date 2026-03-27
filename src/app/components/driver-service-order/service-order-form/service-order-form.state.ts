@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Caixa, DriverUser, Item, PrecoProduto } from "../../../api";
 import { serviceOrderFormCrud } from "./service-order-form.crud";
@@ -30,15 +30,18 @@ export function useServiceOrderFormState({
   const [hydrationReady, setHydrationReady] = useState(false);
   const existingProductIdsRef = useRef<Set<string>>(new Set());
 
-  const opcoesCaixa = precosProdutos.filter(
-    (p) =>
-      (p.type === "SMALL_BOX" ||
+  const opcoesCaixa = useMemo(() => {
+    const porTipo = precosProdutos.filter(
+      (p) =>
+        p.type === "SMALL_BOX" ||
         p.type === "MEDIUM_BOX" ||
         p.type === "LARGE_BOX" ||
         p.type === "PERSONALIZED_ITEM" ||
-        p.type === "TAPE_ADHESIVE") &&
-      p.active,
-  );
+        p.type === "TAPE_ADHESIVE",
+    );
+    if (isEditMode) return porTipo;
+    return porTipo.filter((p) => p.active);
+  }, [precosProdutos, isEditMode]);
 
   const [remetenteNome, setRemetenteNome] = useState(agendamento.client.usaName || "");
   const [remetenteTel, setRemetenteTel] = useState(agendamento.client.usaPhone || "");
@@ -86,9 +89,12 @@ export function useServiceOrderFormState({
     }
   };
 
-  const carregarProdutos = async () => {
+  const carregarProdutos = useCallback(async () => {
     setProdutosLoading(true);
-    const result = await serviceOrderFormCrud.getProducts();
+    const result = await serviceOrderFormCrud.getProducts({
+      includeDeletedForEdit: isEditMode,
+      driverServiceOrderId: isEditMode ? existingOrdem?.id : undefined,
+    });
     try {
       if (result.success && result.data) {
         setPrecosProdutos(result.data);
@@ -98,7 +104,7 @@ export function useServiceOrderFormState({
     } finally {
       setProdutosLoading(false);
     }
-  };
+  }, [isEditMode, existingOrdem?.id]);
 
   const adicionarCaixa = async () => {
     const produtos = await carregarProdutos();
@@ -255,9 +261,12 @@ export function useServiceOrderFormState({
   };
 
   useEffect(() => {
-    void carregarProdutos();
     void carregarMotoristas();
   }, []);
+
+  useEffect(() => {
+    void carregarProdutos();
+  }, [carregarProdutos]);
 
   useEffect(() => {
     if (existingOrdem?.id) return;
@@ -291,12 +300,11 @@ export function useServiceOrderFormState({
 
     const prods = precosProdutos.filter(
       (p) =>
-        (p.type === "SMALL_BOX" ||
-          p.type === "MEDIUM_BOX" ||
-          p.type === "LARGE_BOX" ||
-          p.type === "PERSONALIZED_ITEM" ||
-          p.type === "TAPE_ADHESIVE") &&
-        p.active,
+        p.type === "SMALL_BOX" ||
+        p.type === "MEDIUM_BOX" ||
+        p.type === "LARGE_BOX" ||
+        p.type === "PERSONALIZED_ITEM" ||
+        p.type === "TAPE_ADHESIVE",
     );
 
     setRemetenteNome(existingOrdem.sender.usaName || "");
