@@ -12,6 +12,7 @@ export interface OrdemServicoFormProps {
 
 export interface Caixa {
   id: string;
+  productId?: string;
   type: string;
   number: string;
   value: number;

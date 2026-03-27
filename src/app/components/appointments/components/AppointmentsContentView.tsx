@@ -14,6 +14,13 @@ import { AppointmentsListView } from "./AppointmentsListView";
 import { AppointmentsTimelineView } from "./AppointmentsTimelineView";
 import { ViewMode } from "../appointments.constants";
 
+const BORDER_LEFT_CLASS_BY_STATUS_COLOR: Record<string, string> = {
+  "bg-yellow-500": "border-l-yellow-600",
+  "bg-green-500": "border-l-green-600",
+  "bg-blue-500": "border-l-blue-600",
+  "bg-red-500": "border-l-red-600",
+};
+
 type Props = {
   viewMode: ViewMode;
   selectedPeriod: CreateAppointmentsPeriodsDTO | null;
@@ -192,11 +199,11 @@ export function AppointmentsContentView(props: Props) {
                       const config = getStatusConfig(agendamento.status);
                       const StatusIcon = config.icon;
                       const timeLabel = (agendamento.collectionTime ?? "").trim() || "—";
+                      const borderLeftClass = BORDER_LEFT_CLASS_BY_STATUS_COLOR[config.color] ?? "border-l-slate-400";
                       return (
                         <motion.div key={agendamento.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }} className="group">
                           <Card
-                            className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${config.bgLight}`}
-                            style={{ borderLeftColor: config.color.replace("bg-", "#").replace("500", "600") }}
+                            className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${config.bgLight} ${borderLeftClass}`}
                             onClick={() => {
                               setSelectedAgendamento(agendamento);
                               setIsSidePanelOpen(true);

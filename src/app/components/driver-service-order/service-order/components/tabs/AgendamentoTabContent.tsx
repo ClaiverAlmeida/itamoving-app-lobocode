@@ -1,7 +1,10 @@
-import { AlertCircle, Calendar } from "lucide-react";
+import React from "react";
+import { AlertCircle, Box, Calendar, CalendarIcon, MapPin, Phone } from "lucide-react";
 import type { OrdemServicoView } from "../../../../../api";
 import { agendamentoResumoParaExibicao, formatCollectionDate } from "../../service-order.utils";
 import { ViewField } from "../ViewField";
+import { cn } from "../../../../ui/utils";
+import { Badge } from "../../../../ui/badge";
 
 export function AgendamentoTabContent({ ordem }: { ordem: OrdemServicoView }) {
   const agResumo = agendamentoResumoParaExibicao(ordem);
@@ -32,8 +35,38 @@ export function AgendamentoTabContent({ ordem }: { ordem: OrdemServicoView }) {
             {agResumo.collectionTime ? ` às ${agResumo.collectionTime}` : ""}
           </span>
         </ViewField>
+        <ViewField label="Tipo">
+          <Badge
+            variant="outline"
+            className={cn(
+              "inline-flex w-fit items-center gap-1 whitespace-nowrap border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide shadow-sm",
+              agResumo.isPeriodic
+                ? "border-indigo-200/90 bg-indigo-50 text-indigo-900 dark:border-indigo-800/50 dark:bg-indigo-950/45 dark:text-indigo-100"
+                : "border-slate-300/80 bg-slate-50 text-slate-800 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-200",
+            )}
+          >
+            {agResumo.isPeriodic ? (
+              <CalendarIcon className="h-3 w-3 text-indigo-700 dark:text-indigo-300" />
+            ) : (
+              <Box className="h-3 w-3 text-slate-600 dark:text-slate-400" />
+            )}
+            {agResumo.isPeriodic ? "Periódico" : "Único"}
+          </Badge>
+        </ViewField>
+        <ViewField label="Endereço / base (empresa)">
+          <span className="inline-flex items-start gap-2">
+            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            {agResumo.companyAddress}
+          </span>
+        </ViewField>
+        <ViewField label="Contato da empresa">
+          <span className="inline-flex items-center gap-2">
+            <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+            {agResumo.companyPhone ? agResumo.companyPhone : "-"}
+          </span>
+        </ViewField>
       </div>
-    </div>
+    </div >
   );
 }
 

@@ -7,6 +7,13 @@ import { Agendamento, CreateAppointmentsPeriodsDTO } from "../../../api";
 import { cn } from "../../ui/utils";
 import { formatDateOnlyToBR } from "../../../utils";
 
+const BORDER_LEFT_CLASS_BY_STATUS_COLOR: Record<string, string> = {
+  "bg-yellow-500": "border-l-yellow-600",
+  "bg-green-500": "border-l-green-600",
+  "bg-blue-500": "border-l-blue-600",
+  "bg-red-500": "border-l-red-600",
+};
+
 type Props = {
   selectedPeriod: CreateAppointmentsPeriodsDTO;
   agendamentosDoPeriodo: Agendamento[];
@@ -124,11 +131,11 @@ export function AppointmentsPeriodSidePanelContent({
               .map((ag) => {
                 const config = getStatusConfig(ag.status);
                 const StatusIcon = config.icon;
+                const borderLeftClass = BORDER_LEFT_CLASS_BY_STATUS_COLOR[config.color] ?? "border-l-slate-400";
                 return (
                   <Card
                     key={ag.id}
-                    className={cn("p-3 cursor-pointer border-l-4", config.bgLight)}
-                    style={{ borderLeftColor: config.color.replace("bg-", "#").replace("500", "600") }}
+                    className={cn("p-3 cursor-pointer border-l-4", config.bgLight, borderLeftClass)}
                     onClick={() => onSelectAgendamento(ag)}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">

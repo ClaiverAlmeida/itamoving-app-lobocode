@@ -4,8 +4,8 @@ export const clientsCrud = {
   getAll: () => clientsService.getAll(),
   history: (clientId: string, page: number, limit: number) =>
     clientsService.history(clientId, page, limit),
-  create: clientsService.create,
-  update: clientsService.update,
-  delete: clientsService.delete,
-  export: clientsService.export,
+  create: (payload: Parameters<typeof clientsService.create>[0]) => clientsService.create(payload),
+  update: (...args: Parameters<typeof clientsService.update>) => clientsService.update(...args),
+  delete: (id: string) => clientsService.delete(id),
+  export: () => clientsService.export(),
 };

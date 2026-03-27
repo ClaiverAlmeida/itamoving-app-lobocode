@@ -51,7 +51,7 @@ export function ServiceOrderFormBackOfficeCard(props: Props) {
         <div className={`grid grid-cols-1 gap-4 ${isEditMode ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
           {isEditMode ? (
             <div className="space-y-2">
-              <Label htmlFor="osIdInterno">N da ordem</Label>
+              <Label htmlFor="osIdInterno">Nº da ordem</Label>
               <Input id="osIdInterno" value={existingOrdem?.id ?? ""} readOnly className="bg-muted font-mono" />
             </div>
           ) : null}
@@ -71,12 +71,12 @@ export function ServiceOrderFormBackOfficeCard(props: Props) {
           <div className="space-y-2">
             <ResponsavelSelect
               items={motoristas}
-              label="Motorista responsavel *"
+              label="Motorista responsável *"
               value={motoristaResponsavel}
               onValueChange={(v: string) => setMotoristaResponsavel(v)}
-              placeholder="Selecione o motorista responsavel..."
-              searchPlaceholder="Buscar motorista responsavel..."
-              emptyMessage="Nenhum motorista responsavel encontrado."
+              placeholder="Selecione o motorista responsável..."
+              searchPlaceholder="Buscar motorista responsável..."
+              emptyMessage="Nenhum motorista responsável encontrado."
               disabled={isMotoristaUser}
             />
           </div>

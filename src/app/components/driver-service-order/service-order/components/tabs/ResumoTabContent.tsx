@@ -3,7 +3,7 @@ import { FileText, Truck } from "lucide-react";
 import { Badge } from "../../../../ui/badge";
 import type { OrdemServicoView } from "../../../../../api";
 import { STATUS_LABEL } from "../../service-order.constants";
-import { formatUsd, statusBadgeClass } from "../../service-order.utils";
+import { formatDateTime, formatUsd, statusBadgeClass } from "../../service-order.utils";
 
 export function ResumoTabContent({ ordem }: { ordem: OrdemServicoView }) {
   return (
@@ -29,6 +29,40 @@ export function ResumoTabContent({ ordem }: { ordem: OrdemServicoView }) {
             </span>
             <span className="min-w-0">{ordem.driverName || "—"}</span>
           </p>
+        </div>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
+          <p className="text-xs font-semibold text-[#1E3A5F]">Assinatura do Cliente</p>
+          {ordem.clientSignature ? (
+            <img
+              src={ordem.clientSignature}
+              alt="Assinatura do cliente"
+              className="h-14 w-full rounded-md border border-border/60 bg-background object-contain mt-2 user-select-none select-none pointer-events-none"
+            />
+          ) : (
+            <div className="h-14 w-full rounded-md border border-border/60 bg-background text-center text-xs text-muted-foreground flex items-center justify-center">
+              —
+            </div>
+          )}
+        </div>
+        <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
+          <p className="text-xs font-semibold text-[#1E3A5F]">Assinatura do Agente</p>
+          {ordem.agentSignature ? (
+            <img
+              src={ordem.agentSignature}
+              alt="Assinatura do agente"
+              className="h-14 w-full rounded-md border border-border/60 bg-background object-contain mt-2 user-select-none select-none pointer-events-none"
+            />
+          ) : (
+            <div className="h-14 w-full rounded-md border border-border/60 bg-background text-center text-xs text-muted-foreground flex items-center justify-center">
+              —
+            </div>
+          )}
+        </div>
+        <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
+          <p className="text-xs font-semibold text-[#1E3A5F]">Data de assinatura</p>
+          <p className="mt-2 text-sm text-foreground">{formatDateTime(ordem.signatureDate)}</p>
         </div>
       </div>
       {ordem.observations ? (

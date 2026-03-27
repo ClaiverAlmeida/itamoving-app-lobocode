@@ -5,6 +5,15 @@ import type { Lead, LeadStatus } from "../services.types";
 import { PRIORIDADE_CONFIG, STATUS_CONFIG, STATUS_ORDER } from "../services.constants";
 import { formatCurrency } from "../services.utils";
 
+const BORDER_LEFT_CLASS_BY_STATUS_COLOR: Record<string, string> = {
+  "bg-blue-500": "border-l-blue-600",
+  "bg-purple-500": "border-l-purple-600",
+  "bg-yellow-500": "border-l-yellow-600",
+  "bg-orange-500": "border-l-orange-600",
+  "bg-green-500": "border-l-green-600",
+  "bg-red-500": "border-l-red-600",
+};
+
 export function ServicesListView({
   leads,
   onSelect,
@@ -18,11 +27,11 @@ export function ServicesListView({
     <div className="space-y-3">
       {leads.map((lead) => {
         const config = STATUS_CONFIG[lead.status];
+        const borderLeftClass = BORDER_LEFT_CLASS_BY_STATUS_COLOR[config.color] ?? "border-l-slate-400";
         return (
           <Card
             key={lead.id}
-            className="p-3 sm:p-4 hover:shadow-md transition-all cursor-pointer border-l-4"
-            style={{ borderLeftColor: config.color.replace("bg-", "#").replace("500", "600") }}
+            className={`p-3 sm:p-4 hover:shadow-md transition-all cursor-pointer border-l-4 ${borderLeftClass}`}
             onClick={() => onSelect(lead)}
           >
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

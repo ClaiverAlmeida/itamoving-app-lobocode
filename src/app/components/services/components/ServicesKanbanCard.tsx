@@ -7,6 +7,15 @@ import type { Lead } from "../services.types";
 import { PRIORIDADE_CONFIG, STATUS_CONFIG } from "../services.constants";
 import { formatCurrency, getTempoDecorrido } from "../services.utils";
 
+const BORDER_LEFT_CLASS_BY_STATUS_COLOR: Record<string, string> = {
+  "bg-blue-500": "border-l-blue-600",
+  "bg-purple-500": "border-l-purple-600",
+  "bg-yellow-500": "border-l-yellow-600",
+  "bg-orange-500": "border-l-orange-600",
+  "bg-green-500": "border-l-green-600",
+  "bg-red-500": "border-l-red-600",
+};
+
 export function ServicesKanbanCard({
   lead,
   onSelect,
@@ -25,6 +34,7 @@ export function ServicesKanbanCard({
   const config = STATUS_CONFIG[lead.status];
   const prioridadeInfo = lead.prioridade ? PRIORIDADE_CONFIG[lead.prioridade] : null;
   const PrioridadeIcon = prioridadeInfo?.icon;
+  const borderLeftClass = BORDER_LEFT_CLASS_BY_STATUS_COLOR[config.color] ?? "border-l-slate-400";
 
   return (
     <motion.div
@@ -38,8 +48,7 @@ export function ServicesKanbanCard({
       transition={{ duration: 0.2 }}
     >
       <div
-        className="p-4 cursor-move hover:shadow-xl transition-all border-l-4 group relative rounded-lg bg-white"
-        style={{ borderLeftColor: config.color.replace("bg-", "#").replace("500", "600") }}
+        className={`p-4 cursor-move hover:shadow-xl transition-all border-l-4 group relative rounded-lg bg-white ${borderLeftClass}`}
         onClick={() => onSelect(lead)}
       >
         {prioridadeInfo && (

@@ -104,6 +104,7 @@ function mapProducts(raw: unknown): OrdemServicoMotorista["driverServiceOrderPro
     return {
       id: String(row.id ?? ""),
       number: String(row.number ?? ""),
+      productId: row.productId != null ? String(row.productId) : undefined,
       type: String(row.type ?? ""),
       weight: Number(row.weight) || 0,
       value: Number(row.value) || 0,

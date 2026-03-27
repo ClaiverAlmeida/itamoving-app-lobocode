@@ -9,6 +9,13 @@ import type { Agendamento } from '../../../api';
 import { formatDateOnlyToBR } from '../../../utils';
 import { cn } from '../../ui/utils';
 
+const BORDER_LEFT_CLASS_BY_STATUS_COLOR: Record<string, string> = {
+  "bg-yellow-500": "border-l-yellow-600",
+  "bg-green-500": "border-l-green-600",
+  "bg-blue-500": "border-l-blue-600",
+  "bg-red-500": "border-l-red-600",
+};
+
 type StatusConfig = {
   label: string;
   color: string;
@@ -31,6 +38,7 @@ export function AppointmentListItemCard({
   getStatusKey,
 }: Props) {
   const config = getStatusConfig(agendamento.status);
+  const borderLeftClass = BORDER_LEFT_CLASS_BY_STATUS_COLOR[config.color] ?? "border-l-slate-400";
   const StatusIcon = config.icon;
   const dateStr = (agendamento.collectionDate ?? '').slice(0, 10);
   const agDate =
@@ -53,15 +61,8 @@ export function AppointmentListItemCard({
       <Card
         className={`border-l-4 hover:shadow-xl transition-all cursor-pointer ${isAtrasado
           ? 'bg-red-50 border-red-500'
-          : config.bgLight
+          : `${config.bgLight} ${borderLeftClass}`
           }`}
-        style={{
-          borderLeftColor: isAtrasado
-            ? '#EF4444'
-            : config.color
-              .replace('bg-', '#')
-              .replace('500', '600'),
-        }}
         onClick={() => onOpenDetails(agendamento)}
       >
         <CardContent className="p-4">

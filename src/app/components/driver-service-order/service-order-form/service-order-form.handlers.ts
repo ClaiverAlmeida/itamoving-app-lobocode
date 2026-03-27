@@ -98,7 +98,7 @@ export function useServiceOrderFormSave(params: Params) {
         clientSignature: params.assinaturaCliente.trim(),
         agentSignature: params.assinaturaAgente.trim(),
       },
-      caixas: params.caixas.map((c) => ({ id: c.id, type: c.type, value: c.value, weight: c.weight })),
+      caixas: params.caixas.map((c) => ({ id: c.id, productId: c.productId, type: c.type, value: c.value, weight: c.weight })),
       itens: params.itens.map((i) => ({
         id: i.id,
         caixaId: i.caixaId,
@@ -300,6 +300,7 @@ export function useServiceOrderFormSave(params: Params) {
           .filter((c) => changedCaixaIds.has(String(c.id)))
           .map((c) => ({
             ...(params.existingProductIds.has(c.id) ? { id: c.id } : {}),
+            ...(c.productId ? { productId: c.productId } : {}),
             type: `${c.type} - ${ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[obterTipoProdutoDaCaixa(c, params.opcoesCaixa) as keyof typeof PRODUCT_TYPE_TO_ITEM_KEY]]}`,
             value: c.value,
             weight: c.weight,

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import Login from './components/login';
 import { DataProvider } from './context/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import type { Permission } from './context/AuthContext';
 import {
   LayoutDashboard,
   Users,
@@ -73,6 +74,23 @@ type View =
   | 'ordem-de-servico'
   | 'configuracoes';
 
+type PermissionModule = keyof Permission;
+
+const VIEW_PERMISSION_DEPENDENCY: Partial<Record<View, PermissionModule>> = {
+  clientes: 'clientes',
+  precos: 'financeiro',
+  estoque: 'estoque',
+  agendamentos: 'agendamentos',
+  containers: 'containers',
+  financeiro: 'financeiro',
+  relatorios: 'relatorios',
+  atendimentos: 'atendimentos',
+  rh: 'rh',
+  motorista: 'motorista',
+  'ordem-de-servico': 'ordem-de-servico',
+  configuracoes: 'configuracoes',
+};
+
 /** Rotas em português (URL) -> view interno */
 const PATH_TO_VIEW: Record<string, View> = {
   dashboard: 'dashboard',
@@ -132,6 +150,12 @@ function MainApp() {
   const [mobileNotificationsAlignOffset, setMobileNotificationsAlignOffset] = useState(0);
   const notificationsTriggerRef = useRef<HTMLButtonElement | null>(null);
 
+  const canAccessView = (view: View, action: 'read' | 'write' = 'read') => {
+    const module = VIEW_PERMISSION_DEPENDENCY[view];
+    if (!module) return true;
+    return hasPermission(module, action);
+  };
+
   // Restaurar última rota ao abrir na raiz (só quando path é / ou vazio)
   useEffect(() => {
     const path = location.pathname || '/';
@@ -189,30 +213,30 @@ function MainApp() {
     if (!user) return [];
 
     const allMenuItems = [
-      { id: 'dashboard' as View, label: 'Dashboard', icon: LayoutDashboard, module: 'clientes' as const },
-      { id: 'clientes' as View, label: 'Clientes', icon: Users, module: 'clientes' as const },
-      { id: 'precos' as View, label: 'Precificação', icon: Tag, module: 'financeiro' as const },
-      { id: 'estoque' as View, label: 'Estoque', icon: Package, module: 'estoque' as const },
-      { id: 'agendamentos' as View, label: 'Agendamentos', icon: Calendar, module: 'agendamentos' as const },
-      { id: 'containers' as View, label: 'Containers', icon: Container, module: 'containers' as const },
-      { id: 'financeiro' as View, label: 'Financeiro', icon: DollarSign, module: 'financeiro' as const },
-      { id: 'relatorios' as View, label: 'Relatórios', icon: FileText, module: 'relatorios' as const },
-      { id: 'atendimentos' as View, label: 'Atendimentos', icon: Headset, module: 'atendimentos' as const },
-      { id: 'rh' as View, label: 'RH', icon: UserCog, module: 'rh' as const },
-      { id: 'motorista' as View, label: 'Motorista', icon: Truck, module: 'motorista' as const },
-      { id: 'ordem-de-servico' as View, label: 'Ordem de Serviço', icon: ClipboardList, module: 'ordem-de-servico' as const },
-      { id: 'configuracoes' as View, label: 'Configurações', icon: Settings, module: 'configuracoes' as const },
+      { id: 'dashboard' as View, label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'clientes' as View, label: 'Clientes', icon: Users },
+      { id: 'precos' as View, label: 'Precificação', icon: Tag },
+      { id: 'estoque' as View, label: 'Estoque', icon: Package },
+      { id: 'agendamentos' as View, label: 'Agendamentos', icon: Calendar },
+      { id: 'containers' as View, label: 'Containers', icon: Container },
+      { id: 'financeiro' as View, label: 'Financeiro', icon: DollarSign },
+      { id: 'relatorios' as View, label: 'Relatórios', icon: FileText },
+      { id: 'atendimentos' as View, label: 'Atendimentos', icon: Headset },
+      { id: 'rh' as View, label: 'RH', icon: UserCog },
+      { id: 'motorista' as View, label: 'Motorista', icon: Truck },
+      { id: 'ordem-de-servico' as View, label: 'Ordem de Serviço', icon: ClipboardList },
+      { id: 'configuracoes' as View, label: 'Configurações', icon: Settings },
     ];
 
     // Filtrar menu baseado nas permissões
     if (user.role === 'motorista') {
       return [
-        { id: 'motorista' as View, label: 'Minhas Entregas', icon: Truck, module: 'motorista' as const },
-        { id: 'ordem-de-servico' as View, label: 'Ordem de Serviço', icon: ClipboardList, module: 'ordem-de-servico' as const },
+        { id: 'motorista' as View, label: 'Minhas Entregas', icon: Truck },
+        { id: 'ordem-de-servico' as View, label: 'Ordem de Serviço', icon: ClipboardList },
       ];
     }
 
-    return allMenuItems.filter(item => hasPermission(item.module, 'read'));
+    return allMenuItems.filter(item => canAccessView(item.id, 'read'));
   };
 
   const menuItems = getMenuItems();
@@ -238,18 +262,18 @@ function MainApp() {
 
     switch (activeView) {
       case 'dashboard': return <Suspense fallback={viewFallback}><DashboardView onNavigate={setActiveView} /></Suspense>;
-      case 'clientes': return hasPermission('clientes', 'read') ? <Suspense fallback={viewFallback}><ClientesView /></Suspense> : <AcessoNegado />;
-      case 'precos': return hasPermission('financeiro', 'read') ? <Suspense fallback={viewFallback}><PrecosView /></Suspense> : <AcessoNegado />;
-      case 'estoque': return hasPermission('estoque', 'read') ? <Suspense fallback={viewFallback}><EstoqueView /></Suspense> : <AcessoNegado />;
-      case 'agendamentos': return hasPermission('agendamentos', 'read') ? <Suspense fallback={viewFallback}><AgendamentosView /></Suspense> : <AcessoNegado />;
-      case 'containers': return hasPermission('containers', 'read') ? <Suspense fallback={viewFallback}><ContainersView /></Suspense> : <AcessoNegado />;
-      case 'financeiro': return hasPermission('financeiro', 'read') ? <Suspense fallback={viewFallback}><FinanceiroView /></Suspense> : <AcessoNegado />;
-      case 'relatorios': return hasPermission('relatorios', 'read') ? <Suspense fallback={viewFallback}><RelatoriosView /></Suspense> : <AcessoNegado />;
-      case 'atendimentos': return hasPermission('atendimentos', 'read') ? <Suspense fallback={viewFallback}><AtendimentosView /></Suspense> : <AcessoNegado />;
-      case 'rh': return hasPermission('rh', 'read') ? <Suspense fallback={viewFallback}><RHView /></Suspense> : <AcessoNegado />;
-      case 'motorista': return hasPermission('motorista', 'read') ? <Suspense fallback={viewFallback}><MotoristaApp /></Suspense> : <AcessoNegado />;
-      case 'ordem-de-servico': return hasPermission('ordem-de-servico', 'read') ? <Suspense fallback={viewFallback}><OrdemDeServicoView /></Suspense> : <AcessoNegado />;
-      case 'configuracoes': return hasPermission('configuracoes', 'read') ? <Suspense fallback={viewFallback}><ConfiguracoesView /></Suspense> : <AcessoNegado />;
+      case 'clientes': return canAccessView('clientes', 'read') ? <Suspense fallback={viewFallback}><ClientesView /></Suspense> : <AcessoNegado />;
+      case 'precos': return canAccessView('precos', 'read') ? <Suspense fallback={viewFallback}><PrecosView /></Suspense> : <AcessoNegado />;
+      case 'estoque': return canAccessView('estoque', 'read') ? <Suspense fallback={viewFallback}><EstoqueView /></Suspense> : <AcessoNegado />;
+      case 'agendamentos': return canAccessView('agendamentos', 'read') ? <Suspense fallback={viewFallback}><AgendamentosView /></Suspense> : <AcessoNegado />;
+      case 'containers': return canAccessView('containers', 'read') ? <Suspense fallback={viewFallback}><ContainersView /></Suspense> : <AcessoNegado />;
+      case 'financeiro': return canAccessView('financeiro', 'read') ? <Suspense fallback={viewFallback}><FinanceiroView /></Suspense> : <AcessoNegado />;
+      case 'relatorios': return canAccessView('relatorios', 'read') ? <Suspense fallback={viewFallback}><RelatoriosView /></Suspense> : <AcessoNegado />;
+      case 'atendimentos': return canAccessView('atendimentos', 'read') ? <Suspense fallback={viewFallback}><AtendimentosView /></Suspense> : <AcessoNegado />;
+      case 'rh': return canAccessView('rh', 'read') ? <Suspense fallback={viewFallback}><RHView /></Suspense> : <AcessoNegado />;
+      case 'motorista': return canAccessView('motorista', 'read') ? <Suspense fallback={viewFallback}><MotoristaApp /></Suspense> : <AcessoNegado />;
+      case 'ordem-de-servico': return canAccessView('ordem-de-servico', 'read') ? <Suspense fallback={viewFallback}><OrdemDeServicoView /></Suspense> : <AcessoNegado />;
+      case 'configuracoes': return canAccessView('configuracoes', 'read') ? <Suspense fallback={viewFallback}><ConfiguracoesView /></Suspense> : <AcessoNegado />;
       default: return <Suspense fallback={viewFallback}><DashboardView onNavigate={setActiveView} /></Suspense>;
     }
   };

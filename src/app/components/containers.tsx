@@ -286,21 +286,6 @@ export default function ContainersView() {
     ];
   };
 
-  const getEventoIcon = (tipo: ContainerEvento["tipo"]) => {
-    switch (tipo) {
-      case "preparacao":
-        return Package;
-      case "embarque":
-        return Anchor;
-      case "transito":
-        return Ship;
-      case "alfandega":
-        return FileText;
-      case "entrega":
-        return Truck;
-    }
-  };
-
   const containersByStatus = useMemo(
     () => getContainersByStatus(filteredContainers),
     [filteredContainers],

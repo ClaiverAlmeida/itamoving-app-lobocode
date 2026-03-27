@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Plus } from "lucide-react";
 import { motion } from "motion/react";
 import type { DriverUser, PrecoProduto } from "../../../api";
 import { EmptyStateAlert } from "../../alerts";
@@ -61,6 +61,7 @@ export function StockMovementDialog(props: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button onClick={() => setDialogType("ENTRY")} className="w-full sm:w-auto">
+          <Plus className="mr-2 h-4 w-4" />
           Nova Movimentação
         </Button>
       </DialogTrigger>

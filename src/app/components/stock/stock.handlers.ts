@@ -1,5 +1,6 @@
 import type { EstoqueMovimentacao, ItemKeyEn, MovementDialogType } from "./stock.types";
 import { buildEstoqueAtualizadoPayload, buildMovimentacaoPayload } from "./stock.payload";
+import { Estoque, EstoqueAtualizado } from "../../api";
 
 type HandleMovementArgs = {
   selectedItem: ItemKeyEn | "";

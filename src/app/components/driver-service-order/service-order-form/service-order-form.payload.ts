@@ -17,6 +17,12 @@ function buildDriverServiceOrderProducts({
 }: BuildProductsParams) {
   return caixas.map((c) => ({
     ...(existingProductIds.has(c.id) ? { id: c.id } : {}),
+    ...(c.productId
+      ? { productId: c.productId }
+      : (() => {
+          const produto = opcoesCaixa.find((p) => p.size === c.type || p.name === c.type);
+          return produto?.id ? { productId: produto.id } : {};
+        })()),
     type: `${c.type} - ${ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[obterTipoProdutoDaCaixa(c, opcoesCaixa) as keyof typeof PRODUCT_TYPE_TO_ITEM_KEY]]}`,
     value: c.value,
     weight: c.weight,

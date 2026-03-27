@@ -5,7 +5,7 @@ import { ptBR } from "date-fns/locale/pt-BR";
 import type { Container } from "../../../api";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
 import { Progress } from "../../ui/progress";
 import { StatusSelect } from "../../forms";
 import {
@@ -22,6 +22,7 @@ import {
   MapPin,
   Navigation,
   Package,
+  Plus,
   Ship,
   Trash2,
   Truck,
@@ -298,9 +299,17 @@ export function ContainersSidePanel(props: Props) {
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Box className="w-5 h-5" />
+                  Adicionar Caixas ou Produtos
                 </CardTitle>
               </CardHeader>
-              <CardContent />
+              <CardContent className="flex items-center justify-center">
+                <Button variant="outline" size="sm" className="w-full" onClick={() => {
+                  alert("Adicionar Caixas ou Produtos");
+                }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Caixas ou Produtos
+                </Button>
+              </CardContent>
             </Card>
           </div>
         </motion.div>

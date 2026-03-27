@@ -174,8 +174,9 @@ export default function RHView() {
                   className="pl-10"
                 />
               </div>
-              <Button variant="outline" size="icon" className="w-full sm:w-auto">
-                <Download className="w-4 h-4" />
+              <Button variant="outline" size="sm" className="w-full sm:w-auto sm:flex-none">
+                <Download className="mr-2 h-4 w-4" />
+                Exportar
               </Button>
             </div>
 

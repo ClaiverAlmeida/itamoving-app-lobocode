@@ -183,6 +183,7 @@ export interface OrdemServicoMotorista {
   };
   driverServiceOrderProducts: {
     id?: string;
+    productId?: string;
     type: string;
     weight: number;
     value: number;

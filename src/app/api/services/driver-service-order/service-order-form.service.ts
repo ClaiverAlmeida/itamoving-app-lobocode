@@ -30,6 +30,24 @@ export class ServiceOrderFormService {
         }
     }
 
+    async getAllCompletedAndNotAssignedToContainer(): Promise<{ success: boolean; data?: OrdemServicoView[]; error?: string }> {
+        try {
+            const result = await api.get<unknown>("/driver-service-order/completed");
+            if (result.success && result.data != null) {
+                const list = extractDriverServiceOrderList(result.data);
+                const mapped = list
+                    .map((row) => mapDriverServiceOrderApiToView(row))
+                    .filter((o): o is OrdemServicoView => o != null);
+                return { success: true, data: mapped };
+            }
+            return { success: false, error: result.error || "Erro ao buscar ordens de serviço completas e não atribuídas a container" };
+        }
+        catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : "Erro ao buscar ordens de serviço completas e não atribuídas a container";
+            return { success: false, error: msg };
+        }
+    }
+
     /** Ordem completa (caixas e itens) para edição — mesmo payload do GET por id. */
     async getById(id: string): Promise<{ success: boolean; data?: OrdemServicoView; error?: string }> {
         try {

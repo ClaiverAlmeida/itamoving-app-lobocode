@@ -128,6 +128,7 @@ export function useServiceOrderFormState({
         if (campo === "type") {
           const produto = opcoesCaixa.find((p) => p.size === valor || p.name === valor);
           if (produto) {
+            novaCaixa.productId = produto.id;
             novaCaixa.value = produto.salePrice;
             novaCaixa.weight = produto.maxWeight ?? 0;
           }
@@ -331,6 +332,7 @@ export function useServiceOrderFormState({
       renumerarCaixas(
         existingOrdem.driverServiceOrderProducts.map((p: any) => ({
           id: p.id!,
+          productId: p.productId ?? undefined,
           type: resolveCaixaDisplayType(p.type, prods),
           number: "",
           value: p.value,

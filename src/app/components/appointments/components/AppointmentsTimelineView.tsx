@@ -8,6 +8,13 @@ import { Box, Calendar as CalendarIcon, MapPin } from "lucide-react";
 import { cn } from "../../ui/utils";
 import { Agendamento } from "../../../api";
 
+const BORDER_LEFT_CLASS_BY_STATUS_COLOR: Record<string, string> = {
+  "bg-yellow-500": "border-l-yellow-600",
+  "bg-green-500": "border-l-green-600",
+  "bg-blue-500": "border-l-blue-600",
+  "bg-red-500": "border-l-red-600",
+};
+
 type Props = {
   filteredAgendamentos: Agendamento[];
   getStatusConfig: (status: string) => {
@@ -59,14 +66,14 @@ export function AppointmentsTimelineView({
                     .map((agendamento) => {
                       const config = getStatusConfig(agendamento.status);
                       const StatusIcon = config.icon;
+                      const borderLeftClass = BORDER_LEFT_CLASS_BY_STATUS_COLOR[config.color] ?? "border-l-slate-400";
 
                       return (
                         <motion.div
                           key={agendamento.id}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
-                          className={`p-4 rounded-lg border-l-4 ${config.bgLight} hover:shadow-md transition-all cursor-pointer`}
-                          style={{ borderLeftColor: config.color.replace("bg-", "#").replace("500", "600") }}
+                          className={`p-4 rounded-lg border-l-4 ${config.bgLight} ${borderLeftClass} hover:shadow-md transition-all cursor-pointer`}
                           onClick={() => {
                             setSelectedAgendamento(agendamento);
                             setIsSidePanelOpen(true);

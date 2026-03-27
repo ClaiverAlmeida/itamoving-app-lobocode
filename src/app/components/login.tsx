@@ -48,6 +48,8 @@ export default function Login() {
     }
   };
 
+  const yearDate = new Date().getFullYear();
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1E3A5F] via-[#2A4A6F] to-[#1E3A5F] p-3 sm:p-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -287,7 +289,7 @@ export default function Login() {
           transition={{ delay: 0.8 }}
           className="text-center mt-6 lg:mt-8 text-white/60 text-xs lg:text-sm px-4"
         >
-          <p>© 2025 ITAMOVING - Mudanças Internacionais EUA-Brasil</p>
+          <p>© {yearDate} ITAMOVING - Mudanças Internacionais EUA-Brasil</p>
         </motion.div>
       </motion.div>
 
