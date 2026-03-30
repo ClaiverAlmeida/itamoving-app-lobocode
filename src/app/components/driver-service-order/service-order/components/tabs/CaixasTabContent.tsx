@@ -2,7 +2,7 @@ import React from "react";
 import { Package, Printer } from "lucide-react";
 import { Button } from "../../../../ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../../ui/table";
-import type { OrdemServicoView } from "../../../../../api";
+import type { DriverServiceOrderView } from "../../../../../api";
 import { RECIBO_CATEGORY_LABEL, summarizeOrdemForRecibo } from "../../../delivery-receipt";
 import { formatUsd } from "../../service-order.utils";
 
@@ -10,8 +10,8 @@ export function CaixasTabContent({
   ordem,
   onOpenRecibo,
 }: {
-  ordem: OrdemServicoView;
-  onOpenRecibo: (ordem: OrdemServicoView) => void;
+  ordem: DriverServiceOrderView;
+  onOpenRecibo: (ordem: DriverServiceOrderView) => void;
 }) {
   const nCaixas = ordem.driverServiceOrderProducts?.length ?? 0;
   const { summary, totalUnidades } = summarizeOrdemForRecibo(ordem);

@@ -1,3 +1,18 @@
+export interface BoxSize {
+  id: string;
+  name: string;
+  maxWeight: number;
+  price: number;
+}
+
+export interface ShippingItem {
+  id: string;
+  caixaTamanho: string;
+  peso: number;
+  descricao: string;
+  itensAdicionais: string[];
+}
+
 export interface EstoqueMovimentacao {
   id: string;
   type: 'ENTRY' | 'EXIT';

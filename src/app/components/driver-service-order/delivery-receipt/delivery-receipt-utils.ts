@@ -1,4 +1,4 @@
-import type { OrdemServicoMotorista } from "../../../api";
+import type { DriverServiceOrder } from "../../../api";
 
 export type ReciboBoxCategory =
   | "pequena"
@@ -9,7 +9,7 @@ export type ReciboBoxCategory =
 
 export const RECIBO_CATEGORY_LABEL: Record<ReciboBoxCategory, string> = {
   pequena: "Pequena",
-  media: "Media",
+  media: "Média",
   grande: "Grande",
   fita: "Fita adesiva",
   personalizada: "Personalizada",
@@ -74,12 +74,12 @@ export function classifyDriverProductType(type: string): ReciboBoxCategory | nul
 
 /** Resposta da API pode vir em camelCase ou snake_case. */
 export function getOrdemProductsList(
-  ordem: OrdemServicoMotorista,
-): OrdemServicoMotorista["driverServiceOrderProducts"] {
+  ordem: DriverServiceOrder,
+): DriverServiceOrder["driverServiceOrderProducts"] {
   const fromCamel = ordem.driverServiceOrderProducts;
   const fromSnake = (
     ordem as unknown as {
-      driver_service_order_products?: OrdemServicoMotorista["driverServiceOrderProducts"];
+      driver_service_order_products?: DriverServiceOrder["driverServiceOrderProducts"];
     }
   ).driver_service_order_products;
   const list = fromCamel ?? fromSnake ?? [];
@@ -94,7 +94,7 @@ export type ReciboRow = {
   value: string;
 };
 
-export function summarizeOrdemForRecibo(ordem: OrdemServicoMotorista) {
+export function summarizeOrdemForRecibo(ordem: DriverServiceOrder) {
   const summary: Record<ReciboBoxCategory, number> = {
     pequena: 0,
     media: 0,
@@ -123,5 +123,10 @@ export function summarizeOrdemForRecibo(ordem: OrdemServicoMotorista) {
   });
 
   return { rows, summary, totalUnidades: products.length };
+}
+
+/** Soma dos valores (USD) das caixas/produtos da ordem — alinhado ao formulário. */
+export function sumValorTotalCaixasFromOrdem(ordem: DriverServiceOrder): number {
+  return getOrdemProductsList(ordem).reduce((s, p) => s + Number(p?.value ?? 0), 0);
 }
 

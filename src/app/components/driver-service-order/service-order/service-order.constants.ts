@@ -1,6 +1,6 @@
-import type { OrdemServicoMotorista } from "../../../api";
+import type { DriverServiceOrder } from "../../../api";
 
-export const STATUS_LABEL: Record<OrdemServicoMotorista["status"], string> = {
+export const STATUS_LABEL: Record<DriverServiceOrder["status"], string> = {
   PENDING: "Pendente",
   IN_PROGRESS: "Em andamento",
   COMPLETED: "Concluída",

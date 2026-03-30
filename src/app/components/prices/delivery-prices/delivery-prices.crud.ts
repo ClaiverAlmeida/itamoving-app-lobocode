@@ -1,7 +1,7 @@
 import type {
   CreateDeliveryPriceDTO,
+  DeliveryPrice,
   DeliveryPricesPagination,
-  PrecoEntrega,
   UpdateDeliveryPriceEntregaDTO,
 } from "../../../api";
 import { deliveryPricesService } from "../../../api";
@@ -28,5 +28,5 @@ export async function exportDeliveryPrices() {
 
 export type DeliveryPricesExportResult = Awaited<ReturnType<typeof deliveryPricesService.export>>;
 export type DeliveryPricesPaginationResult = DeliveryPricesPagination;
-export type DeliveryPrice = PrecoEntrega;
+export type { DeliveryPrice };
 

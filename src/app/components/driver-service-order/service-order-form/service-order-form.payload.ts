@@ -1,11 +1,11 @@
 import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from "../../stock";
-import type { Caixa, Item, OrdemServicoMotorista, PrecoProduto } from "../../../api";
+import type { Caixa, Item, DriverServiceOrder, ProductPrice } from "../../../api";
 import { obterTipoProdutoDaCaixa } from "./service-order-form.verifications";
 
 type BuildProductsParams = {
   caixas: Caixa[];
   itens: Item[];
-  opcoesCaixa: PrecoProduto[];
+  opcoesCaixa: ProductPrice[];
   existingProductIds: Set<string>;
 };
 
@@ -61,18 +61,18 @@ type BuildPayloadParams = {
   destinatarioTelefone: string;
   caixas: Caixa[];
   itens: Item[];
-  opcoesCaixa: PrecoProduto[];
+  opcoesCaixa: ProductPrice[];
   existingProductIds: Set<string>;
   assinaturaClienteFinal: string;
   assinaturaAgenteFinal: string;
   driverName: string;
   userId: string;
-  status: OrdemServicoMotorista["status"];
+  status: DriverServiceOrder["status"];
   valorPago: string;
   observations: string | undefined;
 };
 
-export function buildServiceOrderPayload(params: BuildPayloadParams): OrdemServicoMotorista {
+export function buildServiceOrderPayload(params: BuildPayloadParams): DriverServiceOrder {
   return {
     appointmentId: params.appointmentId,
     sender: {

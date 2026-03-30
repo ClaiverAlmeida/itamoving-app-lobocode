@@ -15,7 +15,7 @@ export { productsService } from "./prices/products.service";
 export { stockService } from "./stock.service";
 // Serviço de Appointments
 export { appointmentsService } from "./appointments.service";
-// Servico de Containers
+// Serviço de containers
 export { containersServices } from "./containers.service";
 // Serviço de Funcionários - Usuários (RH)
 export { usersService } from "./hr/users.service";
@@ -25,4 +25,4 @@ export { configurationsService } from "./configurations.service";
 export { driverAppService } from "./driver-service-order/driver-app.service";
 // Serviço de Service Order Form
 export { serviceOrderFormService } from "./driver-service-order/service-order-form.service";
-export type { OrdemServicoView } from "./driver-service-order/service-order-form.service";
+export type { DriverServiceOrderView } from "./driver-service-order/service-order-form.service";

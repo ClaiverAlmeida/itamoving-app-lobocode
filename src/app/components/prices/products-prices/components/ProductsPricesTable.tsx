@@ -5,14 +5,14 @@ import { Input } from "../../../ui/input";
 import { Badge } from "../../../ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../ui/table";
 import { Search, Download, Package, Edit, Trash2, Box, Ruler, Weight, ChevronLeft, ChevronRight, Minus } from "lucide-react";
-import type { PrecoProduto, ProductPricePagination } from "../../../../api";
+import type { ProductPrice, ProductPricePagination } from "../../../../api";
 
 export type ProductsPricesTableProps = {
   searchTerm: string;
   onSearchTermChange: (v: string) => void;
   onExport: () => Promise<void> | void;
-  produtosFiltrados: PrecoProduto[];
-  onEdit: (produto: PrecoProduto) => void;
+  produtosFiltrados: ProductPrice[];
+  onEdit: (produto: ProductPrice) => void;
   onDelete: (id: string) => void;
   pagination: ProductPricePagination | null;
   page: number;
@@ -20,7 +20,7 @@ export type ProductsPricesTableProps = {
   onNextPage: () => void;
 };
 
-function getProdutoTypeBadgeLabel(type: PrecoProduto["type"]) {
+function getProdutoTypeBadgeLabel(type: ProductPrice["type"]) {
   switch (type) {
     case "SMALL_BOX":
       return "Caixa Pequena";

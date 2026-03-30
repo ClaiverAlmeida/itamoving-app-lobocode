@@ -1,14 +1,14 @@
 import React from "react";
 import { toast } from "sonner";
-import type { Cliente, Transacao } from "../../api";
-import type { TransactionFormData } from "./financial.types";
-import { buildTransacaoFromFormData } from "./financial.payload";
+import type { Client, FinancialTransaction } from "../../api";
+import type { TransactionFormData } from "./index";
+import { buildTransacaoFromFormData } from "./index";
 
 export function handleNewTransactionSubmit(params: {
   e: React.FormEvent;
   formData: TransactionFormData;
-  clientes: Cliente[];
-  addTransacao: (t: Transacao) => void;
+  clientes: Client[];
+  addTransacao: (t: FinancialTransaction) => void;
   resetForm: () => void;
   onClose: () => void;
 }) {

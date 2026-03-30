@@ -1,4 +1,4 @@
-import type { Caixa, PrecoProduto } from "../../../api";
+import type { Caixa, ProductPrice } from "../../../api";
 
 export function renumerarCaixas(lista: Caixa[]) {
   return lista.map((caixa) => ({
@@ -18,18 +18,18 @@ export function caixaTemTodosCamposPreenchidos(c: Caixa) {
   return tipoValido && valorValido && pesoValido;
 }
 
-export function obterTipoProdutoDaCaixa(caixa: Caixa, opcoesCaixa: PrecoProduto[]) {
+export function obterTipoProdutoDaCaixa(caixa: Caixa, opcoesCaixa: ProductPrice[]) {
   const produtoDaCaixa = opcoesCaixa.find(
     (p) => p.type === caixa.type || p.name === caixa.type || p.size === caixa.type,
   );
   return produtoDaCaixa?.type;
 }
 
-export function isFitaAdesiva(caixa: Caixa, opcoesCaixa: PrecoProduto[]) {
+export function isFitaAdesiva(caixa: Caixa, opcoesCaixa: ProductPrice[]) {
   return obterTipoProdutoDaCaixa(caixa, opcoesCaixa) === "TAPE_ADHESIVE";
 }
 
-export function isCaixaPersonalizada(caixa: Caixa, opcoesCaixa: PrecoProduto[]) {
+export function isCaixaPersonalizada(caixa: Caixa, opcoesCaixa: ProductPrice[]) {
   return obterTipoProdutoDaCaixa(caixa, opcoesCaixa) === "PERSONALIZED_ITEM";
 }
 

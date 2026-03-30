@@ -42,13 +42,13 @@ export const mockLeads: Lead[] = [
     telefone: "+1 (786) 555-1234",
     origem: "Miami, FL",
     destino: "Belo Horizonte, MG",
-    ultimaMensagem: "Orcamento aprovado! Como faco o pagamento?",
+    ultimaMensagem: "Orçamento aprovado! Como faço o pagamento?",
     dataUltimaMensagem: new Date("2024-12-20T16:20:00"),
     status: "orcamento",
     atendidoPorBot: false,
     valorEstimado: 9500,
     prioridade: "alta",
-    conversas: [{ id: "1", texto: "Orcamento aprovado!", remetente: "cliente", data: new Date("2024-12-20T16:20:00") }],
+    conversas: [{ id: "1", texto: "Orçamento aprovado!", remetente: "cliente", data: new Date("2024-12-20T16:20:00") }],
   },
 ];
 

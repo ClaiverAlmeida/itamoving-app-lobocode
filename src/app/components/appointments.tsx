@@ -13,7 +13,7 @@ import { Label } from "./ui/label";
 import { cn } from "./ui/utils";
 import { Badge } from "./ui/badge";
 import { useData } from "../context/DataContext";
-import { Agendamento, Cliente } from "../api";
+import { Appointment, Client } from "../api";
 import {
   Calendar as CalendarIcon,
   MapPin,
@@ -57,11 +57,11 @@ import { appointmentsCrud, clientsCrud } from './appointments/index';
 import { useAppointmentsForms } from './appointments/hooks/useAppointmentsForms';
 import { useAppointmentsDateGetters } from './appointments/hooks/useAppointmentsDateGetters';
 import {
-  handleAppointmentDelete,
-  handleEditAppointment,
+  handleDeleteAgendamento,
+  handleEditAgendamento as runEditAgendamento,
   handleEditCollectionPeriod,
-  handleAppointmentStatusChange,
-  handleCreateAppointment,
+  handleAgendamentoStatusChange,
+  handleCreateAgendamento,
   handleCreatePeriod,
 } from './appointments/appointments.handlers';
 import {
@@ -98,9 +98,9 @@ export default function AgendamentosView() {
   const [showFilters, setShowFilters] = useState(false);
   const [isPeriodic, setIsPeriodic] = useState<boolean>(false);
   const [selectedAgendamento, setSelectedAgendamento] =
-    useState<Agendamento | null>(null);
+    useState<Appointment | null>(null);
   const { user } = useAuth();
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clientes, setClientes] = useState<Client[]>([]);
   const [qtdCaixasPorDia, setQtdCaixasPorDia] = useState<
     { collectionDate: string; qtyBoxes: number }[]
   >([]);
@@ -276,7 +276,7 @@ export default function AgendamentosView() {
   }, [periodDialogOpen, formData.isPeriodic, formData.appointmentPeriodId, periodos]);
 
   const handleSubmit = async (e: React.FormEvent) =>
-    handleCreateAppointment({
+    handleCreateAgendamento({
       e,
       clientes,
       formData,
@@ -289,8 +289,8 @@ export default function AgendamentosView() {
       setIsDialogOpen,
     });
 
-  const handleEditAgendamento = async (e: React.FormEvent, agendamento: Agendamento) =>
-    handleEditAppointment({
+  const handleEditAgendamento = async (e: React.FormEvent, agendamento: Appointment) =>
+    runEditAgendamento({
       e,
       agendamento,
       clientes,
@@ -308,8 +308,8 @@ export default function AgendamentosView() {
       carregarAgendamentos,
     });
 
-  const handleStatusChange = async (id: string, status: Agendamento["status"]) =>
-    handleAppointmentStatusChange({
+  const handleStatusChange = async (id: string, status: Appointment["status"]) =>
+    handleAgendamentoStatusChange({
       id,
       status,
       update: appointmentsCrud.update,
@@ -319,7 +319,7 @@ export default function AgendamentosView() {
     });
 
   const handleDelete = async (id: string, clientName: string) =>
-    handleAppointmentDelete({
+    handleDeleteAgendamento({
       id,
       clientName,
       remove: appointmentsCrud.delete,
@@ -929,7 +929,7 @@ export default function AgendamentosView() {
                 }}
                 onDelete={handleDelete}
                 onStatusChange={(id, value) =>
-                  void handleStatusChange(id, value as Agendamento["status"])
+                  void handleStatusChange(id, value as Appointment["status"])
                 }
                 onSelectedAgendamentoChange={setSelectedAgendamento}
                 editDialogProps={{

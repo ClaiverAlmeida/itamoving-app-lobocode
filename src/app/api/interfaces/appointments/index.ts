@@ -1,3 +1,19 @@
+/** UI model for an appointment (distinct from {@link AppointmentsBackend}). */
+export interface Appointment {
+  id?: string;
+  appointmentPeriodId?: string;
+  collectionDate?: string;
+  collectionTime: string;
+  value: number;
+  downPayment: number;
+  isPeriodic?: boolean | false;
+  qtyBoxes: number;
+  observations?: string;
+  user: { id: string; name: string };
+  client: { id: string; name: string; usaAddress: string };
+  status: "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED";
+}
+
 export interface CreateAppointmentsPeriodsDTO {
   id?: string;
   title: string;

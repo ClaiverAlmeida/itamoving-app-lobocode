@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import type { Agendamento, UpdateAppointmentsPeriodsDTO } from '../../../api';
+import type { Appointment, UpdateAppointmentsPeriodsDTO } from '../../../api';
 import { toDateOnly } from '../../../utils';
 
 export type AppointmentFormData = {
@@ -52,7 +52,7 @@ const INITIAL_PERIOD_FORM_DATA: AppointmentPeriodFormData = {
 };
 
 export function useAppointmentsForms(args: {
-  selectedAgendamento: Agendamento | null;
+  selectedAgendamento: Appointment | null;
   selectedPeriod: UpdateAppointmentsPeriodsDTO | null;
   setQtdCaixasPorDia: React.Dispatch<React.SetStateAction<{ collectionDate: string; qtyBoxes: number }[]>>;
   setQtdCaixasPorPeriodo: React.Dispatch<React.SetStateAction<{ collectionDate: string; qtyBoxes: number }[]>>;

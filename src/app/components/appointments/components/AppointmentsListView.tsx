@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import type { Agendamento } from '../../../api';
+import type { Appointment } from '../../../api';
 import { AppointmentListItemCard } from './AppointmentListItemCard';
 
 type StatusConfig = {
@@ -15,13 +15,13 @@ type StatusConfig = {
 
 type Props = {
   viewMode: 'calendar' | 'list' | 'timeline';
-  filteredAgendamentos: Agendamento[];
-  renderedAgendamentosList: Agendamento[];
-  sortedFilteredAgendamentos: Agendamento[];
+  filteredAgendamentos: Appointment[];
+  renderedAgendamentosList: Appointment[];
+  sortedFilteredAgendamentos: Appointment[];
   listContainerRef: React.RefObject<HTMLDivElement | null>;
   listVisibleCount: number;
   setListVisibleCount: React.Dispatch<React.SetStateAction<number>>;
-  setSelectedAgendamento: (a: Agendamento) => void;
+  setSelectedAgendamento: (a: Appointment) => void;
   setIsSidePanelOpen: (open: boolean) => void;
   getStatusConfig: (status: string) => StatusConfig;
   getStatusKey: (status: string) => string;

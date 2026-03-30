@@ -35,7 +35,7 @@ export function AppointmentsCreatePeriodForm({
   return (
     <form onSubmit={handleCreatePeriodic} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="title">Titulo *</Label>
+        <Label htmlFor="title">Título *</Label>
         <Input
           id="title"
           type="text"
@@ -48,7 +48,7 @@ export function AppointmentsCreatePeriodForm({
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="startDate">Data de Inicio *</Label>
+          <Label htmlFor="startDate">Data de início *</Label>
           <Input
             id="startDate"
             type="date"
@@ -62,7 +62,7 @@ export function AppointmentsCreatePeriodForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="endDate">Data de Fim *</Label>
+          <Label htmlFor="endDate">Data final *</Label>
           <Input
             id="endDate"
             type="date"
@@ -77,7 +77,7 @@ export function AppointmentsCreatePeriodForm({
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="collectionArea">Area de Coleta *</Label>
+          <Label htmlFor="collectionArea">Área de coleta *</Label>
           <Input
             id="collectionArea"
             type="text"
@@ -110,7 +110,7 @@ export function AppointmentsCreatePeriodForm({
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="observations">Observacoes</Label>
+        <Label htmlFor="observations">Observações</Label>
         <Textarea
           id="observations"
           value={formDataPeriod.observations}
@@ -130,7 +130,7 @@ export function AppointmentsCreatePeriodForm({
         >
           Cancelar
         </Button>
-        <Button type="submit">Criar Periodo</Button>
+        <Button type="submit">Criar período</Button>
       </div>
     </form>
   );

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useData } from "../context/DataContext";
-import type { Transacao } from "../api";
-import { createFinancialCrud } from "./financial/financial.crud";
+import type { Client, FinancialTransaction } from "../api";
+import { createFinancialCrud, financialCrud } from "./financial/financial.crud";
 import { handleDeleteTransaction } from "./financial/financial.handlers";
 import { buildFluxoCaixaMensal, computeFinanceiroTotals, filterTransacoes, groupTransacoesByCategoria } from "./financial/financial.utils";
 import type { PeriodFilter, ViewMode } from "./financial/financial.constants";
@@ -10,9 +10,11 @@ import { FinancialMetricsCards } from "./financial/components/FinancialMetricsCa
 import { FinancialFiltersAndSearchBar } from "./financial/components/FinancialFiltersAndSearchBar";
 import { FinancialChartsSection } from "./financial/components/FinancialChartsSection";
 import { FinancialTransactionsHistory } from "./financial/components/FinancialTransactionsHistory";
+import { clientsCrud } from "./financial/index";
+import { toast } from "sonner";
 
 export default function FinanceiroView() {
-  const { transacoes, addTransacao, deleteTransacao, clientes } = useData();
+  const { transacoes, addTransacao, deleteTransacao } = useData();
 
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,7 +24,7 @@ export default function FinanceiroView() {
   const crud = useMemo(
     () =>
       createFinancialCrud({
-        addTransacao: (t: Transacao) => addTransacao(t),
+        addTransacao: (t: FinancialTransaction) => addTransacao(t),
         deleteTransacao: (id: string) => deleteTransacao(id),
       }),
     [addTransacao, deleteTransacao],
@@ -38,6 +40,16 @@ export default function FinanceiroView() {
       }),
     [transacoes, viewMode, periodFilter, searchTerm],
   );
+
+  const carregarClientes = async ():Promise<Client[]> => {
+    const result = await clientsCrud.getAll();
+    if (result.success && result.data) {
+      return result.data.filter((c) => c.status === "ACTIVE");
+    } else if (result.error) {
+      toast.error(result.error);
+    }
+    return [];
+  };
 
   const totals = useMemo(() => computeFinanceiroTotals(filteredTransacoes), [filteredTransacoes]);
 
@@ -56,8 +68,8 @@ export default function FinanceiroView() {
     <div className="space-y-4 lg:space-y-6 overflow-x-hidden">
       <FinancialHeaderSection
         showFilters={showFilters}
+        carregarClientes={carregarClientes}
         onToggleFilters={() => setShowFilters((v) => !v)}
-        clientes={clientes}
         onCreateTransacao={crud.create}
       />
 

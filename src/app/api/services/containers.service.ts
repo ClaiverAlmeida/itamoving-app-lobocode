@@ -39,6 +39,14 @@ function mapBackendToFrontend(container: ContainersBackend): Container {
     linkedServiceOrderCount: Array.isArray(container.driverServiceOrders)
       ? container.driverServiceOrders.length
       : undefined,
+    serviceOrders: Array.isArray(container.driverServiceOrders)
+      ? container.driverServiceOrders.map((o) => ({
+          id: o.id,
+          status: o.status,
+          recipientName: o.appointment?.client?.usaName ?? null,
+          createdAt: o.createdAt,
+        }))
+      : undefined,
   };
 }
 
@@ -88,6 +96,22 @@ export class ContainersService extends BaseCrudService<
     }
     const raw = this.unwrapData(result.data);
     if (!raw) return { success: false, error: "Erro ao vincular ordem de serviço" };
+    return { success: true, data: mapBackendToFrontend(raw as ContainersBackend) };
+  }
+
+  async unassignServiceOrder(
+    containerId: string,
+    driverServiceOrderId: string,
+  ): Promise<{ success: boolean; data?: Container; error?: string }> {
+    const result = await api.patch<ContainersBackend | { data: ContainersBackend }>(
+      `${this.resource}/${containerId}/unassign-service-order/${driverServiceOrderId}`,
+      {},
+    );
+    if (!result.success) {
+      return { success: false, error: result.error || "Erro ao desvincular ordem de serviço" };
+    }
+    const raw = this.unwrapData(result.data);
+    if (!raw) return { success: false, error: "Erro ao desvincular ordem de serviço" };
     return { success: true, data: mapBackendToFrontend(raw as ContainersBackend) };
   }
 }

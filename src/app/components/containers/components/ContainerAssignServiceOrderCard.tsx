@@ -2,71 +2,70 @@ import React, { useState } from "react";
 import type { Container } from "../../../api";
 import { Button } from "../../ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
-import { ClipboardList, Link2 } from "lucide-react";
+import { ClipboardList, Hash, Link2, Truck } from "lucide-react";
 import { ContainerAssignServiceOrderDialog } from "./ContainerAssignServiceOrderDialog";
 
 type Props = {
   container: Container;
-  onAssigned: (updated: Container) => void;
+  onAssigned: (updated: Container) => void | Promise<void>;
+  onUnassignServiceOrder: (containerId: string, driverServiceOrderId: string) => void | Promise<void>;
 };
 
-export function ContainerAssignServiceOrderCard({ container, onAssigned }: Props) {
+export function ContainerAssignServiceOrderCard({ container, onAssigned, onUnassignServiceOrder }: Props) {
   const [open, setOpen] = useState(false);
+  const linkedCount = container.linkedServiceOrderCount ?? container.serviceOrders?.length ?? 0;
 
   return (
     <>
       <Card className="overflow-hidden border-border/80 shadow-sm">
-        <CardHeader className="space-y-3 pb-4">
-          <div className="flex items-start gap-4">
-            <div className="rounded-xl bg-primary/10 p-3 text-primary shrink-0">
-              <ClipboardList className="w-6 h-6" />
+        <CardHeader className="space-y-4 pb-3">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-primary/10 p-2.5 text-primary shrink-0">
+              <ClipboardList className="w-5 h-5" />
             </div>
             <div className="space-y-1 min-w-0 flex-1">
-              <CardTitle className="text-lg leading-tight">Ordens de serviço → container</CardTitle>
-              <CardDescription className="text-sm leading-relaxed">
-                Você pode vincular <strong className="text-foreground font-medium">mais de uma ordem</strong> ao
-                mesmo container. Cada vinculação traz todas as caixas da ordem de uma vez, com etiquetas{" "}
-                <span className="font-mono text-xs bg-muted px-1 rounded">1-A</span>,{" "}
-                <span className="font-mono text-xs bg-muted px-1 rounded">2-A</span>… em{" "}
-                <strong className="text-foreground font-medium">numeração contínua</strong> entre as ordens.
+              <CardTitle className="text-base leading-tight">Ordens de serviço</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                Vincule e gerencie ordens deste container.
               </CardDescription>
             </div>
+            <Button variant="default" size="sm" className="shrink-0" onClick={() => setOpen(true)}>
+              Abrir
+            </Button>
           </div>
-          <ul className="text-sm text-muted-foreground space-y-2 pl-1 border-l-2 border-primary/30 ml-1">
-            <li className="pl-3">
-              <span className="text-foreground font-medium">Pesos e itens</span> vêm da ordem — não é preciso
-              digitar caixa a caixa.
-            </li>
-            <li className="pl-3">
-              {container.volumeLetter ? (
-                <>
-                  Letra do volume gravada:{" "}
-                  <span className="font-mono font-semibold text-foreground">{container.volumeLetter.toUpperCase()}</span>
-                  {" "}(definida após a primeira ordem com caixas.)
-                </>
-              ) : (
-                <>
-                  A <span className="text-foreground font-medium">identificação alfanumérica</span> (letra +{" "}
-                  <span className="font-mono text-xs">1-A</span>, <span className="font-mono text-xs">2-A</span>…) só é
-                  gravada no cadastro do container <span className="text-foreground font-medium">depois</span> de
-                  vincular uma ordem que tenha caixas; na primeira vez você informa a letra (A–Z).
-                </>
-              )}
-            </li>
-            <li className="pl-3">
-              Meta típica de ~220 volumes por container (referência operacional); o limite exibido no assistente
-              pode ser ajustado no cadastro.
-            </li>
-          </ul>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="rounded-md border bg-muted/20 px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Ordens</p>
+              <p className="text-sm font-semibold tabular-nums">{linkedCount}</p>
+            </div>
+            <div className="rounded-md border bg-muted/20 px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Letra</p>
+              <p className="text-sm font-semibold font-mono">
+                {container.volumeLetter?.toUpperCase() ?? "—"}
+              </p>
+            </div>
+            <div className="rounded-md border bg-muted/20 px-3 py-2 col-span-2 sm:col-span-1">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Limite</p>
+              <p className="text-sm font-semibold tabular-nums">{container.volumeCapacity ?? 220}</p>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="pt-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t bg-muted/20 px-6 py-4">
-          <p className="text-xs text-muted-foreground flex items-center gap-2">
-            <Link2 className="h-3.5 w-3.5 shrink-0" />
-            Somente ordens disponíveis na lista do assistente (concluídas e sem outro container).
-          </p>
-          <Button variant="default" size="sm" className="w-full sm:w-auto shrink-0" onClick={() => setOpen(true)}>
-            Abrir assistente
-          </Button>
+        <CardContent className="pt-0 border-t bg-muted/20 px-6 py-3">
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded border bg-background px-2 py-1">
+              <Truck className="h-3 w-3" />
+              Ordens concluídas sem container
+            </span>
+            <span className="inline-flex items-center gap-1 rounded border bg-background px-2 py-1">
+              <Hash className="h-3 w-3" />
+              Numeração contínua (11-A, 12-A...)
+            </span>
+            <span className="inline-flex items-center gap-1 rounded border bg-background px-2 py-1">
+              <Link2 className="h-3 w-3" />
+              Remoção e vínculo no mesmo painel
+            </span>
+          </div>
         </CardContent>
       </Card>
 
@@ -75,6 +74,7 @@ export function ContainerAssignServiceOrderCard({ container, onAssigned }: Props
         onOpenChange={setOpen}
         container={container}
         onSuccess={onAssigned}
+        onUnassignServiceOrder={onUnassignServiceOrder}
       />
     </>
   );

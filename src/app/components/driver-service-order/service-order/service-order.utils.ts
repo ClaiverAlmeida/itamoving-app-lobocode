@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { cn } from "../../ui/utils";
-import type { OrdemServicoMotorista, OrdemServicoView } from "../../../api";
+import type { DriverServiceOrder, DriverServiceOrderView } from "../../../api";
 
 export type AgendamentoResumo = {
   companyName: string;
@@ -35,7 +35,7 @@ export function formatCollectionDate(dateStr: string | undefined) {
   return format(new Date(dateStr), "dd/MM/yyyy", { locale: ptBR });
 }
 
-export function agendamentoFromOrdem(ordem: OrdemServicoView) {
+export function agendamentoFromOrdem(ordem: DriverServiceOrderView) {
   const apt = ordem.appointment;
   const comp = ordem.company;
   return {
@@ -44,6 +44,9 @@ export function agendamentoFromOrdem(ordem: OrdemServicoView) {
     isPeriodic: apt?.isPeriodic ?? false,
     collectionDate: apt?.collectionDate ?? "",
     collectionTime: apt?.collectionTime ?? "",
+    /** Valor e antecipação do agendamento (GET da ordem inclui `appointment`). */
+    value: apt?.value ?? 0,
+    downPayment: apt?.downPayment ?? 0,
     client: {
       usaName: ordem.sender.usaName,
       usaPhone: ordem.sender.usaPhone,
@@ -76,7 +79,7 @@ export function agendamentoFromOrdem(ordem: OrdemServicoView) {
   };
 }
 
-export function agendamentoResumoParaExibicao(ordem: OrdemServicoView): AgendamentoResumo | null {
+export function agendamentoResumoParaExibicao(ordem: DriverServiceOrderView): AgendamentoResumo | null {
   const apt = ordem.appointment;
   const comp = ordem.company;
   if (!apt && !comp) return null;
@@ -90,7 +93,7 @@ export function agendamentoResumoParaExibicao(ordem: OrdemServicoView): Agendame
   };
 }
 
-export function statusBadgeClass(status: OrdemServicoMotorista["status"]) {
+export function statusBadgeClass(status: DriverServiceOrder["status"]) {
   if (status === "COMPLETED") return "bg-emerald-100 text-emerald-900 border-emerald-200/80";
   if (status === "IN_PROGRESS") return "bg-amber-50 text-amber-900 border-amber-200/80";
   return "bg-slate-100 text-slate-800 border-slate-200/80";

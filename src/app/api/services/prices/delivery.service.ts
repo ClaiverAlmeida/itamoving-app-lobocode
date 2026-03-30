@@ -1,5 +1,5 @@
 import { api } from "../api.service";
-import { PrecoEntrega } from "../../types";
+import type { DeliveryPrice } from "../../types";
 import { BaseCrudService } from "../base-crud.service";
 import type {
   CreateDeliveryPriceDTO,
@@ -8,7 +8,7 @@ import type {
   UpdateDeliveryPriceEntregaDTO,
 } from "../../types";
 
-function mapBackendToFrontend(price: DeliveryPriceBackend): PrecoEntrega {
+function mapBackendToFrontend(price: DeliveryPriceBackend): DeliveryPrice {
   return {
     id: price.id,
     originCity: price.originCity,
@@ -23,7 +23,7 @@ function mapBackendToFrontend(price: DeliveryPriceBackend): PrecoEntrega {
 }
 
 export class DeliveryPricesService extends BaseCrudService<
-  PrecoEntrega,
+  DeliveryPrice,
   DeliveryPriceBackend,
   CreateDeliveryPriceDTO,
   UpdateDeliveryPriceEntregaDTO,
@@ -40,7 +40,7 @@ export class DeliveryPricesService extends BaseCrudService<
 
   async export(): Promise<{
     success: boolean;
-    data?: PrecoEntrega[];
+    data?: DeliveryPrice[];
     error?: string;
   }> {
     try {

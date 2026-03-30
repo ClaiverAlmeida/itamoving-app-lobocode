@@ -1,10 +1,10 @@
 import React from "react";
-import type { PrecoProduto } from "../../../api";
-export function valorSelectCaixa(p: PrecoProduto): string {
+import type { ProductPrice } from "../../../api";
+export function valorSelectCaixa(p: ProductPrice): string {
   return p.size || p.name;
 }
 
-export function resolveCaixaDisplayType(persistedType: string, produtos: PrecoProduto[]): string {
+export function resolveCaixaDisplayType(persistedType: string, produtos: ProductPrice[]): string {
   const t = String(persistedType ?? "").trim();
   if (!t) return "";
   const ativos = produtos.filter((p) => p.active);

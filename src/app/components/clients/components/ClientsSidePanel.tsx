@@ -1,6 +1,6 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import type { Cliente } from '../../../api';
+import type { Client } from '../../../api';
 import type { AtividadeColorKey, ClienteAtividade, HistoricoPaginado } from '../clients.constants';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
@@ -9,13 +9,13 @@ import { Edit, FileText, Flag, MessageCircle, Phone, Trash2, User, X } from 'luc
 import { ClientsHistoryCard } from './ClientsHistoryCard';
 
 type Props = {
-  selectedCliente: Cliente | null;
+  selectedCliente: Client | null;
   loadingHistoricoId: string | null;
   historicoPorCliente: Record<string, HistoricoPaginado>;
   onClose: () => void;
   onCall: (phones: string[]) => void;
   onWhatsapp: (phones: string[]) => void;
-  onEdit: (cliente: Cliente) => void;
+  onEdit: (cliente: Client) => void;
   onDelete: (id: string, nome: string) => void;
   getAtividadeIcon: (a: ClienteAtividade) => any;
   getAtividadeColor: (a: ClienteAtividade) => AtividadeColorKey;

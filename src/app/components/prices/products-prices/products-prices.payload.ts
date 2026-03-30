@@ -1,4 +1,4 @@
-import type { CreateProductPriceDTO, PrecoProduto, UpdateProductPriceDTO } from "../../../api";
+import type { CreateProductPriceDTO, ProductPrice, UpdateProductPriceDTO } from "../../../api";
 import type { ProductPriceForm } from "./products-prices.types";
 
 function isBoxType(type: ProductPriceForm["type"]) {
@@ -40,7 +40,7 @@ export function buildCreateProductPayload(form: ProductPriceForm): CreateProduct
   return payload;
 }
 
-export function buildUpdateProductPatch(params: { form: ProductPriceForm; original: PrecoProduto }): UpdateProductPriceDTO {
+export function buildUpdateProductPatch(params: { form: ProductPriceForm; original: ProductPrice }): UpdateProductPriceDTO {
   const { form, original } = params;
   const isBox = isBoxType(form.type);
   const isTape = isTapeType(form.type);

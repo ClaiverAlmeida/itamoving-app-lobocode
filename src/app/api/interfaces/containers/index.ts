@@ -1,4 +1,43 @@
-import type { Container } from "../../types";
+/** UI model for a shipping container (distinct from {@link ContainersBackend}). */
+export interface Container {
+  id?: string;
+  number: string;
+  type?: string;
+  seal?: string;
+  origin?: string;
+  destination?: string;
+  shipmentDate?: string;
+  boardingDate?: string;
+  estimatedArrival?: string;
+  volume?: number;
+  /** Peso do container vazio — tara (kg). */
+  emptyWeight?: number | null;
+  /** Peso do container cheio — bruto (kg); limite de peso da carga. */
+  fullWeight?: number | null;
+  trackingLink?: string;
+  status: "PREPARATION" | "SHIPPED" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
+  /** Letra do volume (ex.: A, B) — numeração 1-A, 2-A… (gravada após a primeira ordem com caixas). */
+  volumeLetter?: string;
+  /** Limite alvo de volumes por container (padrão ~220). */
+  volumeCapacity?: number;
+  /** Quantidade de ordens de serviço já vinculadas a este container. */
+  linkedServiceOrderCount?: number;
+  /** Ordens de serviço vinculadas ao container. */
+  serviceOrders?: {
+    id: string;
+    status?: string;
+    recipientName?: string | null;
+    createdAt?: string;
+  }[];
+  boxes?: {
+    clientId: string;
+    clientName: string;
+    boxNumber: string;
+    size: string;
+    weight: number;
+  }[];
+  totalWeight?: number;
+}
 
 export interface CreateContainersDTO {
   number: string;
@@ -43,7 +82,12 @@ export interface ContainersBackend {
   }>;
   boxes?: { clientId: string; clientName: string; boxNumber: string; size: string; weight: number }[];
   /** Ordens de serviço vinculadas (quando o GET incluir a relação). */
-  driverServiceOrders?: { id: string }[];
+  driverServiceOrders?: {
+    id: string;
+    status?: string;
+    appointment?: { client?: { usaName?: string | null } | null } | null;
+    createdAt?: string;
+  }[];
   createdAt?: string;
   updatedAt?: string;
   deletedAt?: string | null;

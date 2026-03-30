@@ -1,12 +1,12 @@
 import { useCallback, useMemo } from 'react';
 import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
-import type { Agendamento, CreateAppointmentsPeriodsDTO } from '../../../api';
+import type { Appointment, CreateAppointmentsPeriodsDTO } from '../../../api';
 import { isCollectionDateInPeriod, parseLocalDate, toYYYYMMDD } from '../appointments.utils';
 
 export function useAppointmentsDateGetters(args: {
-  agendamentos: Agendamento[];
-  filteredAgendamentos: Agendamento[];
+  agendamentos: Appointment[];
+  filteredAgendamentos: Appointment[];
   selectedPeriod: CreateAppointmentsPeriodsDTO | null;
 }) {
   const { agendamentos, filteredAgendamentos, selectedPeriod } = args;

@@ -1,4 +1,4 @@
-import type { OrdemServicoMotorista } from "../../types";
+import type { DriverServiceOrder } from "../../interfaces/service-order";
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   if (v == null || typeof v !== "object" || Array.isArray(v)) return null;
@@ -6,7 +6,7 @@ function asRecord(v: unknown): Record<string, unknown> | null {
 }
 
 /** Ordem no formato do app + metadados opcionais vindos do GET (appointment / company). */
-export type OrdemServicoView = OrdemServicoMotorista & {
+export type DriverServiceOrderView = DriverServiceOrder & {
   createdAt?: string;
   updatedAt?: string;
   appointment?: {
@@ -14,6 +14,8 @@ export type OrdemServicoView = OrdemServicoMotorista & {
     collectionDate?: string;
     collectionTime?: string;
     isPeriodic?: boolean;
+    value?: number;
+    downPayment?: number;
   };
   company?: {
     id?: string;
@@ -23,7 +25,7 @@ export type OrdemServicoView = OrdemServicoMotorista & {
   };
 };
 
-function normalizeSender(s: unknown): OrdemServicoMotorista["sender"] {
+function normalizeSender(s: unknown): DriverServiceOrder["sender"] {
   const o = asRecord(s) ?? {};
   const addr = asRecord(o.usaAddress) ?? {};
   return {
@@ -41,7 +43,7 @@ function normalizeSender(s: unknown): OrdemServicoMotorista["sender"] {
   };
 }
 
-function normalizeRecipient(r: unknown): OrdemServicoMotorista["recipient"] {
+function normalizeRecipient(r: unknown): DriverServiceOrder["recipient"] {
   const o = asRecord(r) ?? {};
   const addr = asRecord(o.brazilAddress) ?? {};
   return {
@@ -60,7 +62,7 @@ function normalizeRecipient(r: unknown): OrdemServicoMotorista["recipient"] {
   };
 }
 
-function normalizeStatus(s: unknown): OrdemServicoMotorista["status"] {
+function normalizeStatus(s: unknown): DriverServiceOrder["status"] {
   const v = String(s ?? "PENDING");
   if (v === "IN_PROGRESS" || v === "COMPLETED" || v === "PENDING") return v;
   return "PENDING";
@@ -82,7 +84,7 @@ function pickItemsArray(row: Record<string, unknown>): unknown {
   return [];
 }
 
-function mapProducts(raw: unknown): OrdemServicoMotorista["driverServiceOrderProducts"] {
+function mapProducts(raw: unknown): DriverServiceOrder["driverServiceOrderProducts"] {
   const list = Array.isArray(raw) ? raw : [];
   return list.map((p) => {
     const row = asRecord(p) ?? {};
@@ -124,7 +126,7 @@ function toIso(d: unknown): string {
  * Converte um registro retornado pelo GET `/driver-service-order` (Prisma + universal)
  * para o modelo usado pelo app (formulário, recibo, tabela).
  */
-export function mapDriverServiceOrderApiToView(raw: unknown): OrdemServicoView | null {
+export function mapDriverServiceOrderApiToView(raw: unknown): DriverServiceOrderView | null {
   const r = asRecord(raw);
   if (!r) return null;
 
@@ -135,7 +137,7 @@ export function mapDriverServiceOrderApiToView(raw: unknown): OrdemServicoView |
 
   const driver = asRecord(r.driver);
 
-  const ordem: OrdemServicoView = {
+  const ordem: DriverServiceOrderView = {
     id,
     createdAt: toIso(r.createdAt),
     updatedAt: toIso(r.updatedAt),
@@ -161,6 +163,9 @@ export function mapDriverServiceOrderApiToView(raw: unknown): OrdemServicoView |
       collectionTime:
         aptNested.collectionTime != null ? String(aptNested.collectionTime) : undefined,
       isPeriodic: Boolean(aptNested.isPeriodic),
+      value: aptNested.value != null ? Number(aptNested.value) : undefined,
+      downPayment:
+        aptNested.downPayment != null ? Number(aptNested.downPayment) : undefined,
     };
   }
 

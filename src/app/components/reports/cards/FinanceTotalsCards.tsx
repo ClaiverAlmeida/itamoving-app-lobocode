@@ -3,11 +3,11 @@ import { Download } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import type { EstatisticasGerais } from "../reports.payload";
-import type { Transacao } from "../../../api";
+import type { FinancialTransaction } from "../../../api";
 
 export function FinanceTotalsCards(props: {
   estatisticas: EstatisticasGerais;
-  transacoes: Transacao[];
+  transacoes: FinancialTransaction[];
   formatCurrency: (value: number) => string;
   onExport: (tipo: string) => void;
 }) {

@@ -7,7 +7,7 @@ import { DeliveryPricesTab } from "./prices/delivery-prices";
 import { ProductsPricesTab } from "./prices/products-prices";
 
 export default function PrecosView() {
-  const { setPrecosEntrega, deletePrecoEntrega, setPrecosProdutos, deletePrecoProduto } = useData();
+  const { setPrecosEntrega, deleteDeliveryPrice, setPrecosProdutos, deleteProductPrice } = useData();
   const [activeTab, setActiveTab] = useState("entregas");
 
   return (
@@ -51,14 +51,14 @@ export default function PrecosView() {
         <TabsContent value="entregas" className="space-y-4">
           <DeliveryPricesTab
             setPrecosEntrega={setPrecosEntrega}
-            deletePrecoEntrega={deletePrecoEntrega}
+            deleteDeliveryPrice={deleteDeliveryPrice}
           />
         </TabsContent>
 
         <TabsContent value="produtos" className="space-y-4">
           <ProductsPricesTab
             setPrecosProdutos={setPrecosProdutos}
-            deletePrecoProduto={deletePrecoProduto}
+            deleteProductPrice={deleteProductPrice}
           />
         </TabsContent>
       </Tabs>

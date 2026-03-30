@@ -1,25 +1,24 @@
-import type { Cliente, Transacao } from "../../api";
-import type { TransactionFormData } from "./financial.types";
+import type { Client, FinancialTransaction } from "../../api";
+import type { TransactionFormData } from "./index";
 
 export function buildTransacaoFromFormData(params: {
   formData: TransactionFormData;
-  clientes: Cliente[];
-}): Transacao {
+  clientes: Client[];
+}): FinancialTransaction {
   const { formData, clientes } = params;
-  const cliente = clientes.find((c) => c.id === formData.clienteId);
+  const cliente = clientes.find((c) => c.id === formData.clientId);
 
-  const valor = Number.parseFloat(formData.valor);
+  const value = Number.parseFloat(formData.value);
 
   return {
-    id: Date.now().toString(),
-    clienteId: formData.clienteId,
-    clienteNome: cliente?.usaNome || "N/A",
-    tipo: formData.tipo,
-    categoria: formData.categoria,
-    valor: Number.isFinite(valor) ? valor : 0,
-    data: formData.data,
-    descricao: formData.descricao,
-    metodoPagamento: formData.metodoPagamento,
+    clientId: formData.clientId,
+    clientName: cliente?.usaNome || "N/A",
+    type: formData.type,
+    category: formData.category,
+    value: Number.isFinite(value) ? value : 0,
+    date: formData.date,
+    description: formData.description,
+    paymentMethod: formData.paymentMethod,
   };
 }
 

@@ -1,9 +1,9 @@
 import React from "react";
 import { MapPin } from "lucide-react";
-import type { OrdemServicoView } from "../../../../../api";
+import type { DriverServiceOrderView } from "../../../../../api";
 import { ViewField } from "../ViewField";
 
-export function DestinoTabContent({ ordem }: { ordem: OrdemServicoView }) {
+export function DestinoTabContent({ ordem }: { ordem: DriverServiceOrderView }) {
   return (
     <div className="mt-4 rounded-xl border border-border/80 bg-card p-4 shadow-sm sm:mt-5 sm:p-5">
       <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#1E3A5F]">

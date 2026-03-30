@@ -53,12 +53,12 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
   const agendamentosPendentes = agendamentos.filter(a => a.status === 'PENDING').length;
 
   const receitaTotal = transacoes
-    .filter(t => t.tipo === 'receita')
-    .reduce((sum, t) => sum + t.valor, 0);
+    .filter(t => t.type === 'REVENUE')
+    .reduce((sum, t) => sum + t.value, 0);
 
   const despesaTotal = transacoes
-    .filter(t => t.tipo === 'despesa')
-    .reduce((sum, t) => sum + t.valor, 0);
+    .filter(t => t.type === 'EXPENSE')
+    .reduce((sum, t) => sum + t.value, 0);
 
   const lucro = receitaTotal - despesaTotal;
   const margemLucro = receitaTotal > 0 ? ((lucro / receitaTotal) * 100).toFixed(1) : 0;
@@ -257,7 +257,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
       {/* KPI Cards Secundários */}
       <DashboardSecondaryKpiCardsSection containersAtivos={containersAtivos} containersEmTransito={containersEmTransito} />
 
-        <DashboardChartsSection
+      <DashboardChartsSection
         hasPermissionFinanceiroRead={hasPermission("financeiro", "read")}
         financeiroData={financeiroData}
         containersStatusData={containersStatusData}

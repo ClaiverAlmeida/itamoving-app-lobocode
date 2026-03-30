@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { Cliente, CreateClientsDTO } from '../../../api';
+import type { Client, CreateClientsDTO } from '../../../api';
 
 export type ClientFormData = {
   usaName: string;
@@ -59,7 +59,7 @@ const getInitialFormData = (): ClientFormData => ({
 });
 
 export function useClientsForm(args: {
-  setEditingCliente: Dispatch<SetStateAction<Cliente | null>>;
+  setEditingCliente: Dispatch<SetStateAction<Client | null>>;
   setIsDialogOpen: Dispatch<SetStateAction<boolean>>;
 }) {
   const { setEditingCliente, setIsDialogOpen } = args;
@@ -70,7 +70,7 @@ export function useClientsForm(args: {
     setEditingCliente(null);
   };
 
-  const handleEdit = (cliente: Cliente) => {
+  const handleEdit = (cliente: Client) => {
     setEditingCliente(cliente);
     const usaAddr = cliente.usaAddress as {
       rua?: string;

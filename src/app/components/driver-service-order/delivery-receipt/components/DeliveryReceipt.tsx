@@ -1,20 +1,24 @@
 import * as React from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { Truck, CheckCircle, User, Box, Download } from "lucide-react";
+import { Truck, CheckCircle, User, Box, Download, DollarSign } from "lucide-react";
 import { Button } from "../../../ui/button";
 import { Badge } from "../../../ui/badge";
-import type { OrdemServicoMotorista } from "../../../../api";
+import type { DriverServiceOrderView } from "../../../../api";
 import {
   RECIBO_CATEGORY_LABEL,
   summarizeOrdemForRecibo,
+  sumValorTotalCaixasFromOrdem,
   type ReciboBoxCategory,
 } from "../delivery-receipt-utils";
 
 export const DEFAULT_DELIVERY_RECEIPT_PRINT_ID = "delivery-receipt-print";
 
 export type DeliveryReceiptProps = {
-  ordem: OrdemServicoMotorista;
+  ordem: DriverServiceOrderView;
+  /** Se o GET não trouxer o agendamento completo (ex.: resposta logo após criar a ordem). */
+  valorAgendamento?: number;
+  valorAntecipacao?: number;
   companyContactPhone?: string;
   printElementId?: string;
   className?: string;
@@ -26,6 +30,8 @@ export type DeliveryReceiptProps = {
 
 export function DeliveryReceipt({
   ordem,
+  valorAgendamento: valorAgendamentoProp,
+  valorAntecipacao: valorAntecipacaoProp,
   companyContactPhone,
   printElementId = DEFAULT_DELIVERY_RECEIPT_PRINT_ID,
   className,
@@ -36,6 +42,21 @@ export function DeliveryReceipt({
 }: DeliveryReceiptProps) {
   const { rows: reciboRows, summary: reciboSummary, totalUnidades } = summarizeOrdemForRecibo(ordem);
   const showToolbar = Boolean(onShowOrdersScreen || onPrint);
+
+  const valorAgendamento = Number(
+    valorAgendamentoProp ?? ordem.appointment?.value ?? 0,
+  );
+  const valorAntecipacao = Number(
+    valorAntecipacaoProp ?? ordem.appointment?.downPayment ?? 0,
+  );
+  const subtotalAgendamento = Math.max(valorAgendamento - valorAntecipacao, 0);
+  const valorTotalCaixas = sumValorTotalCaixasFromOrdem(ordem);
+  const valorRecebidoNum = (() => {
+    const n = Number(ordem.chargedValue);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  })();
+  const totalConsolidado =
+    subtotalAgendamento + valorTotalCaixas + valorRecebidoNum;
 
   return (
     <div className={`space-y-4 sm:space-y-6 print:bg-white min-w-0 ${className ?? ""}`}>
@@ -78,7 +99,7 @@ export function DeliveryReceipt({
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#1E3A5F]">ITAMOVING</h1>
           </div>
-          <p className="text-sm text-muted-foreground">Mudancas Internacionais EUA-Brasil</p>
+          <p className="text-sm text-muted-foreground">Mudanças internacionais EUA–Brasil</p>
           <p className="text-xs text-muted-foreground mt-1">
             Miami, FL - Sao Paulo, SP{companyContactPhone ? ` | ${companyContactPhone}` : ""}
           </p>
@@ -96,7 +117,7 @@ export function DeliveryReceipt({
             <div><span className="text-muted-foreground">Nº Ordem:</span><span className="font-semibold ml-2">#{ordem.id}</span></div>
             <div>
               <span className="text-muted-foreground">Data:</span>
-              <span className="font-semibold ml-2">{format(new Date(ordem.signatureDate), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR })}</span>
+              <span className="font-semibold ml-2">{format(new Date(ordem.signatureDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
             </div>
           </div>
         </div>
@@ -141,10 +162,59 @@ export function DeliveryReceipt({
           </div>
         </div>
 
-        <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
-            <span className="text-base sm:text-lg font-semibold text-green-900">Valor Pago em Especie:</span>
-            <span className="text-xl sm:text-2xl font-bold text-green-700">{ordem.chargedValue ? ordem.chargedValue.toLocaleString("pt-BR", { style: "currency", currency: "USD" }) : "$ 0,00"}</span>
+        <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-6 space-y-4">
+          <div className="flex items-center gap-2 text-green-900 border-b border-green-200 pb-2">
+            <DollarSign className="w-5 h-5 shrink-0" />
+            <span className="font-semibold">Pagamento</span>
+          </div>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">Valor do agendamento:</span>
+              <span className="font-semibold tabular-nums">$ {valorAgendamento.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">Antecipação:</span>
+              <span className="font-semibold tabular-nums">- $ {valorAntecipacao.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between gap-4 pt-2 border-t border-green-200">
+              <span className="font-semibold text-muted-foreground">Subtotal (agendamento − antecipação):</span>
+              <span className="font-bold text-green-800 tabular-nums">$ {subtotalAgendamento.toFixed(2)}</span>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 pt-2 border-t border-green-200">
+            <span className="text-sm text-muted-foreground">Valor total das caixas:</span>
+            <span className="text-xl font-bold text-green-700 tabular-nums">$ {valorTotalCaixas.toFixed(2)}</span>
+          </div>
+          <div className="border-t border-green-200 pt-3 space-y-1">
+            <div className="flex justify-between gap-4 text-sm">
+              <span className="text-muted-foreground">Valor recebido (espécie / Zelle):</span>
+              <span className="font-semibold tabular-nums">
+                $ {valorRecebidoNum.toFixed(2)}
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t-2 border-green-300 space-y-2 text-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Total consolidado
+            </p>
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">Subtotal agendamento</span>
+              <span className="font-medium tabular-nums">$ {subtotalAgendamento.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">+ Total das caixas</span>
+              <span className="font-medium tabular-nums">$ {valorTotalCaixas.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">+ Valor recebido</span>
+              <span className="font-medium tabular-nums">$ {valorRecebidoNum.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between gap-4 pt-2 border-t border-green-200">
+              <span className="text-base font-bold text-green-900">Total geral</span>
+              <span className="text-xl font-bold text-green-800 tabular-nums">
+                $ {totalConsolidado.toFixed(2)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -159,9 +229,9 @@ export function DeliveryReceipt({
         </div>
 
         <div className="mt-8 pt-6 border-t text-center text-xs text-muted-foreground">
-          <p>ITAMOVING - Mudancas Internacionais</p>
+          <p>ITAMOVING — Mudanças internacionais</p>
           <p>www.itamoving.com | contato@itamoving.com</p>
-          <p className="mt-2">Este documento comprova a entrega e pagamento dos servicos prestados.</p>
+          <p className="mt-2">Este documento comprova a entrega e o pagamento dos serviços prestados.</p>
         </div>
       </div>
     </div>

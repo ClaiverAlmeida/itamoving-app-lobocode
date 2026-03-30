@@ -4,14 +4,14 @@ import { Input } from "../../../ui/input";
 import { Badge } from "../../../ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../ui/table";
 import { Search, Download, MapPin, Edit, Trash2, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-import type { PrecoEntrega, DeliveryPricesPagination } from "../../../../api";
+import type { DeliveryPrice, DeliveryPricesPagination } from "../../../../api";
 
 export type DeliveryPricesTableProps = {
   searchTerm: string;
   onSearchTermChange: (v: string) => void;
   onExport: () => Promise<void> | void;
-  entregasFiltradas: PrecoEntrega[];
-  onEdit: (entrega: PrecoEntrega) => void;
+  entregasFiltradas: DeliveryPrice[];
+  onEdit: (entrega: DeliveryPrice) => void;
   onDelete: (id: string) => void;
   pagination: DeliveryPricesPagination | null;
   onPrevPage: () => void;

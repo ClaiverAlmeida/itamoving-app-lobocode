@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowDownRight, ArrowUpRight, Plus } from "lucide-react";
 import { motion } from "motion/react";
-import type { DriverUser, PrecoProduto } from "../../../api";
+import type { DriverUser, ProductPrice } from "../../../api";
 import { EmptyStateAlert } from "../../alerts";
 import { ResponsavelSelect } from "../../forms";
 import { Button } from "../../ui/button";
@@ -27,7 +27,7 @@ type Props = {
   setResponsavel: (v: string) => void;
   observacao: string;
   setObservacao: (v: string) => void;
-  produtos: PrecoProduto[];
+  produtos: ProductPrice[];
   motoristas: DriverUser[];
   onSubmit: () => void;
 };

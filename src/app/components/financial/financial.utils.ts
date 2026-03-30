@@ -1,11 +1,11 @@
-import type { Transacao } from "../../api";
+import type { FinancialTransaction } from "../../api";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import type { PeriodFilter, ViewMode } from "./financial.constants";
+import type { PeriodFilter, ViewMode } from "./index";
 
 export type FinanceiroTotals = {
-  receitas: Transacao[];
-  despesas: Transacao[];
+  receitas: FinancialTransaction[];
+  despesas: FinancialTransaction[];
   totalReceitas: number;
   totalDespesas: number;
   lucro: number;
@@ -25,7 +25,7 @@ export function formatCurrencyUSD(value: number) {
 }
 
 export function filterTransacoes(params: {
-  transacoes: Transacao[];
+  transacoes: FinancialTransaction[];
   viewMode: ViewMode;
   periodFilter: PeriodFilter;
   searchTerm: string;
@@ -34,13 +34,13 @@ export function filterTransacoes(params: {
 
   let filtered = transacoes;
 
-  if (viewMode === "receitas") filtered = filtered.filter((t) => t.tipo === "receita");
-  if (viewMode === "despesas") filtered = filtered.filter((t) => t.tipo === "despesa");
+  if (viewMode === "receitas") filtered = filtered.filter((t) => t.type === "REVENUE");
+  if (viewMode === "despesas") filtered = filtered.filter((t) => t.type === "EXPENSE");
 
   if (periodFilter !== "todos") {
     const now = new Date();
     filtered = filtered.filter((t) => {
-      const transactionDate = new Date(t.data);
+      const transactionDate = new Date(t.date);
       const diffTime = now.getTime() - transactionDate.getTime();
       const diffDays = diffTime / (1000 * 60 * 60 * 24);
 
@@ -55,20 +55,20 @@ export function filterTransacoes(params: {
     const term = searchTerm.toLowerCase();
     filtered = filtered.filter(
       (t) =>
-        t.descricao.toLowerCase().includes(term) ||
-        t.categoria.toLowerCase().includes(term) ||
-        t.clienteNome.toLowerCase().includes(term),
+        t.description.toLowerCase().includes(term) ||
+        t.category.toLowerCase().includes(term) ||
+        t.clientName.toLowerCase().includes(term),
     );
   }
 
   return filtered;
 }
 
-export function computeFinanceiroTotals(filteredTransacoes: Transacao[]): FinanceiroTotals {
-  const receitas = filteredTransacoes.filter((t) => t.tipo === "receita");
-  const despesas = filteredTransacoes.filter((t) => t.tipo === "despesa");
-  const totalReceitas = receitas.reduce((sum, t) => sum + t.valor, 0);
-  const totalDespesas = despesas.reduce((sum, t) => sum + t.valor, 0);
+export function computeFinanceiroTotals(filteredTransacoes: FinancialTransaction[]): FinanceiroTotals {
+  const receitas = filteredTransacoes.filter((t) => t.type === "REVENUE");
+  const despesas = filteredTransacoes.filter((t) => t.type === "EXPENSE");
+  const totalReceitas = receitas.reduce((sum, t) => sum + t.value, 0);
+  const totalDespesas = despesas.reduce((sum, t) => sum + t.value, 0);
   const lucro = totalReceitas - totalDespesas;
   const margemLucro = totalReceitas > 0 ? ((lucro / totalReceitas) * 100).toFixed(1) : 0;
   const ticketMedio = receitas.length > 0 ? totalReceitas / receitas.length : 0;
@@ -76,11 +76,11 @@ export function computeFinanceiroTotals(filteredTransacoes: Transacao[]): Financ
   return { receitas, despesas, totalReceitas, totalDespesas, lucro, margemLucro, ticketMedio };
 }
 
-export function groupTransacoesByCategoria(params: { transacoes: Transacao[]; color: string }) {
+export function groupTransacoesByCategoria(params: { transacoes: FinancialTransaction[]; color: string }) {
   const { transacoes, color } = params;
   const categorias: Record<string, number> = {};
   transacoes.forEach((t) => {
-    categorias[t.categoria] = (categorias[t.categoria] || 0) + t.valor;
+    categorias[t.category] = (categorias[t.category] || 0) + t.value;
   });
 
   return Object.entries(categorias).map(([name, value]) => ({
@@ -90,16 +90,16 @@ export function groupTransacoesByCategoria(params: { transacoes: Transacao[]; co
   })) as PieCategoriaPoint[];
 }
 
-export function buildFluxoCaixaMensal(filteredTransacoes: Transacao[]): LineFluxoCaixaPoint[] {
+export function buildFluxoCaixaMensal(filteredTransacoes: FinancialTransaction[]): LineFluxoCaixaPoint[] {
   const meses: Record<string, { receitas: number; despesas: number; lucro: number }> = {};
 
   filteredTransacoes.forEach((t) => {
-    const data = new Date(t.data);
+    const data = new Date(t.date);
     const mesAno = format(data, "MMM/yy", { locale: ptBR });
 
     if (!meses[mesAno]) meses[mesAno] = { receitas: 0, despesas: 0, lucro: 0 };
-    if (t.tipo === "receita") meses[mesAno].receitas += t.valor;
-    else meses[mesAno].despesas += t.valor;
+    if (t.type === "REVENUE") meses[mesAno].receitas += t.value;
+    else meses[mesAno].despesas += t.value;
 
     meses[mesAno].lucro = meses[mesAno].receitas - meses[mesAno].despesas;
   });

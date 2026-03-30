@@ -1,11 +1,11 @@
 import React from "react";
 import { FileText, Truck } from "lucide-react";
 import { Badge } from "../../../../ui/badge";
-import type { OrdemServicoView } from "../../../../../api";
+import type { DriverServiceOrderView } from "../../../../../api";
 import { STATUS_LABEL } from "../../service-order.constants";
 import { formatDateTime, formatUsd, statusBadgeClass } from "../../service-order.utils";
 
-export function ResumoTabContent({ ordem }: { ordem: OrdemServicoView }) {
+export function ResumoTabContent({ ordem }: { ordem: DriverServiceOrderView }) {
   return (
     <div className="mt-4 space-y-4 sm:mt-5">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

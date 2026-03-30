@@ -1,9 +1,14 @@
 import React from "react";
 import { toast } from "sonner";
-import type { PrecoProduto } from "../../../api";
+import type { ProductPrice } from "../../../api";
 import type { ProductPriceForm } from "./products-prices.types";
 import { buildCreateProductPayload, buildUpdateProductPatch } from "./products-prices.payload";
-import { createProductPrice, deleteProductPrice, exportProducts, updateProductPrice } from "./products-prices.crud";
+import {
+  createProductPrice,
+  deleteProductPrice as deleteProductPriceApi,
+  exportProducts,
+  updateProductPrice,
+} from "./products-prices.crud";
 import { exportDocument } from "../../../utils";
 
 export async function handleCreateSubmit(params: {
@@ -11,7 +16,7 @@ export async function handleCreateSubmit(params: {
   formProduto: ProductPriceForm;
   setIsProdutoDialogOpen: (open: boolean) => void;
   setIsEditProdutoDialogOpen: (open: boolean) => void;
-  setSelectedProduto: (p: PrecoProduto | null) => void;
+  setSelectedProduto: (p: ProductPrice | null) => void;
   resetFormProduto: () => void;
   pageProduto: number;
   setPageProduto: (n: number) => void;
@@ -49,9 +54,9 @@ export async function handleCreateSubmit(params: {
 export async function handleEditSubmit(params: {
   e: React.FormEvent;
   formProduto: ProductPriceForm;
-  selectedProduto: PrecoProduto | null;
+  selectedProduto: ProductPrice | null;
   setIsEditProdutoDialogOpen: (open: boolean) => void;
-  setSelectedProduto: (p: PrecoProduto | null) => void;
+  setSelectedProduto: (p: ProductPrice | null) => void;
   resetFormProduto: () => void;
   pageProduto: number;
   carregarProdutos: (page: number) => Promise<void>;
@@ -81,21 +86,21 @@ export async function handleEditSubmit(params: {
 
 export async function handleDelete(params: {
   id: string;
-  selectedProduto: PrecoProduto | null;
-  setSelectedProduto: (p: PrecoProduto | null) => void;
+  selectedProduto: ProductPrice | null;
+  setSelectedProduto: (p: ProductPrice | null) => void;
   pageProduto: number;
   carregarProdutos: (page: number) => Promise<void>;
-  deletePrecoProduto: (id: string) => void;
+  deleteProductPrice: (id: string) => void;
 }) {
-  const { id, selectedProduto, setSelectedProduto, pageProduto, carregarProdutos, deletePrecoProduto } = params;
+  const { id, selectedProduto, setSelectedProduto, pageProduto, carregarProdutos, deleteProductPrice } = params;
 
   const confirm = window.confirm("Tem certeza que deseja excluir este produto?");
   if (!confirm) return;
 
-  const result = await deleteProductPrice(id);
+  const result = await deleteProductPriceApi(id);
 
   if (result.success) {
-    deletePrecoProduto(id);
+    deleteProductPrice(id);
     toast.success("Produto excluído com sucesso!");
     if (selectedProduto?.id === id) setSelectedProduto(null);
     await carregarProdutos(pageProduto);

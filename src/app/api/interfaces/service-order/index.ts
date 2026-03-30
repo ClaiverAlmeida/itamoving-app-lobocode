@@ -1,13 +1,69 @@
-import type { OrdemServicoMotorista } from "../../types";
+export interface DriverServiceOrder {
+  id?: string;
+  appointmentId: string;
+  sender: {
+    usaName: string;
+    usaAddress: {
+      rua: string;
+      numero: string;
+      cidade: string;
+      estado: string;
+      zipCode: string;
+      complemento?: string;
+    };
+    usaPhone: string;
+    usaCpf: string;
+  };
+  recipient: {
+    brazilName: string;
+    brazilCpf: string;
+    brazilAddress: {
+      rua: string;
+      bairro: string;
+      cidade: string;
+      estado: string;
+      cep: string;
+      complemento?: string;
+      numero?: string;
+    };
+    brazilPhone: string;
+  };
+  driverServiceOrderProducts: {
+    id?: string;
+    /** Número da caixa na ordem (referência operacional). */
+    number?: string;
+    productId?: string;
+    type: string;
+    weight: number;
+    value: number;
+    driverServiceOrderProductsItems?: {
+      id?: string;
+      driverServiceOrderId?: string;
+      name: string;
+      quantity: number;
+      weight: number;
+      observations?: string;
+    }[];
+  }[];
+  clientSignature: string;
+  agentSignature: string;
+  signatureDate: string;
+  driverName: string;
+  userId: string;
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
+  chargedValue: number;
+  observations?: string;
+  deletedDriverServiceOrderProductIds?: string[];
+}
 
-export interface OrdemServicoFormProps {
+export interface DriverServiceOrderFormProps {
   appointmentId: string;
   agendamento: any;
   onClose: () => void;
-  onSave?: (ordem: OrdemServicoMotorista) => void;
+  onSave?: (ordem: DriverServiceOrder) => void;
   onAgendamentosAtualizados?: () => void | Promise<void>;
   embedded?: boolean;
-  existingOrdem?: OrdemServicoMotorista;
+  existingOrdem?: DriverServiceOrder;
 }
 
 export interface Caixa {

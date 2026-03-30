@@ -1,22 +1,22 @@
 import { useState } from 'react';
-import type { Cliente } from '../../../api';
+import type { Client } from '../../../api';
 
 export type ClientsDataContext = {
-  clientes: Cliente[];
-  setClientes: (clientes: Cliente[]) => void;
-  addCliente: (cliente: Cliente) => void;
-  updateCliente: (id: string, cliente: Partial<Cliente>) => void;
+  clientes: Client[];
+  setClientes: (clientes: Client[]) => void;
+  addCliente: (cliente: Client) => void;
+  updateCliente: (id: string, cliente: Partial<Client>) => void;
   deleteCliente: (id: string) => void;
 };
 
 export function useClientsDataContext(): ClientsDataContext {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clientes, setClientes] = useState<Client[]>([]);
 
-  const addCliente = (cliente: Cliente) => {
+  const addCliente = (cliente: Client) => {
     setClientes((prev) => [...prev, cliente]);
   };
 
-  const updateCliente = (id: string, clienteUpdate: Partial<Cliente>) => {
+  const updateCliente = (id: string, clienteUpdate: Partial<Client>) => {
     setClientes((prev) => prev.map((c) => (c.id === id ? { ...c, ...clienteUpdate } : c)));
   };
 

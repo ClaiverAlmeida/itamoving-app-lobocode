@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import type { Caixa, DriverUser, Item, OrdemServicoMotorista, PrecoProduto } from "../../../api";
+import type { Caixa, DriverUser, Item, DriverServiceOrder, ProductPrice } from "../../../api";
 import { buildServiceOrderPayload } from "./service-order-form.payload";
 import { caixaTemTodosCamposPreenchidos, isCaixaPersonalizada, isFitaAdesiva, obterTipoProdutoDaCaixa } from "./service-order-form.verifications";
 import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from "../../stock";
@@ -20,7 +20,7 @@ type Params = {
   motoristas: DriverUser[];
   motoristaResponsavel: string;
   motoristaResponsavelNome?: string;
-  ordemStatus: OrdemServicoMotorista["status"];
+  ordemStatus: DriverServiceOrder["status"];
   ordemObservacoes: string;
   valorPago: string;
   assinaturaCliente: string;
@@ -47,7 +47,7 @@ type Params = {
   observations: string;
   caixas: Caixa[];
   itens: Item[];
-  opcoesCaixa: PrecoProduto[];
+  opcoesCaixa: ProductPrice[];
   existingProductIds: Set<string>;
 };
 
@@ -144,10 +144,10 @@ export function useServiceOrderFormSave(params: Params) {
   const salvarOrdemServico = async () => {
     if (params.isEditMode && !canSave) return toast.info("Nenhum campo alterado.");
     if (!params.remetenteNome || !params.remetenteTel || !params.remetenteEndereco || !params.remetenteNumero || !params.remetenteCidade || !params.remetenteEstado || !params.remetenteZipCode || !params.remetenteComplemento) {
-      return toast.error("Preencha todos os campos obrigatorios do remetente");
+      return toast.error("Preencha todos os campos obrigatórios do remetente");
     }
     if (!params.destinatarioNome || !params.destinatarioCpfRg || !params.destinatarioEndereco || !params.destinatarioBairro || !params.destinatarioCidade || !params.destinatarioEstado || !params.destinatarioCep || !params.destinatarioTelefone || !params.destinatarioNumero || !params.destinatarioComplemento) {
-      return toast.error("Preencha todos os campos obrigatorios do destinatario");
+      return toast.error("Preencha todos os campos obrigatórios do destinatário");
     }
     if (params.caixas.length === 0) return toast.error("Adicione pelo menos uma caixa ou produto");
     if (params.caixas.some((c) => !caixaTemTodosCamposPreenchidos(c))) return toast.error("Preencha todos os campos das caixas ou produtos antes de salvar");
@@ -155,29 +155,29 @@ export function useServiceOrderFormSave(params: Params) {
       if (isFitaAdesiva(c, params.opcoesCaixa) || isCaixaPersonalizada(c, params.opcoesCaixa)) return false;
       return params.itens.filter((i) => i.caixaId === c.id).length === 0;
     });
-    if (caixaSemItensObrigatorios) return toast.error("Cada caixa precisa ter ao menos 1 item (fita adesiva e caixa personalizada nao exigem itens)");
+    if (caixaSemItensObrigatorios) return toast.error("Cada caixa precisa ter ao menos 1 item (fita adesiva e caixa personalizada não exigem itens)");
     const itemInvalido = params.itens.some((i) => !String(i.name ?? "").trim() || Number(i.quantity) <= 0 || Number(i.weight) <= 0);
     if (itemInvalido) return toast.error("Preencha todos os campos dos itens antes de salvar");
 
     const assinaturaClienteFinal = params.assinaturaCliente?.trim() || (params.isEditMode ? (params.existingOrdem?.clientSignature ?? "") : "");
     const assinaturaAgenteFinal = params.assinaturaAgente?.trim() || (params.isEditMode ? (params.existingOrdem?.agentSignature ?? "") : "");
-    if (!assinaturaClienteFinal) return toast.error("E necessaria a assinatura do cliente");
-    if (!assinaturaAgenteFinal) return toast.error("E necessaria a assinatura do agente");
-    if ((params.ordemStatus === "COMPLETED" || !params.isEditMode) && Number(params.valorPago) <= 0) return toast.error(params.isEditMode ? "Para ordem concluida, informe o valor recebido." : "O valor pago deve ser maior que 0");
+    if (!assinaturaClienteFinal) return toast.error("É necessária a assinatura do cliente");
+    if (!assinaturaAgenteFinal) return toast.error("É necessária a assinatura do agente");
+    if ((params.ordemStatus === "COMPLETED" || !params.isEditMode) && Number(params.valorPago) <= 0) return toast.error(params.isEditMode ? "Para ordem concluída, informe o valor recebido." : "O valor pago deve ser maior que 0");
 
     const criandoComoMotorista = !params.isEditMode && params.user?.role === "motorista";
     let idMotoristaResponsavel = "";
     if (criandoComoMotorista) {
       idMotoristaResponsavel = String(params.user?.id ?? "").trim();
-      if (!idMotoristaResponsavel) return toast.error("Sessao invalida. Faca login novamente.");
+      if (!idMotoristaResponsavel) return toast.error("Sessão inválida. Faça login novamente.");
     } else {
       if (params.motoristasLoading) return toast.error("Aguarde o carregamento da lista de motoristas.");
-      if (!params.motoristas.length) return toast.error("Nao ha motoristas disponiveis. Tente novamente em instantes.");
+      if (!params.motoristas.length) return toast.error("Não há motoristas disponíveis. Tente novamente em instantes.");
       idMotoristaResponsavel = String(params.motoristaResponsavel ?? "").trim();
-      if (!idMotoristaResponsavel) return toast.error("Selecione um motorista responsavel");
+      if (!idMotoristaResponsavel) return toast.error("Selecione um motorista responsável");
       const motoristaNaLista = params.motoristas.some((m) => m.id === idMotoristaResponsavel);
       const motoristaEhUsuarioLogado = params.isEditMode && params.user?.role === "motorista" && idMotoristaResponsavel === params.user?.id;
-      if (!motoristaNaLista && !motoristaEhUsuarioLogado) return toast.error("Selecione um motorista valido na lista.");
+      if (!motoristaNaLista && !motoristaEhUsuarioLogado) return toast.error("Selecione um motorista válido na lista.");
     }
 
     const payload = buildServiceOrderPayload({
@@ -220,7 +220,7 @@ export function useServiceOrderFormSave(params: Params) {
         params.onClose();
         void Promise.resolve(params.onAgendamentosAtualizados?.()).catch(() => {});
         params.onSave?.(created.data);
-        toast.success("Ordem de servico salva com sucesso!");
+        toast.success("Ordem de serviço salva com sucesso!");
       }
       return;
     }
@@ -236,7 +236,7 @@ export function useServiceOrderFormSave(params: Params) {
       return toast.error("Erro ao comparar campos alterados. Tente novamente.");
     }
 
-    const patch: Partial<OrdemServicoMotorista> = {};
+    const patch: Partial<DriverServiceOrder> = {};
     const remetenteChanged = JSON.stringify(currentObj?.remetente) !== JSON.stringify(initialObj?.remetente);
     const destinatarioChanged = JSON.stringify(currentObj?.destinatario) !== JSON.stringify(initialObj?.destinatario);
     const statusChanged = currentObj?.ordem?.status !== initialObj?.ordem?.status;
@@ -330,11 +330,11 @@ export function useServiceOrderFormSave(params: Params) {
     if (result.success && result.data) {
       params.onSave?.(result.data);
       void Promise.resolve(params.onAgendamentosAtualizados?.()).catch(() => {});
-      toast.success("Ordem de servico atualizada com sucesso!");
+      toast.success("Ordem de serviço atualizada com sucesso!");
       params.onClose();
       return;
     }
-    toast.error(result.error || "Erro ao atualizar ordem de servico");
+    toast.error(result.error || "Erro ao atualizar ordem de serviço");
   };
 
   return { canSave, salvarOrdemServico };

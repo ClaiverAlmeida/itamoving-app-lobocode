@@ -1,4 +1,4 @@
-import type { Cliente } from '../../api';
+import type { Client } from '../../api';
 import type { ClientHistoryItem, CreateClientsDTO, UpdateClientsDTO } from '../../api';
 import { toast } from 'sonner';
 import { BRASIL_STATES } from '../../utils';
@@ -121,7 +121,7 @@ export const handleDeleteClient = async (args: {
   remove: (id: string) => Promise<any>;
   deleteCliente: (id: string) => void;
   selectedClienteId?: string;
-  setSelectedCliente: (c: Cliente | null) => void;
+  setSelectedCliente: (c: Client | null) => void;
 }) => {
   const { id, nome, remove, deleteCliente, selectedClienteId, setSelectedCliente } = args;
   const confirm = window.confirm(`Tem certeza que deseja excluir o cliente ${nome}?`);
@@ -169,7 +169,7 @@ export const handleWhatsappWindow = (telefones: string[]) => {
   window.open(`https://api.whatsapp.com/send?phone=${telefone}`, '_blank');
 };
 
-export const buildUpdatePayload = (formData: ClientFormData, editingCliente: Cliente): UpdateClientsDTO => {
+export const buildUpdatePayload = (formData: ClientFormData, editingCliente: Client): UpdateClientsDTO => {
   const current: CreateClientsDTO = {
     usaName: formData.usaName,
     usaCpf: formData.usaCpf,

@@ -1,4 +1,4 @@
-import type { Agendamento } from '../../api';
+import type { Appointment } from '../../api';
 import type { StatusSelectItem } from '../forms';
 import { AlertCircle, CheckCircle2, Package, XCircle } from 'lucide-react';
 
@@ -7,7 +7,7 @@ export const AGENDAMENTO_STATUS_ITEMS = [
   { value: 'CONFIRMED', label: 'Confirmado' },
   { value: 'COLLECTED', label: 'Coletado' },
   { value: 'CANCELLED', label: 'Cancelado' },
-] as const satisfies readonly StatusSelectItem<Agendamento['status']>[];
+] as const satisfies readonly StatusSelectItem<Appointment['status']>[];
 
 export type ViewMode = 'calendar' | 'list' | 'timeline';
 

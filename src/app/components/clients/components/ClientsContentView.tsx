@@ -3,19 +3,19 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
-import type { Cliente } from '../../../api';
+import type { Client } from '../../../api';
 import { Calendar, Edit, FileText, Flag, MapPin, Phone, Trash2, User } from 'lucide-react';
 import type { ClientsViewMode } from '../clients.constants';
 
 type Props = {
   viewMode: ClientsViewMode;
-  filteredClientes: Cliente[];
-  clientesListRendered: Cliente[];
+  filteredClientes: Client[];
+  clientesListRendered: Client[];
   listVisibleCount: number;
   listContainerRef: React.RefObject<HTMLDivElement | null>;
   setListVisibleCount: React.Dispatch<React.SetStateAction<number>>;
-  setSelectedCliente: React.Dispatch<React.SetStateAction<Cliente | null>>;
-  onEdit: (cliente: Cliente) => void;
+  setSelectedCliente: React.Dispatch<React.SetStateAction<Client | null>>;
+  onEdit: (cliente: Client) => void;
   onDelete: (id: string, nome: string) => void;
 };
 

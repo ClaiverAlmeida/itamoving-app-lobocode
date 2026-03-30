@@ -1,6 +1,6 @@
 import React from "react";
 import { ClipboardList } from "lucide-react";
-import type { DriverUser, OrdemServicoMotorista, OrdemServicoView } from "../../../../api";
+import type { DriverUser, DriverServiceOrder, DriverServiceOrderView } from "../../../../api";
 import { ResponsavelSelect } from "../../../forms";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../ui/card";
 import { Input } from "../../../ui/input";
@@ -10,9 +10,9 @@ import { Textarea } from "../../../ui/textarea";
 
 type Props = {
   isEditMode: boolean;
-  existingOrdem?: OrdemServicoView;
-  ordemStatus: OrdemServicoMotorista["status"];
-  setOrdemStatus: (v: OrdemServicoMotorista["status"]) => void;
+  existingOrdem?: DriverServiceOrderView;
+  ordemStatus: DriverServiceOrder["status"];
+  setOrdemStatus: (v: DriverServiceOrder["status"]) => void;
   motoristas: DriverUser[];
   motoristaResponsavel: string;
   setMotoristaResponsavel: (v: string) => void;
@@ -57,14 +57,14 @@ export function ServiceOrderFormBackOfficeCard(props: Props) {
           ) : null}
           <div className="space-y-2">
             <Label>Status *</Label>
-            <Select required value={ordemStatus} onValueChange={(v: OrdemServicoMotorista["status"]) => setOrdemStatus(v)}>
+            <Select required value={ordemStatus} onValueChange={(v: DriverServiceOrder["status"]) => setOrdemStatus(v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="PENDING">Pendente</SelectItem>
                 <SelectItem value="IN_PROGRESS">Em andamento</SelectItem>
-                <SelectItem value="COMPLETED">Concluida</SelectItem>
+                <SelectItem value="COMPLETED">Concluída</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -82,7 +82,7 @@ export function ServiceOrderFormBackOfficeCard(props: Props) {
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="obsInternas">Observacoes internas</Label>
+          <Label htmlFor="obsInternas">Observações internas</Label>
           <Textarea
             id="obsInternas"
             rows={3}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { clientsService, containersServices, stockService, appointmentsService } from '../api';
-import type { Cliente, Container, Estoque, Agendamento } from '../api';
+import type { Appointment, Client, Container, Estoque } from '../api';
 
 /** Quais fontes de dados do dashboard devem ser carregadas. Omitir = true (carrega). */
 export interface DashboardDataConfig {
@@ -27,9 +27,9 @@ const defaultEstoque: Estoque = {
 };
 
 export interface UseDashboardDataResult {
-  clientes: Cliente[];
+  clientes: Client[];
   containers: Container[];
-  agendamentos: Agendamento[];
+  agendamentos: Appointment[];
   estoque: Estoque;
   isLoading: boolean;
   refetch: () => Promise<void>;
@@ -43,9 +43,9 @@ export function useDashboardData(config: DashboardDataConfig = {}): UseDashboard
   const opts = { ...defaultConfig, ...config };
   const cancelledRef = useRef(false);
 
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clientes, setClientes] = useState<Client[]>([]);
   const [containers, setContainers] = useState<Container[]>([]);
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [agendamentos, setAgendamentos] = useState<Appointment[]>([]);
   const [estoque, setEstoque] = useState<Estoque>(defaultEstoque);
   const [isLoading, setIsLoading] = useState(true);
 

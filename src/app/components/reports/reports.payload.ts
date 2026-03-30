@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import type { Agendamento, Cliente, Container, Transacao } from "../../api";
+import type { Appointment, Client, Container, FinancialTransaction } from "../../api";
 
 export type EstatisticasGerais = {
   totalClientes: number;
@@ -34,10 +34,10 @@ export type PerformanceAtendente = {
 export type CategoriaDespesa = { categoria: string; valor: number };
 
 export function buildEstatisticasGerais(params: {
-  clientes: Cliente[];
+  clientes: Client[];
   containers: Container[];
-  agendamentos: Agendamento[];
-  transacoes: Transacao[];
+  agendamentos: Appointment[];
+  transacoes: FinancialTransaction[];
 }): EstatisticasGerais {
   const { clientes, containers, agendamentos, transacoes } = params;
 
@@ -84,7 +84,7 @@ export function buildEstatisticasGerais(params: {
   };
 }
 
-export function buildClientesPorEstado(clientes: Cliente[]): ClientePorEstado[] {
+export function buildClientesPorEstado(clientes: Client[]): ClientePorEstado[] {
   const estados: Record<string, number> = {};
   clientes.forEach((c) => {
     const estado = c.usaAddress.estado as string;
@@ -97,7 +97,7 @@ export function buildClientesPorEstado(clientes: Cliente[]): ClientePorEstado[] 
     .slice(0, 10);
 }
 
-export function buildReceitasMensais(transacoes: Transacao[]): ReceitaMensal[] {
+export function buildReceitasMensais(transacoes: FinancialTransaction[]): ReceitaMensal[] {
   const meses: Record<string, number> = {};
   transacoes
     .filter((t) => t.tipo === "receita")
@@ -112,7 +112,7 @@ export function buildReceitasMensais(transacoes: Transacao[]): ReceitaMensal[] {
     .slice(-6);
 }
 
-export function buildPerformanceAtendentes(params: { clientes: Cliente[]; transacoes: Transacao[] }): PerformanceAtendente[] {
+export function buildPerformanceAtendentes(params: { clientes: Client[]; transacoes: FinancialTransaction[] }): PerformanceAtendente[] {
   const { clientes, transacoes } = params;
 
   const atendentes: Record<string, { clientes: number; receitas: number }> = {};
@@ -144,7 +144,7 @@ export function buildPerformanceAtendentes(params: { clientes: Cliente[]; transa
     .sort((a, b) => b.receitas - a.receitas);
 }
 
-export function buildCategoriasDespesas(transacoes: Transacao[]): CategoriaDespesa[] {
+export function buildCategoriasDespesas(transacoes: FinancialTransaction[]): CategoriaDespesa[] {
   const categorias: Record<string, number> = {};
 
   transacoes

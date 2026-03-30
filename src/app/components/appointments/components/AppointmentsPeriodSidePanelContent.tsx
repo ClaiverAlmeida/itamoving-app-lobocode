@@ -3,7 +3,7 @@ import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
 import { Box, MapPin, MessageCircle, User, X } from "lucide-react";
-import { Agendamento, CreateAppointmentsPeriodsDTO } from "../../../api";
+import { Appointment, CreateAppointmentsPeriodsDTO } from "../../../api";
 import { cn } from "../../ui/utils";
 import { formatDateOnlyToBR } from "../../../utils";
 
@@ -16,7 +16,7 @@ const BORDER_LEFT_CLASS_BY_STATUS_COLOR: Record<string, string> = {
 
 type Props = {
   selectedPeriod: CreateAppointmentsPeriodsDTO;
-  agendamentosDoPeriodo: Agendamento[];
+  agendamentosDoPeriodo: Appointment[];
   getStatusConfig: (status: string) => {
     label: string;
     color: string;
@@ -25,7 +25,7 @@ type Props = {
     icon: React.ComponentType<{ className?: string }>;
   };
   onClose: () => void;
-  onSelectAgendamento: (ag: Agendamento) => void;
+  onSelectAgendamento: (ag: Appointment) => void;
 };
 
 export function AppointmentsPeriodSidePanelContent({

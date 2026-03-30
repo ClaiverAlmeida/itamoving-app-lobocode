@@ -1,5 +1,5 @@
 import { api } from "./api.service";
-import { Agendamento } from "../types";
+import type { Appointment } from "../types";
 import { toDateOnly, toTimeOnly } from "../../utils";
 import { BaseCrudService } from "./base-crud.service";
 import type {
@@ -20,7 +20,7 @@ type AppointmentsPeriodsPagination = {
   hasPreviousPage: boolean;
 };
 
-export function mapBackendToFrontend(appointment: AppointmentsBackend): Agendamento {
+export function mapBackendToFrontend(appointment: AppointmentsBackend): Appointment {
   const { rua, numero, complemento, cidade, estado, zipCode } =
     appointment.client.usaAddress;
   const street = [rua, numero].filter(Boolean).join(", ");
@@ -81,7 +81,7 @@ class AppointmentsPeriodsCrudService extends BaseCrudService<
 }
 
 export class AppointmentsService extends BaseCrudService<
-  Agendamento,
+  Appointment,
   AppointmentsBackend,
   CreateAppointmentsDTO,
   UpdateAppointmentsDTO

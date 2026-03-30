@@ -1,10 +1,10 @@
-import type { PrecoProduto } from "../../../api";
+import type { ProductPrice } from "../../../api";
 
-export type ProductPriceType = PrecoProduto["type"];
+export type ProductPriceType = ProductPrice["type"];
 
 export type ProductsPricesTabProps = {
-  setPrecosProdutos: (precos: PrecoProduto[]) => void;
-  deletePrecoProduto: (id: string) => void;
+  setPrecosProdutos: (precos: ProductPrice[]) => void;
+  deleteProductPrice: (id: string) => void;
   className?: string;
 };
 

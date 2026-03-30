@@ -1,8 +1,8 @@
 import React from "react";
 import { Activity, DollarSign, Target, TrendingDown, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "../../ui/card";
-import type { FinanceiroTotals } from "../financial.utils";
-import { formatCurrencyUSD } from "../financial.utils";
+import type { FinanceiroTotals } from "../index";
+import { formatCurrencyUSD } from "../index";
 
 export function FinancialMetricsCards(props: {
   totals: FinanceiroTotals;

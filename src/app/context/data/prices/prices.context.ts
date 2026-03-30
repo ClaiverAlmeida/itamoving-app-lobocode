@@ -1,57 +1,57 @@
 import { useState } from 'react';
-import type { PrecoEntrega, PrecoProduto } from '../../../api';
+import type { DeliveryPrice, ProductPrice } from '../../../api';
 
 export type PricesDataContext = {
-  precosEntrega: PrecoEntrega[];
-  setPrecosEntrega: (precos: PrecoEntrega[]) => void;
-  addPrecoEntrega: (preco: PrecoEntrega) => void;
-  updatePrecoEntrega: (id: string, preco: Partial<PrecoEntrega>) => void;
-  deletePrecoEntrega: (id: string) => void;
-  precosProdutos: PrecoProduto[];
-  setPrecosProdutos: (produtos: PrecoProduto[]) => void;
-  addPrecoProduto: (produto: PrecoProduto) => void;
-  updatePrecoProduto: (id: string, produto: Partial<PrecoProduto>) => void;
-  deletePrecoProduto: (id: string) => void;
+  precosEntrega: DeliveryPrice[];
+  setPrecosEntrega: (precos: DeliveryPrice[]) => void;
+  addDeliveryPrice: (preco: DeliveryPrice) => void;
+  updateDeliveryPrice: (id: string, preco: Partial<DeliveryPrice>) => void;
+  deleteDeliveryPrice: (id: string) => void;
+  precosProdutos: ProductPrice[];
+  setPrecosProdutos: (produtos: ProductPrice[]) => void;
+  addProductPrice: (produto: ProductPrice) => void;
+  updateProductPrice: (id: string, produto: Partial<ProductPrice>) => void;
+  deleteProductPrice: (id: string) => void;
 };
 
 export function usePricesDataContext(): PricesDataContext {
-  const [precosEntrega, setPrecosEntrega] = useState<PrecoEntrega[]>([]);
-  const [precosProdutos, setPrecosProdutos] = useState<PrecoProduto[]>([]);
+  const [precosEntrega, setPrecosEntrega] = useState<DeliveryPrice[]>([]);
+  const [precosProdutos, setPrecosProdutos] = useState<ProductPrice[]>([]);
 
-  const addPrecoEntrega = (preco: PrecoEntrega) => {
+  const addDeliveryPrice = (preco: DeliveryPrice) => {
     setPrecosEntrega((prev) => [...prev, preco]);
   };
 
-  const updatePrecoEntrega = (id: string, precoUpdate: Partial<PrecoEntrega>) => {
+  const updateDeliveryPrice = (id: string, precoUpdate: Partial<DeliveryPrice>) => {
     setPrecosEntrega((prev) => prev.map((p) => (p.id === id ? { ...p, ...precoUpdate } : p)));
   };
 
-  const deletePrecoEntrega = (id: string) => {
+  const deleteDeliveryPrice = (id: string) => {
     setPrecosEntrega((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const addPrecoProduto = (produto: PrecoProduto) => {
+  const addProductPrice = (produto: ProductPrice) => {
     setPrecosProdutos((prev) => [...prev, produto]);
   };
 
-  const updatePrecoProduto = (id: string, produtoUpdate: Partial<PrecoProduto>) => {
+  const updateProductPrice = (id: string, produtoUpdate: Partial<ProductPrice>) => {
     setPrecosProdutos((prev) => prev.map((p) => (p.id === id ? { ...p, ...produtoUpdate } : p)));
   };
 
-  const deletePrecoProduto = (id: string) => {
+  const deleteProductPrice = (id: string) => {
     setPrecosProdutos((prev) => prev.filter((p) => p.id !== id));
   };
 
   return {
     precosEntrega,
     setPrecosEntrega,
-    addPrecoEntrega,
-    updatePrecoEntrega,
-    deletePrecoEntrega,
+    addDeliveryPrice,
+    updateDeliveryPrice,
+    deleteDeliveryPrice,
     precosProdutos,
     setPrecosProdutos,
-    addPrecoProduto,
-    updatePrecoProduto,
-    deletePrecoProduto,
+    addProductPrice,
+    updateProductPrice,
+    deleteProductPrice,
   };
 }

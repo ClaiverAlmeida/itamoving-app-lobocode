@@ -13,5 +13,9 @@ export const containersCrud = {
     id: string,
     payload: Parameters<typeof containersServices.assignServiceOrder>[1],
   ) => containersServices.assignServiceOrder(id, payload),
+  unassignServiceOrder: (
+    id: string,
+    driverServiceOrderId: string,
+  ) => containersServices.unassignServiceOrder(id, driverServiceOrderId),
 };
 

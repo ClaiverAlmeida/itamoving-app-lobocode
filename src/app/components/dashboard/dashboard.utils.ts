@@ -1,4 +1,4 @@
-import type { Agendamento, Cliente, Container, Estoque } from "../../api";
+import type { Appointment, Client, Container, Estoque } from "../../api";
 import { isPast, isToday, isTomorrow } from "date-fns";
 import type { LucideIcon } from "lucide-react";
 import { ALARTE_COLOR_MAP, type Alerta, type AtividadeRecente } from "./dashboard.constants";
@@ -10,7 +10,7 @@ export type ContainerStatusDataPoint = { name: string; value: number; color: str
 export type EstoqueDataPoint = { tipo: string; quantidade: number; fill: string };
 export type PerformanceDataPoint = { dia: string; clientes: number; agendamentos: number; containers: number };
 
-export function getAgendamentosCounts(agendamentos: Agendamento[]) {
+export function getAgendamentosCounts(agendamentos: Appointment[]) {
   const hoje = new Date().toISOString().split("T")[0];
   const amanha = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0];
   const agendamentosHoje = agendamentos.filter((a) => a.collectionDate === hoje).length;
@@ -108,7 +108,7 @@ export function getAlertaColor(tipo: Alerta["tipo"]) {
 }
 
 export function buildAlertas(params: {
-  agendamentos: Agendamento[];
+  agendamentos: Appointment[];
   estoqueBaixo: { tipo: string; qtd: number; minimo: number }[];
   agendamentosHoje: number;
   containersEmTransito: number;
@@ -175,8 +175,8 @@ export function buildAlertas(params: {
 }
 
 export function buildAtividadesRecentes(params: {
-  clientes: Cliente[];
-  agendamentos: Agendamento[];
+  clientes: Client[];
+  agendamentos: Appointment[];
   containers: Container[];
   icons: {
     Users: LucideIcon;

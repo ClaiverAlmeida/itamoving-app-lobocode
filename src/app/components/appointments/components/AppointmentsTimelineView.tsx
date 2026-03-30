@@ -6,7 +6,7 @@ import { Badge } from "../../ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
 import { Box, Calendar as CalendarIcon, MapPin } from "lucide-react";
 import { cn } from "../../ui/utils";
-import { Agendamento } from "../../../api";
+import type { Appointment } from "../../../api";
 
 const BORDER_LEFT_CLASS_BY_STATUS_COLOR: Record<string, string> = {
   "bg-yellow-500": "border-l-yellow-600",
@@ -16,7 +16,7 @@ const BORDER_LEFT_CLASS_BY_STATUS_COLOR: Record<string, string> = {
 };
 
 type Props = {
-  filteredAgendamentos: Agendamento[];
+  filteredAgendamentos: Appointment[];
   getStatusConfig: (status: string) => {
     label: string;
     color: string;
@@ -24,7 +24,7 @@ type Props = {
     bgLight: string;
     icon: React.ComponentType<{ className?: string }>;
   };
-  setSelectedAgendamento: (ag: Agendamento) => void;
+  setSelectedAgendamento: (ag: Appointment) => void;
   setIsSidePanelOpen: (open: boolean) => void;
 };
 

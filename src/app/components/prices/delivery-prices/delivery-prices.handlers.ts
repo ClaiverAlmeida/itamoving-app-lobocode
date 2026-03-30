@@ -1,16 +1,21 @@
 import React from "react";
 import { toast } from "sonner";
 import { exportDocument } from "../../../utils";
-import type { PrecoEntrega } from "../../../api";
+import type { DeliveryPrice } from "../../../api";
 import type { DeliveryPriceForm } from "./delivery-prices.types";
 import { buildCreateDeliveryPayload, buildUpdateDeliveryPatch } from "./delivery-prices.payload";
-import { createDeliveryPrice, deleteDeliveryPrice, exportDeliveryPrices, updateDeliveryPrice } from "./delivery-prices.crud";
+import {
+  createDeliveryPrice,
+  deleteDeliveryPrice as deleteDeliveryPriceApi,
+  exportDeliveryPrices,
+  updateDeliveryPrice,
+} from "./delivery-prices.crud";
 
 export async function handleCreateDeliverySubmit(params: {
   e: React.FormEvent;
   form: DeliveryPriceForm;
   setIsEntregaDialogOpen: (open: boolean) => void;
-  setSelectedEntrega: (p: PrecoEntrega | null) => void;
+  setSelectedEntrega: (p: DeliveryPrice | null) => void;
   resetFormEntrega: () => void;
   setPageEntrega: (n: number) => void;
   carregarPrecosEntrega: (page: number) => Promise<void>;
@@ -45,9 +50,9 @@ export async function handleCreateDeliverySubmit(params: {
 export async function handleEditDeliverySubmit(params: {
   e: React.FormEvent;
   form: DeliveryPriceForm;
-  selectedEntrega: PrecoEntrega | null;
+  selectedEntrega: DeliveryPrice | null;
   setIsEditEntregaDialogOpen: (open: boolean) => void;
-  setSelectedEntrega: (p: PrecoEntrega | null) => void;
+  setSelectedEntrega: (p: DeliveryPrice | null) => void;
   resetFormEntrega: () => void;
   pageEntrega: number;
   carregarPrecosEntrega: (page: number) => Promise<void>;
@@ -78,20 +83,20 @@ export async function handleEditDeliverySubmit(params: {
 
 export async function handleDeleteDelivery(params: {
   id: string;
-  selectedEntrega: PrecoEntrega | null;
-  setSelectedEntrega: (p: PrecoEntrega | null) => void;
+  selectedEntrega: DeliveryPrice | null;
+  setSelectedEntrega: (p: DeliveryPrice | null) => void;
   pageEntrega: number;
   carregarPrecosEntrega: (page: number) => Promise<void>;
-  deletePrecoEntrega: (id: string) => void;
+  deleteDeliveryPrice: (id: string) => void;
 }) {
-  const { id, selectedEntrega, setSelectedEntrega, pageEntrega, carregarPrecosEntrega, deletePrecoEntrega } = params;
+  const { id, selectedEntrega, setSelectedEntrega, pageEntrega, carregarPrecosEntrega, deleteDeliveryPrice } = params;
 
   const confirm = window.confirm("Tem certeza que deseja excluir este preço de entrega?");
   if (!confirm) return;
 
-  const result = await deleteDeliveryPrice(id);
+  const result = await deleteDeliveryPriceApi(id);
   if (result.success) {
-    deletePrecoEntrega(id);
+    deleteDeliveryPrice(id);
     toast.success("Preço de entrega excluído com sucesso!");
     if (selectedEntrega?.id === id) setSelectedEntrega(null);
     await carregarPrecosEntrega(pageEntrega);
@@ -116,7 +121,7 @@ export async function handleExportDeliveries(params?: { onDone?: () => void }) {
     return result;
   }
 
-  toast.error(result.error || "Erro ao exportar produtos");
+  toast.error(result.error || "Erro ao exportar preços de entrega");
   onDone?.();
   return result;
 }

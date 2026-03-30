@@ -2,12 +2,12 @@ import React from "react";
 import { Search } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
 import { Input } from "../../ui/input";
-import type { Cliente } from "../../../api";
+import type { Client } from "../../../api";
 
 export function ClientesSearchCard(props: {
   searchTerm: string;
   onChangeSearchTerm: (value: string) => void;
-  filteredClientes: Cliente[];
+  filteredClientes: Client[];
 }) {
   const { searchTerm, onChangeSearchTerm, filteredClientes } = props;
 

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Switch } from '../../ui/switch';
 import { AtendenteSelect } from '../../forms';
 import { BRASIL_STATES, EUA_STATES, formatCPF, formatNumberTelephoneBrasil, formatNumberTelephoneEUA } from '../../../utils';
-import type { Cliente } from '../../../api';
+import type { Client } from '../../../api';
 import type { ClientFormData } from '../hooks/useClientsForm';
 import { formatCepBrasil } from '../clients.handlers';
 
@@ -22,7 +22,7 @@ type Props = {
   isDialogOpen: boolean;
   setIsDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
   resetForm: () => void;
-  editingCliente: Cliente | null;
+  editingCliente: Client | null;
   onSubmit: (e: React.FormEvent) => void;
   formData: ClientFormData;
   setFormData: React.Dispatch<React.SetStateAction<ClientFormData>>;

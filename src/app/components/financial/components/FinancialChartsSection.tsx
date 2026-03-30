@@ -2,9 +2,7 @@ import React from "react";
 import { Activity, PieChart as PieChartIcon, DollarSign } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
 import { ResponsiveContainer, AreaChart, Area, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
-import { formatCurrencyUSD, groupTransacoesByCategoria, type PieCategoriaPoint, type LineFluxoCaixaPoint } from "../financial.utils";
-import type { Transacao } from "../../../api";
-
+import { formatCurrencyUSD, groupTransacoesByCategoria, type PieCategoriaPoint, type LineFluxoCaixaPoint } from "../index";
 export function FinancialChartsSection(props: {
   fluxoCaixaMensal: LineFluxoCaixaPoint[];
   receitasPorCategoria: PieCategoriaPoint[];

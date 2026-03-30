@@ -1,15 +1,19 @@
-import { clientsService, type Transacao } from "../../api";
+import { clientsService, type FinancialTransaction } from "../../api";
 
 export function createFinancialCrud(params: {
-  addTransacao: (t: Transacao) => void;
+  addTransacao: (t: FinancialTransaction) => void;
   deleteTransacao: (id: string) => void;
 }) {
   return {
-    create: (transacao: Transacao) => params.addTransacao(transacao),
+    create: (transacao: FinancialTransaction) => params.addTransacao(transacao),
     remove: (id: string) => params.deleteTransacao(id),
   };
 }
 
 export const financialCrud = {
-  getClients: () => clientsService.getAll(),
+  // create: (transacao: FinancialTransaction) => financialService.create(transacao),
+};
+
+export const clientsCrud = {
+  getAll: () => clientsService.getAll(),
 };

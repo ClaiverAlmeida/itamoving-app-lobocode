@@ -2,7 +2,7 @@ import React from "react";
 import { Filter, Search } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
-import type { PeriodFilter, ViewMode } from "../financial.constants";
+import type { PeriodFilter, ViewMode } from "../index";
 
 export function FinancialFiltersAndSearchBar(props: {
   searchTerm: string;

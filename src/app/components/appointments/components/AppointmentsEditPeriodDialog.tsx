@@ -100,7 +100,7 @@ export function AppointmentsEditPeriodDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="endDateEdit">Data de Fim *</Label>
+                <Label htmlFor="endDateEdit">Data final *</Label>
                 <Input
                   id="endDateEdit"
                   type="date"
@@ -162,7 +162,7 @@ export function AppointmentsEditPeriodDialog({
             Cancelar
           </Button>
           <Button type="submit" form="form-edit-period">
-            Salvar Alterações
+            Salvar alterações
           </Button>
         </DialogFooter>
       </DialogContent>

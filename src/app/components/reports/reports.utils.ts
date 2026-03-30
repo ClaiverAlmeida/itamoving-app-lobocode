@@ -1,4 +1,4 @@
-import type { Cliente } from "../../api";
+import type { Client } from "../../api";
 
 export function formatCurrencyUSD(value: number) {
   return new Intl.NumberFormat("en-US", {

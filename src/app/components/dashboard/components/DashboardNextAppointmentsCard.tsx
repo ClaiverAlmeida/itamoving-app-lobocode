@@ -6,13 +6,13 @@ import { Calendar, Clock, MapPin } from "lucide-react";
 import { motion } from "motion/react";
 import { format, isToday, isTomorrow } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import type { Agendamento } from "../../../api";
+import type { Appointment } from "../../../api";
 
 export function DashboardNextAppointmentsCard({
   agendamentos,
   onNavigate,
 }: {
-  agendamentos: Agendamento[];
+  agendamentos: Appointment[];
   onNavigate?: (view: any) => void;
 }) {
   return (

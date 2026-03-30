@@ -4,11 +4,11 @@ import { ProductsPricesTab } from "./products-prices";
 
 /** Compat: use `ProductsPricesTab` com props vindas do `DataContext`. */
 export function ProdutosTab() {
-  const { setPrecosProdutos, deletePrecoProduto } = useData();
+  const { setPrecosProdutos, deleteProductPrice } = useData();
   return (
     <ProductsPricesTab
       setPrecosProdutos={setPrecosProdutos}
-      deletePrecoProduto={deletePrecoProduto}
+      deleteProductPrice={deleteProductPrice}
     />
   );
 }

@@ -1,6 +1,6 @@
 import React from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Agendamento, Cliente, CreateAppointmentsPeriodsDTO } from "../../../api";
+import { Appointment, Client, CreateAppointmentsPeriodsDTO } from "../../../api";
 import { AtendenteSelect } from "../../forms";
 import { AppointmentBoxesPerDayAlert, AppointmentBoxesPerPeriodAlert, EmptyStateAlert } from "../../alerts";
 import { Button } from "../../ui/button";
@@ -28,7 +28,7 @@ type FormData = {
 type Props = {
   formData: FormData;
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
-  clientesAtivos: Cliente[];
+  clientesAtivos: Client[];
   minCollectionDateByPeriod: string | null | undefined;
   maxCollectionDateByPeriod: string | undefined;
   dataPickerBlocked: () => string;
@@ -103,7 +103,7 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
       {!clientesAtivos.length && (
         <EmptyStateAlert
           title="Nenhum cliente ativo"
-          description="Nao ha clientes ativos para agendamento. Cadastre um cliente ou ative um existente. O campo Cliente ficara desabilitado ate que exista ao menos um cliente ativo."
+          description="Não há clientes ativos para agendamento. Cadastre um cliente ou ative um existente. O campo Cliente ficará desabilitado até que exista ao menos um cliente ativo."
         />
       )}
 
@@ -125,7 +125,7 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="collectionTime">Horario Previsto</Label>
+          <Label htmlFor="collectionTime">Horário previsto</Label>
           <Input
             id="collectionTime"
             type="time"
@@ -145,7 +145,7 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-0.5">
             <Label htmlFor="isPeriodic" className="text-xs font-semibold text-slate-900 dark:text-slate-50">
-              Periodo de Coleta
+              Período de coleta
             </Label>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
               Ative para definir um intervalo de datas recorrentes para este agendamento.
@@ -184,7 +184,7 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
               >
                 <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="appointmentPeriodId">Selecione o Periodo de Coleta *</Label>
+                    <Label htmlFor="appointmentPeriodId">Selecione o período de coleta *</Label>
                     <Select
                       value={formData.appointmentPeriodId}
                       onValueChange={(value) => {
@@ -210,7 +210,7 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
                       }}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione o periodo de coleta" />
+                        <SelectValue placeholder="Selecione o período de coleta" />
                       </SelectTrigger>
                       <SelectContent>
                         {periodos.map((period) => (
@@ -227,8 +227,8 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
           ) : (
             <div className="pt-2">
               <EmptyStateAlert
-                title="Nenhum periodo de coleta encontrado"
-                description="Cadastre um periodo de coleta para poder usar esta opcao no agendamento."
+                title="Nenhum período de coleta encontrado"
+                description="Cadastre um período de coleta para poder usar esta opção no agendamento."
               />
             </div>
           )
@@ -292,7 +292,7 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
           required
           value={formData.status || undefined}
           onValueChange={(value) => {
-            setFormData({ ...formData, status: value as Agendamento["status"] });
+            setFormData({ ...formData, status: value as Appointment["status"] });
           }}
         >
           <SelectTrigger id="setStatus" required aria-required>
@@ -308,12 +308,12 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="observations">Observacoes</Label>
+        <Label htmlFor="observations">Observações</Label>
         <Textarea
           id="observations"
           value={formData.observations}
           onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
-          placeholder="Informacoes adicionais..."
+          placeholder="Informações adicionais..."
           rows={3}
         />
       </div>

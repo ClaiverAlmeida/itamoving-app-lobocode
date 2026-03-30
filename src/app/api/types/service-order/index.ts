@@ -1,3 +1,3 @@
-import type { OrdemServicoMotorista } from "../../types";
+import type { DriverServiceOrder } from "../../interfaces/service-order";
 
-export type UpdateOrdemServicoDTO = Partial<OrdemServicoMotorista>;
+export type UpdateOrdemServicoDTO = Partial<DriverServiceOrder>;

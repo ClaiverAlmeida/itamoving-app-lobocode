@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Button } from "../../ui/button";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import type { PrecoProduto, ProductPricePagination } from "../../../api";
+import type { ProductPrice, ProductPricePagination } from "../../../api";
 import { getProductsPage } from "./products-prices.crud";
 import { handleCreateSubmit, handleDelete, handleEditSubmit, handleExport } from "./products-prices.handlers";
 import type { ProductPriceForm, ProductsPricesTabProps } from "./products-prices.types";
@@ -12,14 +12,14 @@ import { ProductsPricesTable } from "./components/ProductsPricesTable";
 import { ProductsPricesDialogs } from "./components/ProductsPricesDialogs";
 
 export function ProductsPricesTab(props: ProductsPricesTabProps) {
-  const { setPrecosProdutos, deletePrecoProduto, className } = props;
+  const { setPrecosProdutos, deleteProductPrice, className } = props;
 
-  const [produtos, setProdutos] = useState<PrecoProduto[]>([]);
+  const [produtos, setProdutos] = useState<ProductPrice[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
   const [isProdutoDialogOpen, setIsProdutoDialogOpen] = useState(false);
   const [isEditProdutoDialogOpen, setIsEditProdutoDialogOpen] = useState(false);
-  const [selectedProduto, setSelectedProduto] = useState<PrecoProduto | null>(null);
+  const [selectedProduto, setSelectedProduto] = useState<ProductPrice | null>(null);
   const [formProduto, setFormProduto] = useState<ProductPriceForm>(() => resetProductForm());
 
   const [pageProduto, setPageProduto] = useState(1);
@@ -83,7 +83,7 @@ export function ProductsPricesTab(props: ProductsPricesTabProps) {
       setSelectedProduto,
       pageProduto,
       carregarProdutos,
-      deletePrecoProduto,
+      deleteProductPrice,
     });
   };
 
@@ -91,7 +91,7 @@ export function ProductsPricesTab(props: ProductsPricesTabProps) {
     await handleExport({});
   };
 
-  const onEditProduto = (produto: PrecoProduto) => {
+  const onEditProduto = (produto: ProductPrice) => {
     setSelectedProduto(produto);
     setFormProduto({
       type: produto.type,

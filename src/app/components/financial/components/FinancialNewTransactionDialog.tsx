@@ -4,27 +4,29 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Button } from "../../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
-import type { Cliente, Transacao } from "../../../api";
+import type { Client, FinancialTransaction } from "../../../api";
 import { Plus } from "lucide-react";
-import type { TransactionFormData } from "../financial.types";
-import { CATEGORIAS_DESPESA, CATEGORIAS_RECEITA, METODOS_PAGAMENTO } from "../financial.constants";
-import { handleNewTransactionSubmit } from "../financial.handlers";
+import type { TransactionFormData } from "../index";
+import { CATEGORIAS_DESPESA, CATEGORIAS_RECEITA, METODOS_PAGAMENTO } from "../index";
+import { handleNewTransactionSubmit } from "../index";
 
 export function FinancialNewTransactionDialog(props: {
-  clientes: Cliente[];
-  onCreateTransacao: (t: Transacao) => void;
+  carregarClientes: () => Promise<Client[]>;
+  onCreateTransacao: (t: FinancialTransaction) => void;
 }) {
-  const { clientes, onCreateTransacao } = props;
+  const { carregarClientes, onCreateTransacao } = props;
+
+  const [clientes, setClientes] = useState<Client[]>([]);
 
   const initialFormData = useMemo((): TransactionFormData => {
     return {
-      clienteId: "",
-      tipo: "receita",
-      categoria: "",
-      valor: "",
-      data: new Date().toISOString().split("T")[0],
-      descricao: "",
-      metodoPagamento: "",
+      clientId: "",
+      type: "REVENUE",
+      category: "",
+      value: "",
+      date: new Date().toISOString().split("T")[0],
+      description: "",
+      paymentMethod: "",
     };
   }, []);
 
@@ -40,7 +42,11 @@ export function FinancialNewTransactionDialog(props: {
       open={open}
       onOpenChange={(isOpen) => {
         setOpen(isOpen);
-        if (!isOpen) resetForm();
+        if (isOpen) {
+          void carregarClientes().then(setClientes);
+        } else {
+          resetForm();
+        }
       }}
     >
       <DialogTrigger asChild>
@@ -73,24 +79,24 @@ export function FinancialNewTransactionDialog(props: {
           <div className="space-y-2">
             <Label htmlFor="tipo">Tipo *</Label>
             <Select
-              value={formData.tipo}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, tipo: value as TransactionFormData["tipo"] }))}
+              value={formData.type}
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, type: value as TransactionFormData["type"] }))}
               required
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="receita">Receita</SelectItem>
-                <SelectItem value="despesa">Despesa</SelectItem>
+                <SelectItem value="REVENUE">Receita</SelectItem>
+                <SelectItem value="EXPENSE">Despesa</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {formData.tipo === "receita" && (
+          {formData.type === "REVENUE" && (
             <div className="space-y-2">
               <Label htmlFor="clienteId">Cliente</Label>
-              <Select value={formData.clienteId} onValueChange={(value) => setFormData((prev) => ({ ...prev, clienteId: value }))}>
+              <Select value={formData.clientId} onValueChange={(value) => setFormData((prev) => ({ ...prev, clientId: value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
@@ -109,15 +115,15 @@ export function FinancialNewTransactionDialog(props: {
             <div className="space-y-2">
               <Label htmlFor="categoria">Categoria *</Label>
               <Select
-                value={formData.categoria}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, categoria: value }))}
+                value={formData.category}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
                 required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {(formData.tipo === "receita" ? CATEGORIAS_RECEITA : CATEGORIAS_DESPESA).map((cat) => (
+                  {(formData.type === "REVENUE" ? CATEGORIAS_RECEITA : CATEGORIAS_DESPESA).map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
                     </SelectItem>
@@ -132,8 +138,8 @@ export function FinancialNewTransactionDialog(props: {
                 id="valor"
                 type="number"
                 step="0.01"
-                value={formData.valor}
-                onChange={(e) => setFormData((prev) => ({ ...prev, valor: e.target.value }))}
+                value={formData.value}
+                onChange={(e) => setFormData((prev) => ({ ...prev, value: e.target.value }))}
                 required
               />
             </div>
@@ -145,8 +151,8 @@ export function FinancialNewTransactionDialog(props: {
               <Input
                 id="data"
                 type="date"
-                value={formData.data}
-                onChange={(e) => setFormData((prev) => ({ ...prev, data: e.target.value }))}
+                value={formData.date}
+                onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
                 required
               />
             </div>
@@ -154,8 +160,8 @@ export function FinancialNewTransactionDialog(props: {
             <div className="space-y-2">
               <Label htmlFor="metodoPagamento">Método de Pagamento *</Label>
               <Select
-                value={formData.metodoPagamento}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, metodoPagamento: value }))}
+                value={formData.paymentMethod}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, paymentMethod: value }))}
                 required
               >
                 <SelectTrigger>
@@ -176,8 +182,8 @@ export function FinancialNewTransactionDialog(props: {
             <Label htmlFor="descricao">Descrição *</Label>
             <Input
               id="descricao"
-              value={formData.descricao}
-              onChange={(e) => setFormData((prev) => ({ ...prev, descricao: e.target.value }))}
+              value={formData.description}
+              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
               required
             />
           </div>

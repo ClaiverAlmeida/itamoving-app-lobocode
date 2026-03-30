@@ -1,5 +1,5 @@
 import { productsService, serviceOrderFormService, usersService } from "../../../api";
-import type { OrdemServicoMotorista } from "../../../api";
+import type { DriverServiceOrder } from "../../../api";
 
 export const serviceOrderFormCrud = {
   getDrivers: () => usersService.getAllDrivers(),
@@ -10,7 +10,7 @@ export const serviceOrderFormCrud = {
     opts?.includeDeletedForEdit
       ? productsService.getAllForServiceOrderEdit(opts.driverServiceOrderId)
       : productsService.getAll(),
-  create: (payload: OrdemServicoMotorista) => serviceOrderFormService.create(payload),
-  update: (id: string, payload: Partial<OrdemServicoMotorista>) => serviceOrderFormService.update(id, payload),
+  create: (payload: DriverServiceOrder) => serviceOrderFormService.create(payload),
+  update: (id: string, payload: Partial<DriverServiceOrder>) => serviceOrderFormService.update(id, payload),
 };
 

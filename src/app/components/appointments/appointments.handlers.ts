@@ -1,5 +1,5 @@
 import type {
-  Agendamento,
+  Appointment,
   CreateAppointmentsDTO,
   CreateAppointmentsPeriodsDTO,
   UpdateAppointmentsDTO,
@@ -8,7 +8,7 @@ import type {
 import { toast } from 'sonner';
 import { isCollectionDateInPeriod } from './appointments.utils';
 
-type AppointmentFormData = {
+type AgendamentoFormData = {
   clientId: string;
   collectionDate: string;
   collectionTime: string;
@@ -32,13 +32,13 @@ type PeriodFormData = {
   observations: string;
 };
 
-export async function handleCreateAppointment(args: {
+export async function handleCreateAgendamento(args: {
   e: React.FormEvent;
   clientes: { id: string }[];
-  formData: AppointmentFormData;
+  formData: AgendamentoFormData;
   periodos: CreateAppointmentsPeriodsDTO[];
-  create: (payload: CreateAppointmentsDTO) => Promise<{ success: boolean; data?: Agendamento; error?: string }>;
-  addAgendamento: (ag: Agendamento) => void;
+  create: (payload: CreateAppointmentsDTO) => Promise<{ success: boolean; data?: Appointment; error?: string }>;
+  addAgendamento: (ag: Appointment) => void;
   resetForm: () => void;
   resetFormPeriod: () => void;
   setIsPeriodic: (value: boolean) => void;
@@ -80,6 +80,11 @@ export async function handleCreateAppointment(args: {
     }
   }
 
+  if (formData.value <= formData.downPayment) {
+    toast.error('O valor do agendamento não pode ser menor ou igual ao valor da antecipação.');
+    return;
+  }
+
   const isPeriodic = Boolean(formData?.isPeriodic);
   const collectionDate = formData.collectionDate?.trim();
   const comPeriodo = isPeriodic && Boolean(formData.appointmentPeriodId?.trim());
@@ -92,7 +97,7 @@ export async function handleCreateAppointment(args: {
     downPayment: formData?.downPayment ?? 0,
     isPeriodic,
     qtyBoxes: qty,
-    status: formData.status as Agendamento['status'],
+    status: formData.status as Appointment['status'],
     ...(formData.observations?.trim() ? { observations: formData.observations.trim() } : {}),
     ...(comPeriodo ? { appointmentPeriodId: formData.appointmentPeriodId!.trim() } : {}),
   };
@@ -128,7 +133,7 @@ export async function handleCreatePeriod(args: {
     startDate: emptyStr(formDataPeriod.startDate),
     endDate: emptyStr(formDataPeriod.endDate),
     collectionArea: formDataPeriod.collectionArea,
-    status: formDataPeriod.status as Agendamento['status'],
+    status: formDataPeriod.status as Appointment['status'],
     observations: formDataPeriod.observations ?? '',
   };
   if (formDataPeriod.startDate > formDataPeriod.endDate) {
@@ -149,12 +154,12 @@ export async function handleCreatePeriod(args: {
   await carregarPeriodosLista(1);
 }
 
-export async function handleAppointmentStatusChange(args: {
+export async function handleAgendamentoStatusChange(args: {
   id: string;
-  status: Agendamento['status'];
-  update: (id: string, payload: UpdateAppointmentsDTO) => Promise<{ success: boolean; data?: Agendamento; error?: string }>;
-  updateAgendamento: (id: string, ag: Agendamento) => void;
-  setSelectedAgendamento: (ag: Agendamento | null) => void;
+  status: Appointment['status'];
+  update: (id: string, payload: UpdateAppointmentsDTO) => Promise<{ success: boolean; data?: Appointment; error?: string }>;
+  updateAgendamento: (id: string, ag: Appointment) => void;
+  setSelectedAgendamento: (ag: Appointment | null) => void;
   carregarAgendamentos: () => Promise<void>;
 }) {
   const { id, status, update, updateAgendamento, setSelectedAgendamento, carregarAgendamentos } = args;
@@ -170,12 +175,12 @@ export async function handleAppointmentStatusChange(args: {
   return result.data;
 }
 
-export async function handleAppointmentDelete(args: {
+export async function handleDeleteAgendamento(args: {
   id: string;
   clientName: string;
   remove: (id: string) => Promise<{ success: boolean; error?: string }>;
   deleteAgendamento: (id: string) => void;
-  setSelectedAgendamento: (ag: Agendamento | null) => void;
+  setSelectedAgendamento: (ag: Appointment | null) => void;
   carregarAgendamentos: () => Promise<void>;
 }) {
   const { id, clientName, remove, deleteAgendamento, setSelectedAgendamento, carregarAgendamentos } = args;
@@ -193,16 +198,16 @@ export async function handleAppointmentDelete(args: {
   return true;
 }
 
-export async function handleEditAppointment(args: {
+export async function handleEditAgendamento(args: {
   e: React.FormEvent;
-  agendamento: Agendamento;
+  agendamento: Appointment;
   clientes: { id: string }[];
-  formData: AppointmentFormData;
+  formData: AgendamentoFormData;
   periodos: CreateAppointmentsPeriodsDTO[];
-  selectedAgendamento: Agendamento | null;
-  update: (id: string, payload: UpdateAppointmentsDTO) => Promise<{ success: boolean; data?: Agendamento; error?: string }>;
-  updateAgendamento: (id: string, ag: Agendamento) => void;
-  setSelectedAgendamento: (ag: Agendamento | null) => void;
+  selectedAgendamento: Appointment | null;
+  update: (id: string, payload: UpdateAppointmentsDTO) => Promise<{ success: boolean; data?: Appointment; error?: string }>;
+  updateAgendamento: (id: string, ag: Appointment) => void;
+  setSelectedAgendamento: (ag: Appointment | null) => void;
   setIsEditDialogOpen: (open: boolean) => void;
   resetEditForm: () => void;
   resetForm: () => void;
@@ -258,6 +263,11 @@ export async function handleEditAppointment(args: {
     return;
   }
 
+  if (formData.value <= formData.downPayment) {
+    toast.error('O valor do agendamento não pode ser menor ou igual ao valor da antecipação.');
+    return;
+  }
+
   const getUpdatePayload = (): UpdateAppointmentsDTO => {
     const emptyStr = (v: string | undefined | null) => (v == null || String(v).trim() === '' ? '' : String(v).trim());
     const dateOnly = (v: string | undefined | null) => (emptyStr(v) ? String(v).trim().slice(0, 10) : '');
@@ -274,7 +284,7 @@ export async function handleEditAppointment(args: {
       downPayment: formData?.downPayment ?? 0,
       isPeriodic: Boolean(formData?.isPeriodic),
       qtyBoxes: qty,
-      status: formData.status as Agendamento['status'],
+      status: formData.status as Appointment['status'],
       observations: emptyStr(formData.observations),
       appointmentPeriodId: formData.isPeriodic && formData.appointmentPeriodId?.trim() ? formData.appointmentPeriodId.trim() : '',
     };
@@ -384,7 +394,7 @@ export async function handleEditCollectionPeriod(args: {
     startDate: dateOnly(formDataPeriod.startDate),
     endDate: dateOnly(formDataPeriod.endDate),
     collectionArea: formDataPeriod.collectionArea,
-    status: formDataPeriod.status as Agendamento['status'],
+    status: formDataPeriod.status as Appointment['status'],
     observations: emptyStr(formDataPeriod.observations),
   };
   if (current.title !== original.title) patchPayload.title = current.title;

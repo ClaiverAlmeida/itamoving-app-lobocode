@@ -9,7 +9,7 @@ import {
   Download,
   Users,
 } from 'lucide-react';
-import { Usuario } from '../api';
+import type { StaffUser } from '../api';
 import { useAuth } from "../context/AuthContext";
 import {
   dataPickerBlocked,
@@ -41,7 +41,7 @@ export default function RHView() {
   } = useData();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null);
+  const [selectedUsuario, setSelectedUsuario] = useState<StaffUser | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);

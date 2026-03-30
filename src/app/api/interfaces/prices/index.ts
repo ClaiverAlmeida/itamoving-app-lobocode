@@ -1,3 +1,30 @@
+/** UI model for a delivery price row (list / forms). */
+export interface DeliveryPrice {
+  id: string;
+  originCity: string;
+  originState: string;
+  destinationCity: string;
+  destinationState: string;
+  pricePerKg: number;
+  minimumPrice: number;
+  deliveryDeadline: number;
+  active: boolean;
+}
+
+/** UI model for a product price row (list / forms). */
+export interface ProductPrice {
+  id: string;
+  type: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_ITEM" | "TAPE_ADHESIVE";
+  name: string;
+  size?: string;
+  dimensions?: string | null;
+  maxWeight?: number | null;
+  costPrice: number;
+  salePrice: number;
+  active: boolean;
+  variablePrice?: boolean;
+}
+
 export interface CreateProductPriceDTO {
   id?: string;
   type: 'SMALL_BOX' | 'MEDIUM_BOX' | 'LARGE_BOX' | 'PERSONALIZED_ITEM' | 'TAPE_ADHESIVE';

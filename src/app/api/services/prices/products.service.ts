@@ -1,5 +1,5 @@
 import { api } from "../api.service";
-import { PrecoProduto } from "../../types";
+import type { ProductPrice } from "../../types";
 import { BaseCrudService } from "../base-crud.service";
 import type {
   CreateProductPriceDTO,
@@ -8,7 +8,7 @@ import type {
   UpdateProductPriceDTO,
 } from "../../types";
 
-function mapBackendToFrontend(product: ProductPriceBackend): PrecoProduto {
+function mapBackendToFrontend(product: ProductPriceBackend): ProductPrice {
   return {
     id: product.id,
     type: product.type,
@@ -23,7 +23,7 @@ function mapBackendToFrontend(product: ProductPriceBackend): PrecoProduto {
 }
 
 export class ProductsService extends BaseCrudService<
-  PrecoProduto,
+  ProductPrice,
   ProductPriceBackend,
   CreateProductPriceDTO,
   UpdateProductPriceDTO,
@@ -43,7 +43,7 @@ export class ProductsService extends BaseCrudService<
    */
   async getAllForServiceOrderEdit(driverServiceOrderId?: string): Promise<{
     success: boolean;
-    data?: PrecoProduto[];
+    data?: ProductPrice[];
     error?: string;
   }> {
     const result = await api.get<ProductPriceBackend[] | { data: ProductPriceBackend[] }>(
@@ -61,7 +61,7 @@ export class ProductsService extends BaseCrudService<
     return { success: true, data: items.map(this.mapBackendToFrontend) };
   }
 
-  async export(): Promise<{ success: boolean; data?: PrecoProduto[]; error?: string }> {
+  async export(): Promise<{ success: boolean; data?: ProductPrice[]; error?: string }> {
     try {
       const result = await api.get<{ data: ProductPriceBackend }>("/product-prices/");
 

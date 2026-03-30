@@ -4,11 +4,11 @@ import { DeliveryPricesTab } from "./delivery-prices";
 
 /** Compat: use `DeliveryPricesTab` com props vindas do `DataContext`. */
 export function PrecosEntregaTab() {
-  const { setPrecosEntrega, deletePrecoEntrega } = useData();
+  const { setPrecosEntrega, deleteDeliveryPrice } = useData();
   return (
     <DeliveryPricesTab
       setPrecosEntrega={setPrecosEntrega}
-      deletePrecoEntrega={deletePrecoEntrega}
+      deleteDeliveryPrice={deleteDeliveryPrice}
     />
   );
 }

@@ -1,16 +1,16 @@
 import React from "react";
 import { Filter, Download } from "lucide-react";
 import { Button } from "../../ui/button";
-import type { Cliente, Transacao } from "../../../api";
+import type { Client, FinancialTransaction } from "../../../api";
 import { FinancialNewTransactionDialog } from "./FinancialNewTransactionDialog";
 
 export function FinancialHeaderSection(props: {
   showFilters: boolean;
+  carregarClientes: () => Promise<Client[]>;
   onToggleFilters: () => void;
-  clientes: Cliente[];
-  onCreateTransacao: (t: Transacao) => void;
+  onCreateTransacao: (t: FinancialTransaction) => void;
 }) {
-  const { showFilters, onToggleFilters, clientes, onCreateTransacao } = props;
+  const { showFilters, onToggleFilters, carregarClientes, onCreateTransacao } = props;
 
   return (
     <div className="space-y-4">
@@ -34,7 +34,7 @@ export function FinancialHeaderSection(props: {
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </Button>
-          <FinancialNewTransactionDialog clientes={clientes} onCreateTransacao={onCreateTransacao} />
+          <FinancialNewTransactionDialog carregarClientes={carregarClientes} onCreateTransacao={onCreateTransacao} />
         </div>
       </div>
     </div>

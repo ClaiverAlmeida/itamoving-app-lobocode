@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { useData } from "../context/DataContext";
-import { Cliente } from "../api";
+import type { Client } from "../api";
 import {
   Search,
   Edit,
@@ -62,8 +62,8 @@ export default function ClientesView() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
-  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+  const [editingCliente, setEditingCliente] = useState<Client | null>(null);
+  const [selectedCliente, setSelectedCliente] = useState<Client | null>(null);
   /** Histórico de atividades por cliente (paginado, 7 por página) */
   const [historicoPorCliente, setHistoricoPorCliente] = useState<
     Record<string, HistoricoPaginado>
@@ -209,7 +209,7 @@ export default function ClientesView() {
       return;
     }
 
-    const clienteData: Cliente = {
+    const clienteData: Client = {
       id: editingCliente!.id,
       usaNome: formData.usaName,
       usaCpf: formData.usaCpf,

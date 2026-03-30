@@ -2,7 +2,7 @@ import React from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { AnimatePresence, motion } from "motion/react";
-import { Agendamento, CreateAppointmentsPeriodsDTO } from "../../../api";
+import { Appointment, CreateAppointmentsPeriodsDTO } from "../../../api";
 import { Calendar } from "../../ui/calendar";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
@@ -35,12 +35,12 @@ type Props = {
   getDatesInPeriodRangeOnlyNoHalfHalf: () => Date[];
   getDatesWithAppointmentsInPeriodNoHalfHalf: () => Date[];
   getDatesHojeComAgendamentoHalf: () => Date[];
-  agendamentosDoPeriodoNoDia: Agendamento[];
-  agendamentosDoPeriodo: Agendamento[];
-  agendamentosDosDia: Agendamento[];
+  agendamentosDoPeriodoNoDia: Appointment[];
+  agendamentosDoPeriodo: Appointment[];
+  agendamentosDosDia: Appointment[];
   somaCaixasDoPeriodoNoDia: number;
   somaCaixasDosDia: number;
-  setSelectedAgendamento: (ag: Agendamento) => void;
+  setSelectedAgendamento: (ag: Appointment) => void;
   setIsSidePanelOpen: (open: boolean) => void;
   getStatusConfig: (status: string) => {
     label: string;
@@ -49,9 +49,9 @@ type Props = {
     bgLight: string;
     icon: React.ComponentType<{ className?: string }>;
   };
-  filteredAgendamentos: Agendamento[];
-  renderedAgendamentosList: Agendamento[];
-  sortedFilteredAgendamentos: Agendamento[];
+  filteredAgendamentos: Appointment[];
+  renderedAgendamentosList: Appointment[];
+  sortedFilteredAgendamentos: Appointment[];
   listContainerRef: React.RefObject<HTMLDivElement | null>;
   listVisibleCount: number;
   setListVisibleCount: React.Dispatch<React.SetStateAction<number>>;

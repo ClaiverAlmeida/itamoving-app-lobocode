@@ -1,5 +1,5 @@
 import React from "react";
-import type { OrdemServicoMotorista } from "../../../api";
+import type { DriverServiceOrder } from "../../../api";
 import { Badge } from "../../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import {
@@ -13,12 +13,12 @@ import {
 import { Boxes, Package, Scale, UserRound, Weight } from "lucide-react";
 
 type Props = {
-  order: OrdemServicoMotorista;
+  order: DriverServiceOrder;
   previewLabels: string[];
 };
 
 function sumItemsWeight(
-  items: NonNullable<OrdemServicoMotorista["driverServiceOrderProducts"][0]["driverServiceOrderProductsItems"]>,
+  items: NonNullable<DriverServiceOrder["driverServiceOrderProducts"][0]["driverServiceOrderProductsItems"]>,
 ): number {
   return items.reduce((s, it) => s + (it.weight ?? 0) * Math.max(1, it.quantity ?? 1), 0);
 }

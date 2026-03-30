@@ -1,4 +1,4 @@
-import type { PrecoEntrega } from "../../../api";
+import type { DeliveryPrice } from "../../../api";
 
 export type DeliveryPriceForm = {
   originCity: string;
@@ -12,8 +12,8 @@ export type DeliveryPriceForm = {
 };
 
 export type DeliveryPricesTabProps = {
-  setPrecosEntrega: (precos: PrecoEntrega[]) => void;
-  deletePrecoEntrega: (id: string) => void;
+  setPrecosEntrega: (precos: DeliveryPrice[]) => void;
+  deleteDeliveryPrice: (id: string) => void;
   className?: string;
 };
 

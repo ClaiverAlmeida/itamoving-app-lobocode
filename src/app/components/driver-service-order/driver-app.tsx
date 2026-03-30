@@ -9,7 +9,7 @@ import {
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { motion, AnimatePresence } from "motion/react";
-import { Estoque, OrdemServicoMotorista } from "../../api";
+import { Estoque, DriverServiceOrder } from "../../api";
 import {
   Truck,
   Package,
@@ -73,7 +73,7 @@ export default function MotoristaApp() {
 
   const [viewMode, setViewMode] = useState<"lista" | "form" | "recibo">("lista");
   const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<any>(null);
-  const [ordemConcluida, setOrdemConcluida] = useState<OrdemServicoMotorista | null>(null);
+  const [ordemConcluida, setOrdemConcluida] = useState<DriverServiceOrder | null>(null);
 
   // Filter confirmed agendamentos
   const agendamentosConfirmados = agendamentos.filter((a) => a.status === "CONFIRMED");
@@ -157,7 +157,7 @@ export default function MotoristaApp() {
     setAgendamentoSelecionado(null);
   };
 
-  const handleFormSave = (ordem: OrdemServicoMotorista) => {
+  const handleFormSave = (ordem: DriverServiceOrder) => {
     setOrdemConcluida(ordem);
     setViewMode("recibo");
   };
@@ -167,6 +167,16 @@ export default function MotoristaApp() {
       <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Carregando recibo...</div>}>
         <DeliveryReceipt
           ordem={ordemConcluida}
+          valorAgendamento={
+            agendamentoSelecionado?.value != null
+              ? Number(agendamentoSelecionado.value)
+              : undefined
+          }
+          valorAntecipacao={
+            agendamentoSelecionado?.downPayment != null
+              ? Number(agendamentoSelecionado.downPayment)
+              : undefined
+          }
           companyContactPhone={agendamentoSelecionado?.company?.contactPhone}
           onShowOrdersScreen={() => navigate("/ordem-de-servico")}
           onPrint={() => window.print()}

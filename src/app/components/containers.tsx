@@ -162,10 +162,32 @@ export default function ContainersView() {
       setSelectedContainer,
     });
 
-  const handleContainerVolumesUpdated = (updated: Container) => {
+  const handleContainerVolumesUpdated = async (updated: Container) => {
     if (!updated.id) return;
     updateContainer(updated.id, updated);
     setSelectedContainer(updated);
+
+    const fresh = await containersCrud.getById(updated.id);
+    if (fresh.success && fresh.data) {
+      updateContainer(updated.id, fresh.data);
+      setSelectedContainer(fresh.data);
+    }
+  };
+
+  const handleContainerOrderUnlinked = async (
+    containerId: string,
+    driverServiceOrderId: string,
+  ) => {
+    const result = await containersCrud.unassignServiceOrder(
+      containerId,
+      driverServiceOrderId,
+    );
+    if (result.success && result.data) {
+      await handleContainerVolumesUpdated(result.data);
+      toast.success("Ordem removida do container.");
+      return;
+    }
+    toast.error(result.error ?? "Não foi possível remover a ordem do container.");
   };
 
   const filteredContainers = useMemo(() => {
@@ -522,6 +544,7 @@ export default function ContainersView() {
         handleContainerStatusChange={handleContainerStatusChange}
         statusItems={CONTAINER_STATUS_ITEMS}
         onContainerVolumesUpdated={handleContainerVolumesUpdated}
+        onUnassignServiceOrder={handleContainerOrderUnlinked}
       />
 
       <ContainersEditDialog

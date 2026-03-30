@@ -24,7 +24,7 @@ import {
 } from "./ui/table";
 import { DeliveryReceipt } from "./driver-service-order/delivery-receipt";
 import OrdemServicoForm from "./driver-service-order/service-order-form";
-import { type OrdemServicoView } from "../api";
+import { type DriverServiceOrderView } from "../api";
 import {
   ServiceOrderDetailsDialog,
   STATUS_LABEL,
@@ -37,7 +37,7 @@ import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 
 export default function OrdemDeServicoView() {
-  const [ordens, setOrdens] = useState<OrdemServicoView[]>([]);
+  const [ordens, setOrdens] = useState<DriverServiceOrderView[]>([]);
   const [loading, setLoading] = useState(true);
 
   const carregarOrdens = useCallback(async () => {
@@ -57,15 +57,15 @@ export default function OrdemDeServicoView() {
   }, [carregarOrdens]);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewOrdem, setViewOrdem] = useState<OrdemServicoView | null>(null);
-  const [editingOrdem, setEditingOrdem] = useState<OrdemServicoView | null>(null);
+  const [viewOrdem, setViewOrdem] = useState<DriverServiceOrderView | null>(null);
+  const [editingOrdem, setEditingOrdem] = useState<DriverServiceOrderView | null>(null);
   const [editingOrdemLoading, setEditingOrdemLoading] = useState(false);
-  const [reciboOrdem, setReciboOrdem] = useState<OrdemServicoView | null>(null);
+  const [reciboOrdem, setReciboOrdem] = useState<DriverServiceOrderView | null>(null);
   const [reciboLoading, setReciboLoading] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const { user } = useAuth();
 
-  const iniciarEdicao = useCallback(async (o: OrdemServicoView) => {
+  const iniciarEdicao = useCallback(async (o: DriverServiceOrderView) => {
     setEditingOrdemLoading(true);
     try {
       if (o.id) {
@@ -107,7 +107,7 @@ export default function OrdemDeServicoView() {
 
     // Ordena por "atualizado" (mais recente primeiro). Caso `updatedAt` venha ausente,
     // cai para `signatureDate`.
-    const ts = (o: OrdemServicoView) => {
+    const ts = (o: DriverServiceOrderView) => {
       const raw = o.updatedAt;
       const d = raw ? new Date(raw) : null;
       return d && !Number.isNaN(d.getTime()) ? d.getTime() : 0;
@@ -125,12 +125,12 @@ export default function OrdemDeServicoView() {
     };
   }, [ordens]);
 
-  const openView = (o: OrdemServicoView) => {
+  const openView = (o: DriverServiceOrderView) => {
     setViewOrdem(o);
     setViewOpen(true);
   };
 
-  const excluirOrdem = useCallback(async (order: OrdemServicoView) => {
+  const excluirOrdem = useCallback(async (order: DriverServiceOrderView) => {
     if (!user?.role.includes('admin')) return;
 
     const confirm = window.confirm(`Você está excluindo uma Ordem de Serviço:\n\nCliente (EUA): ${order.sender.usaName}\nNúmero: #${order.id}\n\nConfirmar ação de exclusão?`);
@@ -148,7 +148,7 @@ export default function OrdemDeServicoView() {
   const fecharRecibo = useCallback(() => setReciboOrdem(null), []);
 
   /** Mesma ideia do formulário / app motorista: recibo em ecrã cheio + GET por id para dados completos (PDF/impressão). */
-  const abrirRecibo = useCallback(async (o: OrdemServicoView) => {
+  const abrirRecibo = useCallback(async (o: DriverServiceOrderView) => {
     setReciboLoading(true);
     try {
       if (o.id) {

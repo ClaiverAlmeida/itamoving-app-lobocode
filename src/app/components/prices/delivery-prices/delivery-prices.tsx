@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Button } from "../../ui/button";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import type { DeliveryPricesPagination, PrecoEntrega } from "../../../api";
+import type { DeliveryPricesPagination, DeliveryPrice } from "../../../api";
 import { getDeliveryPricesPage } from "./delivery-prices.crud";
 import {
   handleCreateDeliverySubmit,
@@ -17,14 +17,14 @@ import { DeliveryPricesTable } from "./components/DeliveryPricesTable";
 import { DeliveryPricesDialogs } from "./components/DeliveryPricesDialogs";
 
 export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
-  const { setPrecosEntrega, deletePrecoEntrega, className } = props;
+  const { setPrecosEntrega, deleteDeliveryPrice, className } = props;
 
-  const [entregas, setEntregas] = useState<PrecoEntrega[]>([]);
+  const [entregas, setEntregas] = useState<DeliveryPrice[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
   const [isEntregaDialogOpen, setIsEntregaDialogOpen] = useState(false);
   const [isEditEntregaDialogOpen, setIsEditEntregaDialogOpen] = useState(false);
-  const [selectedEntrega, setSelectedEntrega] = useState<PrecoEntrega | null>(null);
+  const [selectedEntrega, setSelectedEntrega] = useState<DeliveryPrice | null>(null);
   const [formEntrega, setFormEntrega] = useState<DeliveryPriceForm>(() => resetDeliveryForm());
 
   const [pageEntrega, setPageEntrega] = useState(1);
@@ -96,7 +96,7 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
       setSelectedEntrega,
       pageEntrega,
       carregarPrecosEntrega,
-      deletePrecoEntrega,
+      deleteDeliveryPrice,
     });
   };
 
@@ -104,7 +104,7 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
     await handleExportDeliveries();
   };
 
-  const onEditEntrega = (entrega: PrecoEntrega) => {
+  const onEditEntrega = (entrega: DeliveryPrice) => {
     setSelectedEntrega(entrega);
     setFormEntrega({
       originCity: entrega.originCity,

@@ -1,3 +1,32 @@
+/** UI / form model for HR users. */
+export interface StaffUser {
+  id?: string;
+  name: string;
+  email: string;
+  login?: string;
+  password?: string;
+  phone?: string;
+  cpf?: string;
+  birthDate?: string;
+  hireDate?: string;
+  terminationDate?: string;
+  role: "ADMIN" | "COMERCIAL" | "LOGISTICS" | "DRIVER";
+  salary?: number;
+  status: "ACTIVE" | "INACTIVE" | "PENDING" | "ON_LEAVE" | "TERMINATED";
+  rg?: string;
+  profilePicture?: string;
+  address?: {
+    street: string;
+    number: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    complement?: string;
+  };
+  documents?: Record<string, unknown>;
+  benefits?: string[];
+}
+
 export interface CreateUsersDTO {
   name: string;
   email: string;

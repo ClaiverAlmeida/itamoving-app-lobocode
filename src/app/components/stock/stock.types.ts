@@ -1,4 +1,4 @@
-import type { DriverUser, PrecoProduto } from "../../api";
+import type { DriverUser, ProductPrice } from "../../api";
 
 export const ITEM_KEYS_EN = [
   "smallBoxes",
@@ -63,7 +63,7 @@ export type StockStatistics = {
 };
 
 export type StockDialogData = {
-  produtos: PrecoProduto[];
+  produtos: ProductPrice[];
   motoristas: DriverUser[];
 };
 

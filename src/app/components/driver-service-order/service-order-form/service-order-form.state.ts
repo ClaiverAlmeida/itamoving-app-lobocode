@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { Caixa, DriverUser, Item, PrecoProduto } from "../../../api";
+import type { Caixa, DriverUser, Item, ProductPrice } from "../../../api";
 import { serviceOrderFormCrud } from "./service-order-form.crud";
 import { loadDataUrlOnCanvas, resolveCaixaDisplayType } from "./service-order-form.utils";
 import { caixaTemTodosCamposPreenchidos, novoIdItem, renumerarCaixas } from "./service-order-form.verifications";
@@ -23,7 +23,7 @@ export function useServiceOrderFormState({
   const canvasAgenteRef = useRef<HTMLCanvasElement>(null);
   const [isDrawingCliente, setIsDrawingCliente] = useState(false);
   const [isDrawingAgente, setIsDrawingAgente] = useState(false);
-  const [precosProdutos, setPrecosProdutos] = useState<PrecoProduto[]>([]);
+  const [precosProdutos, setPrecosProdutos] = useState<ProductPrice[]>([]);
   const [motoristas, setMotoristas] = useState<DriverUser[]>([]);
   const [produtosLoading, setProdutosLoading] = useState(false);
   const [motoristasLoading, setMotoristasLoading] = useState(false);
@@ -83,7 +83,7 @@ export function useServiceOrderFormState({
     try {
       const result = await serviceOrderFormCrud.getDrivers();
       if (result.success && result.data) setMotoristas(result.data);
-      else if (result.error) toast.error(result.error ?? "Nao foi possivel carregar os motoristas.");
+      else if (result.error) toast.error(result.error ?? "Não foi possível carregar os motoristas.");
     } finally {
       setMotoristasLoading(false);
     }
@@ -100,7 +100,7 @@ export function useServiceOrderFormState({
         setPrecosProdutos(result.data);
         return result.data;
       }
-      return [] as PrecoProduto[];
+      return [] as ProductPrice[];
     } finally {
       setProdutosLoading(false);
     }
@@ -118,7 +118,7 @@ export function useServiceOrderFormState({
         p.active,
     );
     if (opcoesAtivas.length === 0) {
-      toast.info("Nao ha produtos ativos para adicionar caixas, cadastre um produto para continuar");
+      toast.info("Não há produtos ativos para adicionar caixas; cadastre um produto para continuar.");
       return;
     }
     setCaixas((prev) =>

@@ -5,7 +5,7 @@ import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
 import { Card, CardContent } from '../../ui/card';
 import { Box, Calendar as CalendarIcon, MapPin, MessageCircle, Navigation, User } from 'lucide-react';
-import type { Agendamento } from '../../../api';
+import type { Appointment } from '../../../api';
 import { formatDateOnlyToBR } from '../../../utils';
 import { cn } from '../../ui/utils';
 
@@ -25,8 +25,8 @@ type StatusConfig = {
 };
 
 type Props = {
-  agendamento: Agendamento;
-  onOpenDetails: (agendamento: Agendamento) => void;
+  agendamento: Appointment;
+  onOpenDetails: (agendamento: Appointment) => void;
   getStatusConfig: (status: string) => StatusConfig;
   getStatusKey: (status: string) => string;
 };

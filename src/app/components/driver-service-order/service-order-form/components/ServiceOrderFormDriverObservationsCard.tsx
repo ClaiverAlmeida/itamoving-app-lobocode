@@ -15,13 +15,13 @@ export function ServiceOrderFormDriverObservationsCard({
       <CardHeader className="bg-gray-50 rounded-t-lg border-0">
         <CardTitle className="flex items-center gap-2 text-[#1E3A5F]">
           <FileText className="w-5 h-5" />
-          Observacoes da Ordem de Servico
+          Observações da ordem de serviço
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-6 space-y-3">
         <Textarea
           id="observations"
-          placeholder="Digite suas observacoes aqui"
+          placeholder="Digite suas observações aqui"
           value={observations}
           onChange={(e) => setObservations(e.target.value)}
           className="resize-none h-24 border-2 border-border rounded-lg p-2 bg-white"

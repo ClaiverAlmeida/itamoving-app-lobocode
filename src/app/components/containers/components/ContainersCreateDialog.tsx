@@ -54,8 +54,8 @@ export function ContainersCreateDialog({
               <Input id="create-number" placeholder="Ex: MSKU1234567" value={formData.number} onChange={(e) => setFormData({ ...formData, number: e.target.value })} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-seal">Lacre do Container *</Label>
-              <Input id="create-seal" value={formData.seal} onChange={(e) => setFormData({ ...formData, seal: e.target.value })} required />
+              <Label htmlFor="create-seal">Lacre do Container </Label>
+              <Input id="create-seal" value={formData.seal} onChange={(e) => setFormData({ ...formData, seal: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="create-type">Tipo de Container *</Label>

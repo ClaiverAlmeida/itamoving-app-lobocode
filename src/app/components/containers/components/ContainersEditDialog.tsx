@@ -49,8 +49,8 @@ export function ContainersEditDialog({
               <Input id="edit-number" placeholder="Ex: MSKU1234567" value={formData.number} onChange={(e) => setFormData({ ...formData, number: e.target.value })} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-seal">Lacre do Container *</Label>
-              <Input id="edit-seal" value={formData.seal} onChange={(e) => setFormData({ ...formData, seal: e.target.value })} required />
+              <Label htmlFor="edit-seal">Lacre do Container </Label>
+              <Input id="edit-seal" value={formData.seal} onChange={(e) => setFormData({ ...formData, seal: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-type">Tipo de Container *</Label>

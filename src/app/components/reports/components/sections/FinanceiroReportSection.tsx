@@ -1,13 +1,13 @@
 import React from "react";
 import { motion } from "motion/react";
 import type { CategoriaDespesa, EstatisticasGerais } from "../../reports.payload";
-import type { Transacao } from "../../../api";
+import type { FinancialTransaction } from "../../../api";
 import { FinanceTotalsCards } from "../../cards/FinanceTotalsCards";
 import { DespesasPorCategoriaBarChart } from "../charts/DespesasPorCategoriaBarChart";
 
 export function FinanceiroReportSection(props: {
   estatisticas: EstatisticasGerais;
-  transacoes: Transacao[];
+  transacoes: FinancialTransaction[];
   categoriasDespesas: CategoriaDespesa[];
   formatCurrency: (value: number) => string;
   onExport: (tipo: string) => void;

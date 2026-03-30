@@ -1,12 +1,12 @@
 import React from "react";
 import { AlertCircle, Box, Calendar, CalendarIcon, MapPin, Phone } from "lucide-react";
-import type { OrdemServicoView } from "../../../../../api";
+import type { DriverServiceOrderView } from "../../../../../api";
 import { agendamentoResumoParaExibicao, formatCollectionDate } from "../../service-order.utils";
 import { ViewField } from "../ViewField";
 import { cn } from "../../../../ui/utils";
 import { Badge } from "../../../../ui/badge";
 
-export function AgendamentoTabContent({ ordem }: { ordem: OrdemServicoView }) {
+export function AgendamentoTabContent({ ordem }: { ordem: DriverServiceOrderView }) {
   const agResumo = agendamentoResumoParaExibicao(ordem);
   if (!agResumo) {
     return (

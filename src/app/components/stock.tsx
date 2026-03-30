@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
-import type { DriverUser, PrecoProduto } from "../api";
+import type { DriverUser, ProductPrice } from "../api";
 import { useData } from "../context/DataContext";
 import { Button } from "./ui/button";
 import {
@@ -41,7 +41,7 @@ export default function EstoqueView() {
   const [observacao, setObservacao] = useState("");
   const [idStock, setIdStock] = useState<string | null>(null);
   const stockIdRef = useRef<string | null>(null);
-  const [produtos, setProdutos] = useState<PrecoProduto[]>([]);
+  const [produtos, setProdutos] = useState<ProductPrice[]>([]);
   const [motoristas, setMotoristas] = useState<DriverUser[]>([]);
 
   const resetDialogForm = () => {

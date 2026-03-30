@@ -9,12 +9,12 @@ import { Label } from '../../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Switch } from '../../ui/switch';
 import type { ClientFormData } from '../hooks/useClientsForm';
-import type { Cliente } from '../../../api';
+import type { Client } from '../../../api';
 
 type Props = {
   isDialogOpen: boolean;
   setIsDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  editingCliente: Cliente | null;
+  editingCliente: Client | null;
   formData: ClientFormData;
   setFormData: React.Dispatch<React.SetStateAction<ClientFormData>>;
   resetForm: () => void;

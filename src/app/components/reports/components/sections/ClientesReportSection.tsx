@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import type { ClientePorEstado } from "../../reports.payload";
-import type { Cliente } from "../../../../api";
+import type { Client } from "../../../../api";
 import { ClientesPorEstadoCard } from "../../cards/ClientesPorEstadoCard";
 import { ClientesSearchCard } from "../../cards/ClientesSearchCard";
 
@@ -9,7 +9,7 @@ export function ClientesReportSection(props: {
   clientesPorEstado: ClientePorEstado[];
   searchTerm: string;
   onSearchTermChange: (value: string) => void;
-  filteredClientes: Cliente[];
+  filteredClientes: Client[];
 }) {
   const { clientesPorEstado, searchTerm, onSearchTermChange, filteredClientes } = props;
 

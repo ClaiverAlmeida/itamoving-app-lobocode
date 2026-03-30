@@ -4,7 +4,7 @@ import { Badge } from "../../../ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../../ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../ui/tabs";
 import { cn } from "../../../ui/utils";
-import type { OrdemServicoView } from "../../../../api";
+import type { DriverServiceOrderView } from "../../../../api";
 import { STATUS_LABEL } from "../service-order.constants";
 import { formatDateTime, formatUsd, statusBadgeClass } from "../service-order.utils";
 import { AgendamentoTabContent, CaixasTabContent, ClienteTabContent, DestinoTabContent, ResumoTabContent } from "./tabs";
@@ -12,8 +12,8 @@ import { AgendamentoTabContent, CaixasTabContent, ClienteTabContent, DestinoTabC
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  viewOrdem: OrdemServicoView | null;
-  onOpenRecibo: (ordem: OrdemServicoView) => void;
+  viewOrdem: DriverServiceOrderView | null;
+  onOpenRecibo: (ordem: DriverServiceOrderView) => void;
 };
 
 export function ServiceOrderDetailsDialog({ open, onOpenChange, viewOrdem, onOpenRecibo }: Props) {

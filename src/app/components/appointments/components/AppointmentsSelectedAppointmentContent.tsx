@@ -1,5 +1,5 @@
 import React from "react";
-import { Agendamento } from "../../../api";
+import type { Appointment } from "../../../api";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
 import { Calendar as CalendarIcon, Clock, MapPin, Navigation, User, X } from "lucide-react";
@@ -8,12 +8,12 @@ import { AGENDAMENTO_STATUS_ITEMS } from "../appointments.constants";
 import { AppointmentsEditAppointmentDialog } from "./AppointmentsEditAppointmentDialog";
 
 type Props = {
-  ag: Agendamento;
+  ag: Appointment;
   getStatusConfig: (status: string) => { label: string; textColor: string; bgLight: string };
   onClose: () => void;
   onDelete: (id: string, clientName: string) => void;
-  onStatusChange: (id: string, value: Agendamento["status"]) => void;
-  onSelectedAgendamentoChange: (ag: Agendamento) => void;
+  onStatusChange: (id: string, value: Appointment["status"]) => void;
+  onSelectedAgendamentoChange: (ag: Appointment) => void;
   editDialogProps: React.ComponentProps<typeof AppointmentsEditAppointmentDialog>;
 };
 

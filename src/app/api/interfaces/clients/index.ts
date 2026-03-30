@@ -1,3 +1,24 @@
+/**
+ * Legacy UI list shape (e.g. appointments pickers). Prefer {@link ClientBackend} for API payloads.
+ */
+export interface Client {
+  id: string;
+  usaNome: string;
+  usaCpf: string;
+  usaPhone: string;
+  usaAddress: Record<string, unknown>;
+  brazilNome: string;
+  brazilCpf: string;
+  brazilPhone: string;
+  brazilAddress: Record<string, unknown>;
+  user?: {
+    id: string;
+    name: string;
+  };
+  dataCadastro: string;
+  status: "ACTIVE" | "INACTIVE";
+}
+
 export interface CreateClientsDTO {
   companyId?: string;
   usaName: string;

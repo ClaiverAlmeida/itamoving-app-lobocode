@@ -1,7 +1,7 @@
 import React from "react";
 import { Plus, Package, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
-import type { Caixa, Item, PrecoProduto } from "../../../../api";
+import type { Caixa, Item, ProductPrice } from "../../../../api";
 import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from "../../../stock";
 import { Button } from "../../../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../ui/card";
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 type Props = {
   caixas: Caixa[];
   itens: Item[];
-  opcoesCaixa: PrecoProduto[];
+  opcoesCaixa: ProductPrice[];
   valorTotalCaixas: number;
   adicionarCaixa: () => void;
   atualizarCaixa: (id: string, campo: keyof Caixa, valor: string | number) => void;
@@ -21,7 +21,7 @@ type Props = {
   atualizarItem: (id: string, campo: keyof Item, valor: string | number) => void;
   removerItens: (id: string) => void;
   caixaTemTodosCamposPreenchidos: (caixa: Caixa) => boolean;
-  isFitaAdesiva: (caixa: Caixa, opcoesCaixa: PrecoProduto[]) => boolean;
+  isFitaAdesiva: (caixa: Caixa, opcoesCaixa: ProductPrice[]) => boolean;
 };
 
 export function ServiceOrderFormProductsCard(props: Props) {

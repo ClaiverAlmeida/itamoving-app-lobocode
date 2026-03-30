@@ -1,9 +1,9 @@
-import type { Cliente, CreateClientsDTO, UpdateClientsDTO } from "../../api";
+import type { Client, CreateClientsDTO, UpdateClientsDTO } from "../../api";
 import type { ClientFormData } from "./hooks/useClientsForm";
 
 export function buildClientUpdatePayload(
   formData: ClientFormData,
-  editingCliente: Cliente,
+  editingCliente: Client,
 ): UpdateClientsDTO {
   const current: CreateClientsDTO = {
     usaName: formData.usaName,

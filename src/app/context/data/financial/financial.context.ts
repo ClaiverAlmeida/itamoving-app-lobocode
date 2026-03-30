@@ -1,45 +1,45 @@
 import { useState } from 'react';
-import type { Rota, Transacao } from '../../../api';
+import type { FinancialTransaction, Route } from '../../../api';
 
-const transacoesIniciais: Transacao[] = [
+const transacoesIniciais: FinancialTransaction[] = [
   {
     id: '1',
-    clienteId: '1',
-    clienteNome: 'João Silva',
-    tipo: 'receita',
-    categoria: 'Serviço de Mudança',
-    valor: 850,
-    data: '2024-12-15',
-    descricao: '2 caixas grandes + fitas',
-    metodoPagamento: 'Cartão de Crédito',
+    clientId: '1',
+    clientName: 'João Silva',
+    type: 'REVENUE',
+    category: 'Serviço de Mudança',
+    value: 850,
+    date: '2024-12-15',
+    description: '2 caixas grandes + fitas',
+    paymentMethod: 'Cartão de Crédito',
   },
   {
     id: '2',
-    clienteId: '2',
-    clienteNome: 'Carlos Mendes',
-    tipo: 'receita',
-    categoria: 'Serviço de Mudança',
-    valor: 1200,
-    data: '2024-12-18',
-    descricao: '3 caixas grandes + móveis',
-    metodoPagamento: 'Transferência',
+    clientId: '2',
+    clientName: 'Carlos Mendes',
+    type: 'REVENUE',
+    category: 'Serviço de Mudança',
+    value: 1200,
+    date: '2024-12-18',
+    description: '3 caixas grandes + móveis',
+    paymentMethod: 'Transferência',
   },
 ];
 
 export type FinanceDataContext = {
-  transacoes: Transacao[];
-  setTransacoes: (transacoes: Transacao[]) => void;
-  addTransacao: (transacao: Transacao) => void;
+  transacoes: FinancialTransaction[];
+  setTransacoes: (transacoes: FinancialTransaction[]) => void;
+  addTransacao: (transacao: FinancialTransaction) => void;
   deleteTransacao: (id: string) => void;
-  rotas: Rota[];
-  setRotas: (rotas: Rota[]) => void;
+  rotas: Route[];
+  setRotas: (rotas: Route[]) => void;
 };
 
 export function useFinanceDataContext(): FinanceDataContext {
-  const [transacoes, setTransacoes] = useState<Transacao[]>(transacoesIniciais);
-  const [rotas, setRotas] = useState<Rota[]>([]);
+  const [transacoes, setTransacoes] = useState<FinancialTransaction[]>(transacoesIniciais);
+  const [rotas, setRotas] = useState<Route[]>([]);
 
-  const addTransacao = (transacao: Transacao) => {
+  const addTransacao = (transacao: FinancialTransaction) => {
     setTransacoes((prev) => [...prev, transacao]);
   };
 

@@ -12,7 +12,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 
-import type { OrdemServicoFormProps } from '../../api';
+import type { DriverServiceOrderFormProps } from '../../api';
 import {
   ServiceOrderFormBackOfficeCard,
   ServiceOrderFormCompanyInfoCard,
@@ -39,7 +39,7 @@ export default function OrdemServicoForm({
   onAgendamentosAtualizados,
   embedded = false,
   existingOrdem,
-}: OrdemServicoFormProps) {
+}: DriverServiceOrderFormProps) {
   const { user } = useAuth();
   const {
     isEditMode,
@@ -311,6 +311,8 @@ export default function OrdemServicoForm({
         {/* Seção Pagamento em Espécie */}
         <ServiceOrderFormPaymentCard
           valorTotalCaixas={valorTotalCaixas}
+          valorAgendamento={Number(agendamento?.value ?? 0)}
+          valorAntecipacao={Number(agendamento?.downPayment ?? 0)}
           valorPago={valorPago}
           setValorPago={setValorPago}
         />

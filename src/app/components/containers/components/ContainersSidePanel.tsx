@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { Container } from "../../../api";
+import { serviceOrderFormService } from "../../../api";
+import type { DriverServiceOrderView } from "../../../api/services/driver-service-order/service-order-form.service";
 import { ContainerAssignServiceOrderCard } from "./ContainerAssignServiceOrderCard";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
@@ -21,6 +23,7 @@ import {
   Globe,
   MapPin,
   Navigation,
+  Loader2,
   Package,
   Ship,
   Trash2,
@@ -51,7 +54,8 @@ type Props = {
   setIsDeleteDialogOpen: (open: boolean) => void;
   handleContainerStatusChange: (id: string, status: Container["status"]) => void | Promise<void>;
   statusItems: readonly { value: Container["status"]; label: string }[];
-  onContainerVolumesUpdated: (updated: Container) => void;
+  onContainerVolumesUpdated: (updated: Container) => void | Promise<void>;
+  onUnassignServiceOrder: (containerId: string, driverServiceOrderId: string) => void | Promise<void>;
 };
 
 const getEventoIcon = (tipo: ContainerEvento["tipo"]) => {
@@ -84,7 +88,53 @@ export function ContainersSidePanel(props: Props) {
     handleContainerStatusChange,
     statusItems,
     onContainerVolumesUpdated,
+    onUnassignServiceOrder,
   } = props;
+  const [linkedDetailsLoading, setLinkedDetailsLoading] = useState(false);
+  const [linkedOrderDetails, setLinkedOrderDetails] = useState<Record<string, DriverServiceOrderView>>({});
+
+  useEffect(() => {
+    if (!selectedContainer) {
+      setLinkedOrderDetails({});
+      return;
+    }
+    const linked = selectedContainer.serviceOrders ?? [];
+    if (linked.length === 0) {
+      setLinkedOrderDetails({});
+      return;
+    }
+    let cancelled = false;
+    setLinkedDetailsLoading(true);
+    void Promise.all(
+      linked.map(async (o) => {
+        const r = await serviceOrderFormService.getById(o.id);
+        return { id: o.id, data: r.success ? r.data : null };
+      }),
+    ).then((rows) => {
+      if (cancelled) return;
+      const next: Record<string, DriverServiceOrderView> = {};
+      for (const row of rows) {
+        if (row.data) next[row.id] = row.data;
+      }
+      setLinkedOrderDetails(next);
+      setLinkedDetailsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedContainer?.id, selectedContainer?.serviceOrders]);
+
+  const linkedOverview = useMemo(() => {
+    const details = Object.values(linkedOrderDetails);
+    const boxes = details.flatMap((o) => o.driverServiceOrderProducts ?? []);
+    const totalBoxes = boxes.length;
+    const totalItems = boxes.reduce(
+      (sum, box) =>
+        sum + (box.driverServiceOrderProductsItems ?? []).reduce((s, it) => s + (it.quantity ?? 0), 0),
+      0,
+    );
+    return { totalBoxes, totalItems };
+  }, [linkedOrderDetails]);
 
   return (
     <AnimatePresence>
@@ -326,9 +376,84 @@ export function ContainersSidePanel(props: Props) {
               </CardContent>
             </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Truck className="w-5 h-5" />
+                  Ordens vinculadas
+                </CardTitle>
+                <CardDescription>
+                  {selectedContainer.serviceOrders?.length ?? 0} ordem(ns) associada(s) a este container.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {linkedDetailsLoading && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground rounded-md border px-3 py-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Carregando detalhes...
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="outline">{linkedOverview.totalBoxes} caixas</Badge>
+                  <Badge variant="outline">{linkedOverview.totalItems} itens</Badge>
+                </div>
+                {(selectedContainer.serviceOrders ?? []).length === 0 && (
+                  <p className="text-sm text-muted-foreground rounded-md border border-dashed px-3 py-2">
+                    Nenhuma ordem vinculada no momento.
+                  </p>
+                )}
+                {(selectedContainer.serviceOrders ?? []).map((order) => {
+                  const detailByOrder = linkedOrderDetails[order.id];
+                  const boxes = detailByOrder?.driverServiceOrderProducts ?? [];
+                  return (
+                    <details key={order.id} className="rounded-md border bg-card">
+                      <summary className="list-none px-3 py-2 flex items-center justify-between gap-2 cursor-pointer">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {order.recipientName?.trim() || "Cliente USA"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground font-mono break-all">
+                            #{order.id}
+                          </p>
+                          <div className="flex gap-1 mt-1">
+                            <Badge variant="outline" className="text-[10px]">{boxes.length} caixas</Badge>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (!selectedContainer.id) return;
+                            void onUnassignServiceOrder(selectedContainer.id, order.id);
+                          }}
+                        >
+                          Remover
+                        </Button>
+                      </summary>
+                      <div className="px-3 pb-3 pt-1 border-t bg-muted/20 space-y-2">
+                        {boxes.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">Sem caixas detalhadas.</p>
+                        ) : (
+                          boxes.map((box, idx) => (
+                            <div key={box.id ?? `${order.id}-${idx}`} className="rounded border bg-background px-2 py-1.5">
+                              <p className="text-xs font-medium">
+                                Caixa #{box.number || idx + 1} - {box.type || "N/A"}
+                              </p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </details>
+                  );
+                })}
+              </CardContent>
+            </Card>
+
             <ContainerAssignServiceOrderCard
               container={selectedContainer}
               onAssigned={onContainerVolumesUpdated}
+              onUnassignServiceOrder={onUnassignServiceOrder}
             />
           </div>
         </motion.div>

@@ -1,5 +1,5 @@
 import { api } from "./api.service";
-import { Cliente } from "../types";
+import type { Client } from "../types";
 import { BaseCrudService } from "./base-crud.service";
 import type {
   ClientBackend,
@@ -11,7 +11,7 @@ import type {
 /**
  * Mapeia os dados do backend para o formato do frontend
  */
-function mapBackendToFrontend(client: ClientBackend): Cliente {
+function mapBackendToFrontend(client: ClientBackend): Client {
   // Mapeia usaAddress (JSON) para enderecoUSA estruturado
   const usaAddress = client.usaAddress as any;
   const enderecoUSA = {
@@ -61,7 +61,7 @@ function mapBackendToFrontend(client: ClientBackend): Cliente {
 }
 
 export class ClientsService extends BaseCrudService<
-  Cliente,
+  Client,
   ClientBackend,
   CreateClientsDTO,
   UpdateClientsDTO
@@ -79,7 +79,7 @@ export class ClientsService extends BaseCrudService<
     id: string,
     data: UpdateClientsDTO,
     changes?: Record<string, { before?: unknown; after?: unknown }>,
-  ): Promise<{ success: boolean; data?: Cliente; error?: string }> {
+  ): Promise<{ success: boolean; data?: Client; error?: string }> {
     try {
       const body = changes ? { data, changes } : { data };
       const result = await api.patch<ClientBackend | { data: ClientBackend }>(

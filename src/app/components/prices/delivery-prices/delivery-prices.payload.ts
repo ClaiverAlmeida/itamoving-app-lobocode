@@ -1,4 +1,4 @@
-import type { CreateDeliveryPriceDTO, PrecoEntrega, UpdateDeliveryPriceEntregaDTO } from "../../../api";
+import type { CreateDeliveryPriceDTO, DeliveryPrice, UpdateDeliveryPriceEntregaDTO } from "../../../api";
 import type { DeliveryPriceForm } from "./delivery-prices.types";
 import { parseIntInputToNumber, parseMoneyInputToNumber } from "./delivery-prices.utils";
 
@@ -17,7 +17,7 @@ export function buildCreateDeliveryPayload(form: DeliveryPriceForm): CreateDeliv
 
 export function buildUpdateDeliveryPatch(params: {
   form: DeliveryPriceForm;
-  original: PrecoEntrega;
+  original: DeliveryPrice;
 }): UpdateDeliveryPriceEntregaDTO {
   const { form, original } = params;
 
