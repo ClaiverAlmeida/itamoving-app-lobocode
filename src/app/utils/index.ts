@@ -5,4 +5,10 @@ export {
   formatNumberTelephoneEUA,
 } from "./numbers";
 export { exportDocument } from "./export-document";
-export { toDateOnly, toTimeOnly, formatDateOnlyToBR } from "./date";
+export {
+    toDateOnly,
+    toTimeOnly,
+    formatDateOnlyToBR,
+    parseDateOnlyLocal,
+    parseApiDateToLocalDate,
+} from "./date";

@@ -8,7 +8,7 @@ export function FinancialHeaderSection(props: {
   showFilters: boolean;
   carregarClientes: () => Promise<Client[]>;
   onToggleFilters: () => void;
-  onCreateTransacao: (t: FinancialTransaction) => void;
+  onCreateTransacao: (t: FinancialTransaction) => Promise<boolean>;
 }) {
   const { showFilters, onToggleFilters, carregarClientes, onCreateTransacao } = props;
 

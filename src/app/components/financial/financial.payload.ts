@@ -10,15 +10,23 @@ export function buildTransacaoFromFormData(params: {
 
   const value = Number.parseFloat(formData.value);
 
-  return {
-    clientId: formData.clientId,
-    clientName: cliente?.usaNome || "N/A",
+  const base = {
     type: formData.type,
     category: formData.category,
     value: Number.isFinite(value) ? value : 0,
     date: formData.date,
-    description: formData.description,
+    description: formData.description ? formData.description : undefined,
     paymentMethod: formData.paymentMethod,
   };
+
+  if (formData.type === "REVENUE") {
+    return {
+      ...base,
+      clientId: formData.clientId,
+      clientName: cliente?.usaName,
+    };
+  }
+
+  return base;
 }
 

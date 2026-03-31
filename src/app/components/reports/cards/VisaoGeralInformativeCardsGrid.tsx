@@ -1,11 +1,15 @@
 import React from "react";
 import { Calendar, Package, TrendingUpIcon } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Badge } from "../../ui/badge";
 import type { EstatisticasGerais } from "../reports.payload";
+import { formatPercentDelta } from "../reports.utils";
 
 export function VisaoGeralInformativeCardsGrid(props: { estatisticas: EstatisticasGerais; quantidadeItensEstoque: number; estoqueTotal: number; estoqueBaixoCount: number; estoqueIdealCount: number }) {
   const { estatisticas, quantidadeItensEstoque, estoqueTotal, estoqueBaixoCount, estoqueIdealCount } = props;
+  const cr = estatisticas.crescimentoMensal;
+  const crescimentoBadgeClass =
+    cr > 0 ? "bg-green-100 text-green-800" : cr < 0 ? "bg-red-100 text-red-800" : "bg-slate-100 text-slate-700";
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -67,17 +71,17 @@ export function VisaoGeralInformativeCardsGrid(props: { estatisticas: Estatistic
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm">Crescimento</span>
-            <Badge className="bg-green-100 text-green-800">+{estatisticas.crescimentoMensal}%</Badge>
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-sm">Receitas vs mês ant.</span>
+            <Badge className={crescimentoBadgeClass}>{formatPercentDelta(cr)}</Badge>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm">Margem de Lucro</span>
             <Badge className="bg-blue-100 text-blue-800">{estatisticas.margemLucro}%</Badge>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm">Taxa de Conversão</span>
-            <Badge className="bg-purple-100 text-purple-800">87%</Badge>
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-sm">Agend. concluídos / total</span>
+            <Badge className="bg-purple-100 text-purple-800">{estatisticas.taxaConversaoAgendamentos}%</Badge>
           </div>
         </CardContent>
       </Card>

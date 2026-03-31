@@ -202,10 +202,10 @@ export const buildUpdatePayload = (formData: ClientFormData, editingCliente: Cli
   };
   const patch: UpdateClientsDTO = {};
 
-  if (current.usaName !== editingCliente.usaNome) patch.usaName = current.usaName;
+  if (current.usaName !== editingCliente.usaName) patch.usaName = current.usaName;
   if (current.usaCpf !== editingCliente.usaCpf) patch.usaCpf = current.usaCpf;
   if (current.usaPhone !== editingCliente.usaPhone) patch.usaPhone = current.usaPhone;
-  if (current.brazilName !== editingCliente.brazilNome) patch.brazilName = current.brazilName;
+  if (current.brazilName !== editingCliente.brazilName) patch.brazilName = current.brazilName;
   if (current.brazilCpf !== editingCliente.brazilCpf) patch.brazilCpf = current.brazilCpf;
   if (current.brazilPhone !== editingCliente.brazilPhone) patch.brazilPhone = current.brazilPhone;
   if (current.userId !== (editingCliente.user?.id ?? '')) patch.userId = current.userId;

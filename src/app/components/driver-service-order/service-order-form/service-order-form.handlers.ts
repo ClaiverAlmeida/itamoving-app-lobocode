@@ -146,7 +146,7 @@ export function useServiceOrderFormSave(params: Params) {
     if (!params.remetenteNome || !params.remetenteTel || !params.remetenteEndereco || !params.remetenteNumero || !params.remetenteCidade || !params.remetenteEstado || !params.remetenteZipCode || !params.remetenteComplemento) {
       return toast.error("Preencha todos os campos obrigatórios do remetente");
     }
-    if (!params.destinatarioNome || !params.destinatarioCpfRg || !params.destinatarioEndereco || !params.destinatarioBairro || !params.destinatarioCidade || !params.destinatarioEstado || !params.destinatarioCep || !params.destinatarioTelefone || !params.destinatarioNumero || !params.destinatarioComplemento) {
+    if (!params.destinatarioNome || !params.destinatarioEndereco || !params.destinatarioBairro || !params.destinatarioCidade || !params.destinatarioEstado || !params.destinatarioCep || !params.destinatarioTelefone || !params.destinatarioNumero || !params.destinatarioComplemento) {
       return toast.error("Preencha todos os campos obrigatórios do destinatário");
     }
     if (params.caixas.length === 0) return toast.error("Adicione pelo menos uma caixa ou produto");
@@ -218,7 +218,7 @@ export function useServiceOrderFormSave(params: Params) {
       const created = await serviceOrderFormCrud.create(payload);
       if (created.success && created.data) {
         params.onClose();
-        void Promise.resolve(params.onAgendamentosAtualizados?.()).catch(() => {});
+        void Promise.resolve(params.onAgendamentosAtualizados?.()).catch(() => { });
         params.onSave?.(created.data);
         toast.success("Ordem de serviço salva com sucesso!");
       }
@@ -329,7 +329,7 @@ export function useServiceOrderFormSave(params: Params) {
     const result = await serviceOrderFormCrud.update(params.existingOrdem.id, patch);
     if (result.success && result.data) {
       params.onSave?.(result.data);
-      void Promise.resolve(params.onAgendamentosAtualizados?.()).catch(() => {});
+      void Promise.resolve(params.onAgendamentosAtualizados?.()).catch(() => { });
       toast.success("Ordem de serviço atualizada com sucesso!");
       params.onClose();
       return;

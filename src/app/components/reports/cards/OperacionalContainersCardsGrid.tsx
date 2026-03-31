@@ -8,7 +8,7 @@ export function OperacionalContainersCardsGrid(props: { estatisticas: Estatistic
   const { estatisticas, onExport } = props;
 
   return (
-    <div className="grid gap-4 md:grid-cols-4">
+    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 xl:grid-cols-6">
       <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
         <CardHeader>
           <CardTitle className="text-lg">Total Containers</CardTitle>
@@ -32,6 +32,16 @@ export function OperacionalContainersCardsGrid(props: { estatisticas: Estatistic
         </CardContent>
       </Card>
 
+      <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
+        <CardHeader>
+          <CardTitle className="text-lg">Enviado</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-4xl font-bold text-indigo-900">{estatisticas.containersEnviado}</p>
+          <p className="text-sm text-indigo-700 mt-2">Despachado / embarcado</p>
+        </CardContent>
+      </Card>
+
       <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
         <CardHeader>
           <CardTitle className="text-lg">Em Trânsito</CardTitle>
@@ -51,7 +61,16 @@ export function OperacionalContainersCardsGrid(props: { estatisticas: Estatistic
           <p className="text-sm text-green-700 mt-2">Completos</p>
         </CardContent>
       </Card>
+
+      <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+        <CardHeader>
+          <CardTitle className="text-lg">Cancelados</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-4xl font-bold text-red-900">{estatisticas.containersCancelados}</p>
+          <p className="text-sm text-red-700 mt-2">Não concluídos</p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-

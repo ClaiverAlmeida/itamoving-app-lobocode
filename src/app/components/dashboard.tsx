@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import type { Alerta, AtividadeRecente, View } from './dashboard/dashboard.constants';
 import { DashboardHeaderSection } from './dashboard/components/DashboardHeaderSection';
@@ -14,7 +13,7 @@ import {
   buildFinanceiroData,
   buildPerformanceData,
   formatCurrencyCompactUSD,
-} from './dashboard/dashboard.utils';
+} from "./dashboard/dashboard.utils";
 import {
   Users,
   Calendar,
@@ -34,10 +33,9 @@ interface DashboardViewProps {
 }
 
 export default function DashboardView({ onNavigate, dataSources }: DashboardViewProps = {}) {
-  const { transacoes } = useData();
   const { hasPermission } = useAuth();
 
-  const { clientes, containers, agendamentos, estoque } = useDashboardData(dataSources);
+  const { clientes, containers, agendamentos, estoque, transacoes } = useDashboardData(dataSources);
 
   // Cálculos
   const agendamentosHoje = agendamentos.filter(a => {
@@ -95,7 +93,7 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
 
   const clientesNovosUltimaSemana = clientes.filter(c => {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return new Date(c.dataCadastro) >= weekAgo;
+    return new Date(c.createdAt) >= weekAgo;
   }).length;
 
   // Alertas
@@ -164,16 +162,16 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
 
     // Últimos clientes
     clientes
-      .sort((a, b) => new Date(b.dataCadastro).getTime() - new Date(a.dataCadastro).getTime())
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 2)
       .forEach(c => {
-        const dataCadastro = new Date(c.dataCadastro);
+        const dataCadastro = new Date(c.createdAt);
         // Só adiciona se a data for válida
         if (!isNaN(dataCadastro.getTime())) {
           atividades.push({
             id: `cliente-${c.id}`,
             tipo: 'cliente',
-            descricao: `Novo cliente cadastrado: ${c.usaNome}`,
+            descricao: `Novo cliente cadastrado: ${c.usaName}`,
             data: dataCadastro,
             icone: Users,
             color: 'blue',
@@ -216,11 +214,14 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
     return atividades.sort((a, b) => b.data.getTime() - a.data.getTime()).slice(0, 5);
   }, [clientes, agendamentos, containers]);
 
-  // Dados para gráficos
-  const financeiroData = buildFinanceiroData(receitaTotal, despesaTotal, lucro);
-  const containersStatusData = buildContainersStatusData(containers);
+  // Dados para gráficos (sem mock: transações e entidades vindas das requisições)
+  const financeiroData = useMemo(() => buildFinanceiroData(transacoes), [transacoes]);
+  const containersStatusData = useMemo(() => buildContainersStatusData(containers), [containers]);
   const estoqueData = buildEstoqueData(estoqueSafe);
-  const performanceData = buildPerformanceData();
+  const performanceData = useMemo(
+    () => buildPerformanceData({ clientes, agendamentos, containers }),
+    [clientes, agendamentos, containers],
+  );
 
   return (
     <div className="space-y-4 lg:space-y-6 overflow-x-hidden">

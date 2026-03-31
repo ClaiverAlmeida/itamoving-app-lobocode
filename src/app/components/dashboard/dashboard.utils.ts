@@ -1,9 +1,9 @@
-import type { Appointment, Client, Container, Estoque } from "../../api";
-import { isPast, isToday, isTomorrow } from "date-fns";
+import type { Appointment, Client, Container, Estoque, FinancialTransaction } from "../../api";
+import { format, isPast, isToday, isValid, startOfMonth, subDays, subMonths } from "date-fns";
 import type { LucideIcon } from "lucide-react";
 import { ALARTE_COLOR_MAP, type Alerta, type AtividadeRecente } from "./dashboard.constants";
-import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
+import { parseApiDateToLocalDate, toDateOnly } from "../../utils/date";
 
 export type FinanceiroDataPoint = { mes: string; receitas: number; despesas: number; lucro: number };
 export type ContainerStatusDataPoint = { name: string; value: number; color: string };
@@ -17,14 +17,6 @@ export function getAgendamentosCounts(agendamentos: Appointment[]) {
   const agendamentosAmanha = agendamentos.filter((a) => a.collectionDate === amanha).length;
   const agendamentosPendentes = agendamentos.filter((a) => a.status === "PENDING").length;
   return { agendamentosHoje, agendamentosAmanha, agendamentosPendentes };
-}
-
-export function getFinanceiroTotals(transacoes: { tipo: string; valor: number }[]) {
-  const receitaTotal = transacoes.filter((t) => t.tipo === "receita").reduce((sum, t) => sum + t.valor, 0);
-  const despesaTotal = transacoes.filter((t) => t.tipo === "despesa").reduce((sum, t) => sum + t.valor, 0);
-  const lucro = receitaTotal - despesaTotal;
-  const margemLucro = receitaTotal > 0 ? ((lucro / receitaTotal) * 100).toFixed(1) : "0";
-  return { receitaTotal, despesaTotal, lucro, margemLucro };
 }
 
 export function getEstoqueTotals(estoque: Estoque) {
@@ -60,16 +52,54 @@ export function getContainersStats(containers: Container[]) {
   return { containersAtivos, containersEmTransito };
 }
 
-export function buildFinanceiroData(receitaTotal: number, despesaTotal: number, lucro: number): FinanceiroDataPoint[] {
-  // Mantém o mesmo array original do dashboard (valores mockados + últimos pontos com total real).
-  return [
-    { mes: "Jul", receitas: 45000, despesas: 28000, lucro: 17000 },
-    { mes: "Ago", receitas: 52000, despesas: 31000, lucro: 21000 },
-    { mes: "Set", receitas: 48000, despesas: 29000, lucro: 19000 },
-    { mes: "Out", receitas: 61000, despesas: 35000, lucro: 26000 },
-    { mes: "Nov", receitas: 58000, despesas: 33000, lucro: 25000 },
-    { mes: "Dez", receitas: receitaTotal, despesas: despesaTotal, lucro: lucro },
-  ];
+const FINANCEIRO_CHART_MONTHS = 6;
+
+/** Receitas, despesas e lucro por mês (calendário), últimos 6 meses incluindo o atual. */
+export function buildFinanceiroData(transacoes: FinancialTransaction[]): FinanceiroDataPoint[] {
+  const now = new Date();
+  const points: FinanceiroDataPoint[] = [];
+  const keys: string[] = [];
+
+  for (let i = FINANCEIRO_CHART_MONTHS - 1; i >= 0; i--) {
+    const monthStart = startOfMonth(subMonths(now, i));
+    const key = `${monthStart.getFullYear()}-${monthStart.getMonth()}`;
+    keys.push(key);
+    points.push({
+      mes: format(monthStart, "MMM/yy", { locale: ptBR }),
+      receitas: 0,
+      despesas: 0,
+      lucro: 0,
+    });
+  }
+
+  const keyToIndex = new Map(keys.map((k, idx) => [k, idx]));
+
+  for (const t of transacoes) {
+    const dt = parseApiDateToLocalDate(t.date);
+    if (!isValid(dt)) continue;
+    const k = `${dt.getFullYear()}-${dt.getMonth()}`;
+    const idx = keyToIndex.get(k);
+    if (idx === undefined) continue;
+    if (t.type === "REVENUE") points[idx].receitas += Number(t.value) || 0;
+    else points[idx].despesas += Number(t.value) || 0;
+  }
+
+  for (const p of points) {
+    p.lucro = p.receitas - p.despesas;
+  }
+
+  return points;
+}
+
+/** Variação % das receitas entre o penúltimo e o último mês do gráfico (para selo no card). */
+export function formatReceitasMoMChangeLabel(data: FinanceiroDataPoint[]): string | null {
+  if (data.length < 2) return null;
+  const prev = data[data.length - 2].receitas;
+  const cur = data[data.length - 1].receitas;
+  if (prev === 0 && cur === 0) return null;
+  if (prev === 0) return null;
+  const pct = ((cur - prev) / prev) * 100;
+  return `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`;
 }
 
 export function buildContainersStatusData(containers: Container[]): ContainerStatusDataPoint[] {
@@ -91,16 +121,44 @@ export function buildEstoqueData(estoque: Pick<Estoque, "smallBoxes" | "mediumBo
   ];
 }
 
-export function buildPerformanceData(): PerformanceDataPoint[] {
-  return [
-    { dia: "Seg", clientes: 5, agendamentos: 8, containers: 2 },
-    { dia: "Ter", clientes: 7, agendamentos: 6, containers: 3 },
-    { dia: "Qua", clientes: 4, agendamentos: 10, containers: 1 },
-    { dia: "Qui", clientes: 6, agendamentos: 7, containers: 2 },
-    { dia: "Sex", clientes: 8, agendamentos: 9, containers: 4 },
-    { dia: "Sáb", clientes: 3, agendamentos: 4, containers: 1 },
-    { dia: "Dom", clientes: 2, agendamentos: 2, containers: 0 },
-  ];
+function weekdayLabelPt(day: Date): string {
+  const raw = format(day, "EEE", { locale: ptBR }).replace(/\.$/, "");
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function containerActivityDateYmd(c: Container): string {
+  const boarding = c.boardingDate ? toDateOnly(c.boardingDate) : "";
+  if (boarding) return boarding;
+  return c.shipmentDate ? toDateOnly(c.shipmentDate) : "";
+}
+
+/** Contagens por dia civil (últimos 7 dias, do mais antigo ao mais recente), alinhado à descrição do gráfico. */
+export function buildPerformanceData(params: {
+  clientes: Client[];
+  agendamentos: Appointment[];
+  containers: Container[];
+}): PerformanceDataPoint[] {
+  const { clientes, agendamentos, containers } = params;
+  const out: PerformanceDataPoint[] = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const day = subDays(new Date(), i);
+    day.setHours(0, 0, 0, 0);
+    const ymd = format(day, "yyyy-MM-dd");
+
+    const clientesN = clientes.filter((c) => toDateOnly(c.createdAt) === ymd).length;
+    const agendamentosN = agendamentos.filter((a) => a.collectionDate && toDateOnly(a.collectionDate) === ymd).length;
+    const containersN = containers.filter((c) => containerActivityDateYmd(c) === ymd).length;
+
+    out.push({
+      dia: weekdayLabelPt(day),
+      clientes: clientesN,
+      agendamentos: agendamentosN,
+      containers: containersN,
+    });
+  }
+
+  return out;
 }
 
 export function getAlertaColor(tipo: Alerta["tipo"]) {
@@ -189,15 +247,15 @@ export function buildAtividadesRecentes(params: {
   const atividades: AtividadeRecente[] = [];
 
   clientes
-    .sort((a, b) => new Date((b as any).dataCadastro).getTime() - new Date((a as any).dataCadastro).getTime())
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 2)
     .forEach((c) => {
-      const dataCadastro = new Date((c as any).dataCadastro);
+      const dataCadastro = new Date(c.createdAt);
       if (Number.isNaN(dataCadastro.getTime())) return;
       atividades.push({
-        id: `cliente-${(c as any).id}`,
+        id: `cliente-${c.id}`,
         tipo: "cliente",
-        descricao: `Novo cliente cadastrado: ${(c as any).usaNome}`,
+        descricao: `Novo cliente cadastrado: ${c.usaName}`,
         data: dataCadastro,
         icone: icons.Users,
         color: "blue",

@@ -1,34 +1,43 @@
 import { BaseCrudService } from "./base-crud.service";
-import { FinancialTransaction } from "../interfaces";
+import {
+    CreateFinancialTransactionDTO,
+    FinancialTransaction,
+    FinancialTransactionBackend,
+} from "../interfaces";
+import { UpdateFinancialTransactionDTO } from "../types/financial";
+import { toDateOnly } from "../../utils/date";
 
-// import type {
-//   CreateDeliveryPriceDTO,
-//   DeliveryPriceBackend,
-//   DeliveryPricesPagination,
-//   UpdateDeliveryPriceEntregaDTO,
-// } from "../../types";
+function mapBackendToFrontend(row: FinancialTransactionBackend): FinancialTransaction {
+    const rawVal = row.value;
+    const num = typeof rawVal === "number" ? rawVal : Number(rawVal);
 
-// function mapBackendToFrontend(financialTransaction: FinancialTransactionBackend): FinancialTransaction {
-//   return {
+    return {
+        id: row.id,
+        clientId: row.client?.id ?? undefined,
+        clientName: row.client?.usaName ?? undefined,
+        type: row.type,
+        category: row.category,
+        value: Number.isFinite(num) ? num : 0,
+        date: toDateOnly(row.date),
+        description: row.description,
+        paymentMethod: row.paymentMethod,
+    };
+}
 
-//   };
-// }
+export class FinancialTransactionService extends BaseCrudService<
+    FinancialTransaction,
+    FinancialTransactionBackend,
+    CreateFinancialTransactionDTO,
+    UpdateFinancialTransactionDTO
+> {
+    constructor() {
+        super("/financial-transaction", mapBackendToFrontend, {
+            listError: "Erro ao buscar transações financeiras",
+            createError: "Erro ao criar transações financeiras",
+            updateError: "Erro ao atualizar transações financeiras",
+            deleteError: "Erro ao deletar transações financeiras",
+        });
+    }
+}
 
-// export class FinancialTransactionService extends BaseCrudService<
-//   PrecoEntrega,
-//   DeliveryPriceBackend,
-//   CreateDeliveryPriceDTO,
-//   UpdateDeliveryPriceEntregaDTO,
-//   DeliveryPricesPagination
-// > {
-//   constructor() {
-//     super("/financial-transaction", mapBackendToFrontend, {
-//       listError: "Erro ao buscar transações financeiras",
-//       createError: "Erro ao criar transações financeiras",
-//       updateError: "Erro ao atualizar transações financeiras",
-//       deleteError: "Erro ao deletar transações financeiras",
-//     }, true);
-//   }
-//   }
-
-// export const financialTransactionService = new FinancialTransactionService();
+export const financialTransactionService = new FinancialTransactionService();

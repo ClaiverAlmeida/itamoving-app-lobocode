@@ -28,6 +28,24 @@ export function formatDateOnlyToBR(value: string | undefined | null): string {
 }
 
 /**
+ * Interpreta YYYY-MM-DD como calendário local (meia-noite local).
+ * `new Date("YYYY-MM-DD")` em JS usa UTC e pode exibir o dia anterior em fusos como America/Sao_Paulo.
+ */
+export function parseDateOnlyLocal(ymd: string): Date {
+    const s = String(ymd).trim().slice(0, 10);
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (!m) return new Date(ymd);
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
+/** ISO / string da API → YYYY-MM-DD → Date local (gráficos, filtros por período). */
+export function parseApiDateToLocalDate(value: string | undefined | null): Date {
+    const ymd = toDateOnly(value);
+    if (!ymd) return new Date(NaN);
+    return parseDateOnlyLocal(ymd);
+}
+
+/**
  * Garante que o horário seja HH:mm (sem interpretação de timezone).
  * - Se for HH:mm ou HH:mm:ss (com ou sem Z), extrai HH:mm.
  * - Se for ISO com T, usa getHours/getMinutes em horário local.

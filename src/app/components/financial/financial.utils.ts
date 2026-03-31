@@ -1,6 +1,7 @@
 import type { FinancialTransaction } from "../../api";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
+import { parseApiDateToLocalDate } from "../../utils/date";
 import type { PeriodFilter, ViewMode } from "./index";
 
 export type FinanceiroTotals = {
@@ -16,6 +17,9 @@ export type FinanceiroTotals = {
 export type PieCategoriaPoint = { name: string; value: number; color?: string };
 
 export type LineFluxoCaixaPoint = { mes: string; receitas: number; despesas: number; lucro: number };
+
+/** Receitas e despesas agregadas por método de pagamento (filtros da tela aplicados). */
+export type PagamentoReceitaDespesaPoint = { metodo: string; receitas: number; despesas: number };
 
 export function formatCurrencyUSD(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -40,7 +44,8 @@ export function filterTransacoes(params: {
   if (periodFilter !== "todos") {
     const now = new Date();
     filtered = filtered.filter((t) => {
-      const transactionDate = new Date(t.date);
+      const transactionDate = parseApiDateToLocalDate(t.date);
+      if (!isValid(transactionDate)) return false;
       const diffTime = now.getTime() - transactionDate.getTime();
       const diffDays = diffTime / (1000 * 60 * 60 * 24);
 
@@ -52,16 +57,39 @@ export function filterTransacoes(params: {
   }
 
   if (searchTerm) {
-    const term = searchTerm.toLowerCase();
-    filtered = filtered.filter(
-      (t) =>
-        t.description.toLowerCase().includes(term) ||
-        t.category.toLowerCase().includes(term) ||
-        t.clientName.toLowerCase().includes(term),
-    );
+    filtered = filterTransacoesBySearch(filtered, searchTerm);
   }
 
   return filtered;
+}
+
+export function filterTransacoesBySearch(transacoes: FinancialTransaction[], searchTerm: string): FinancialTransaction[] {
+  const q = searchTerm.trim().toLowerCase();
+  if (!q) return transacoes;
+  return transacoes.filter(
+    (t) =>
+      (t.description ?? "").toLowerCase().includes(q) ||
+      (t.category ?? "").toLowerCase().includes(q) ||
+      (t.clientName ?? "").toLowerCase().includes(q) ||
+      (t.paymentMethod ?? "").toLowerCase().includes(q),
+  );
+}
+
+/** Mais recente primeiro (data desc); desempate por id. */
+export function sortFinancialTransactionsNewestFirst(transacoes: FinancialTransaction[]): FinancialTransaction[] {
+  return [...transacoes].sort((a, b) => {
+    const da = parseApiDateToLocalDate(a.date);
+    const db = parseApiDateToLocalDate(b.date);
+    const validA = isValid(da);
+    const validB = isValid(db);
+    if (validA && validB) {
+      const diff = db.getTime() - da.getTime();
+      if (diff !== 0) return diff;
+    } else if (validB !== validA) {
+      return validB ? 1 : -1;
+    }
+    return (b.id ?? "").localeCompare(a.id ?? "");
+  });
 }
 
 export function computeFinanceiroTotals(filteredTransacoes: FinancialTransaction[]): FinanceiroTotals {
@@ -90,11 +118,29 @@ export function groupTransacoesByCategoria(params: { transacoes: FinancialTransa
   })) as PieCategoriaPoint[];
 }
 
+export function buildPagamentoReceitaDespesa(transacoes: FinancialTransaction[]): PagamentoReceitaDespesaPoint[] {
+  const map = new Map<string, { receitas: number; despesas: number }>();
+
+  for (const t of transacoes) {
+    const metodo = String(t.paymentMethod ?? "—").trim() || "—";
+    if (!map.has(metodo)) map.set(metodo, { receitas: 0, despesas: 0 });
+    const acc = map.get(metodo)!;
+    const v = Number(t.value) || 0;
+    if (t.type === "REVENUE") acc.receitas += v;
+    else acc.despesas += v;
+  }
+
+  return [...map.entries()]
+    .map(([metodo, v]) => ({ metodo, receitas: v.receitas, despesas: v.despesas }))
+    .sort((a, b) => b.receitas + b.despesas - (a.receitas + a.despesas));
+}
+
 export function buildFluxoCaixaMensal(filteredTransacoes: FinancialTransaction[]): LineFluxoCaixaPoint[] {
   const meses: Record<string, { receitas: number; despesas: number; lucro: number }> = {};
 
   filteredTransacoes.forEach((t) => {
-    const data = new Date(t.date);
+    const data = parseApiDateToLocalDate(t.date);
+    if (!isValid(data)) return;
     const mesAno = format(data, "MMM/yy", { locale: ptBR });
 
     if (!meses[mesAno]) meses[mesAno] = { receitas: 0, despesas: 0, lucro: 0 };

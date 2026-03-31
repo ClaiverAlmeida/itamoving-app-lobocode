@@ -17,6 +17,11 @@ export function DashboardActivitiesRecentCard({ atividadesRecentes }: { atividad
       </CardHeader>
       <CardContent>
         <div className="space-y-4 max-h-[250px] overflow-y-auto">
+          {atividadesRecentes.length === 0 ? (
+            <p className="flex min-h-[200px] items-center justify-center px-2 text-center text-sm text-muted-foreground">
+              Nenhuma atividade recente.
+            </p>
+          ) : null}
           {atividadesRecentes.map((atividade) => {
             const Icon = atividade.icone;
             return (

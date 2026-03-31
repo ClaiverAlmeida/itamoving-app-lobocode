@@ -9,7 +9,6 @@ import {
 } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 import { cn } from "./ui/utils";
 import { Badge } from "./ui/badge";
 import { useData } from "../context/DataContext";
@@ -36,7 +35,6 @@ import {
   endOfWeek,
 } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { motion } from "motion/react";
 import { useAuth } from "../context/AuthContext";
 import { connectSocket, getSocket } from "../api";
 import type {

@@ -25,8 +25,10 @@ export function VisaoGeralReportSection(props: {
         <ReceitasMensaisAreaChart receitasMensais={receitasMensais} formatCurrency={formatCurrency} />
         <ContainersStatusPieChart
           containersPreparacao={estatisticas.containersPreparacao}
+          containersEnviado={estatisticas.containersEnviado}
           containersTransito={estatisticas.containersTransito}
           containersEntregue={estatisticas.containersEntregue}
+          containersCancelados={estatisticas.containersCancelados}
         />
       </div>
 

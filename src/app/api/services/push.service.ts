@@ -43,7 +43,6 @@ export const pushService = {
   async getVapidPublicKey(): Promise<string | null> {
     const res = await api.get<{ publicKey?: string }>(
       '/notifications/push/vapid-public-key',
-      { useCache: false }
     );
     const key = (res.data as { publicKey?: string } | undefined)?.publicKey;
     return key && key.length > 0 ? key : null;

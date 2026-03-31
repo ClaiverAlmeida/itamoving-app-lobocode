@@ -29,10 +29,19 @@ export function ClientesSearchCard(props: {
         </div>
 
         <div className="space-y-2 max-h-[320px] overflow-y-auto">
-          {filteredClientes.map((cliente) => (
+          {filteredClientes.map((cliente) => {
+            const usa = cliente.usaAddress as {
+              cidade?: string;
+              estado?: string;
+              zipCode?: string;
+              cep?: string;
+            };
+            const br = cliente.brazilAddress as { cidade?: string; estado?: string; cep?: string };
+            const usaPostal = usa.zipCode ?? usa.cep ?? "";
+            return (
             <Card key={cliente.id} className="bg-slate-50">
               <CardContent className="p-3">
-                <h3 className="font-semibold mb-2">{cliente.usaNome}</h3>
+                <h3 className="font-semibold mb-2">{cliente.usaName}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
                   <div>
                     <p>CPF: {cliente.usaCpf}</p>
@@ -40,16 +49,17 @@ export function ClientesSearchCard(props: {
                   </div>
                   <div>
                     <p>
-                      {cliente.usaAddress.cidade as string}, {cliente.usaAddress.estado as string} {cliente.usaAddress.cep as string}
+                      {usa.cidade ?? ""}, {usa.estado ?? ""} {usaPostal}
                     </p>
                     <p>
-                      → {cliente.brazilAddress.cidade as string}, {cliente.brazilAddress.estado as string} {cliente.brazilAddress.cep as string}
+                      → {br.cidade ?? ""}, {br.estado ?? ""} {br.cep ?? ""}
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
 
           {filteredClientes.length === 0 && searchTerm && (
             <div className="text-center py-8 text-muted-foreground">Nenhum cliente encontrado</div>

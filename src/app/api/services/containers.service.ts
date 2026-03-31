@@ -73,7 +73,6 @@ export class ContainersService extends BaseCrudService<
   async getById(id: string): Promise<{ success: boolean; data?: Container; error?: string }> {
     const result = await api.get<ContainersBackend | { data: ContainersBackend }>(
       `${this.resource}/${id}`,
-      { useCache: false },
     );
     if (!result.success) {
       return { success: false, error: result.error || "Erro ao buscar container" };

@@ -1,31 +1,6 @@
 import { useState } from 'react';
 import type { FinancialTransaction, Route } from '../../../api';
 
-const transacoesIniciais: FinancialTransaction[] = [
-  {
-    id: '1',
-    clientId: '1',
-    clientName: 'João Silva',
-    type: 'REVENUE',
-    category: 'Serviço de Mudança',
-    value: 850,
-    date: '2024-12-15',
-    description: '2 caixas grandes + fitas',
-    paymentMethod: 'Cartão de Crédito',
-  },
-  {
-    id: '2',
-    clientId: '2',
-    clientName: 'Carlos Mendes',
-    type: 'REVENUE',
-    category: 'Serviço de Mudança',
-    value: 1200,
-    date: '2024-12-18',
-    description: '3 caixas grandes + móveis',
-    paymentMethod: 'Transferência',
-  },
-];
-
 export type FinanceDataContext = {
   transacoes: FinancialTransaction[];
   setTransacoes: (transacoes: FinancialTransaction[]) => void;
@@ -36,7 +11,7 @@ export type FinanceDataContext = {
 };
 
 export function useFinanceDataContext(): FinanceDataContext {
-  const [transacoes, setTransacoes] = useState<FinancialTransaction[]>(transacoesIniciais);
+  const [transacoes, setTransacoes] = useState<FinancialTransaction[]>([]);
   const [rotas, setRotas] = useState<Route[]>([]);
 
   const addTransacao = (transacao: FinancialTransaction) => {

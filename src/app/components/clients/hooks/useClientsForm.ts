@@ -91,7 +91,7 @@ export function useClientsForm(args: {
     };
 
     setFormData({
-      usaName: cliente.usaNome ?? '',
+      usaName: cliente.usaName ?? '',
       usaCpf: cliente.usaCpf ?? '',
       usaPhone: cliente.usaPhone ?? '',
       usaAddress: {
@@ -102,7 +102,7 @@ export function useClientsForm(args: {
         zipCode: usaAddr?.zipCode ?? '',
         complemento: usaAddr?.complemento ?? '',
       },
-      brazilName: cliente.brazilNome ?? '',
+      brazilName: cliente.brazilName ?? '',
       brazilCpf: cliente.brazilCpf ?? '',
       brazilPhone: cliente.brazilPhone ?? '',
       brazilAddress: {

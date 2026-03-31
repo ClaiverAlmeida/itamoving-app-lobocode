@@ -1,7 +1,7 @@
 import React, { ReactNode } from 'react';
 import { useAuth, Permission } from '../context/AuthContext';
 import { Badge } from './ui/badge';
-import { Lock, Eye } from 'lucide-react';
+import { Eye } from 'lucide-react';
 
 interface PermissionWrapperProps {
   module: keyof Permission;

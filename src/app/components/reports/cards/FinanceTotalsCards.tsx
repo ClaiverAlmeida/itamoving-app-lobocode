@@ -13,8 +13,8 @@ export function FinanceTotalsCards(props: {
 }) {
   const { estatisticas, transacoes, formatCurrency, onExport } = props;
 
-  const totalReceitasTx = transacoes.filter((t) => t.tipo === "receita").length;
-  const totalDespesasTx = transacoes.filter((t) => t.tipo === "despesa").length;
+  const totalReceitasTx = transacoes.filter((t) => t.type === "REVENUE").length;
+  const totalDespesasTx = transacoes.filter((t) => t.type === "EXPENSE").length;
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -52,7 +52,7 @@ export function FinanceTotalsCards(props: {
         </CardHeader>
         <CardContent>
           <p className="text-3xl font-bold text-blue-900">{formatCurrency(estatisticas.lucro)}</p>
-          <p className="text-sm text-blue-700 mt-2">Margem de {estatisticas.margemLucro}%</p>
+          <p className="text-sm text-blue-700 mt-2">Margem de {Number(estatisticas.margemLucro).toFixed(1)}%</p>
           <Button variant="outline" size="sm" className="mt-4 w-full" onClick={() => onExport("lucro")}>
             <Download className="w-4 h-4 mr-2" />
             Exportar

@@ -25,4 +25,7 @@ export { configurationsService } from "./configurations.service";
 export { driverAppService } from "./driver-service-order/driver-app.service";
 // Serviço de Service Order Form
 export { serviceOrderFormService } from "./driver-service-order/service-order-form.service";
+// Tipos de Driver Service Order
 export type { DriverServiceOrderView } from "./driver-service-order/service-order-form.service";
+// Serviço de Financial Transactions
+export { financialTransactionService } from "./financial.service";

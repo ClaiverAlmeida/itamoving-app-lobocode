@@ -1,6 +1,7 @@
 import React from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../ui/card";
+import { ChartEmpty } from "../../../ui/chart-empty";
 import type { ReceitaMensal } from "../../reports.payload";
 
 export function ReceitasMensaisAreaChart(props: {
@@ -8,6 +9,7 @@ export function ReceitasMensaisAreaChart(props: {
   formatCurrency: (value: number) => string;
 }) {
   const { receitasMensais, formatCurrency } = props;
+  const semDados = receitasMensais.length === 0 || receitasMensais.every((r) => (r.valor ?? 0) === 0);
 
   return (
     <Card>
@@ -16,6 +18,9 @@ export function ReceitasMensaisAreaChart(props: {
         <CardDescription>Últimos 6 meses</CardDescription>
       </CardHeader>
       <CardContent>
+        {semDados ? (
+          <ChartEmpty minHeightClass="min-h-[300px]" message="Sem receitas nos meses exibidos." />
+        ) : (
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={receitasMensais}>
             <defs>
@@ -39,6 +44,7 @@ export function ReceitasMensaisAreaChart(props: {
             <Area type="monotone" dataKey="valor" stroke="#3B82F6" strokeWidth={3} fill="url(#colorReceitas)" />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );

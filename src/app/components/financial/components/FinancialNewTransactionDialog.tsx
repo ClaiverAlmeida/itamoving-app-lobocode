@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "../../ui/dialog";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
@@ -9,14 +9,16 @@ import { Plus } from "lucide-react";
 import type { TransactionFormData } from "../index";
 import { CATEGORIAS_DESPESA, CATEGORIAS_RECEITA, METODOS_PAGAMENTO } from "../index";
 import { handleNewTransactionSubmit } from "../index";
+import { formatFinancialClientOptionLabel } from "../financial.client-label";
 
 export function FinancialNewTransactionDialog(props: {
   carregarClientes: () => Promise<Client[]>;
-  onCreateTransacao: (t: FinancialTransaction) => void;
+  onCreateTransacao: (t: FinancialTransaction) => Promise<boolean>;
 }) {
   const { carregarClientes, onCreateTransacao } = props;
 
   const [clientes, setClientes] = useState<Client[]>([]);
+  const [clientesLoading, setClientesLoading] = useState(false);
 
   const initialFormData = useMemo((): TransactionFormData => {
     return {
@@ -37,16 +39,28 @@ export function FinancialNewTransactionDialog(props: {
     setFormData(initialFormData);
   };
 
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setClientesLoading(true);
+    void carregarClientes()
+      .then((list) => {
+        if (!cancelled) setClientes(list);
+      })
+      .finally(() => {
+        if (!cancelled) setClientesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, carregarClientes]);
+
   return (
     <Dialog
       open={open}
       onOpenChange={(isOpen) => {
         setOpen(isOpen);
-        if (isOpen) {
-          void carregarClientes().then(setClientes);
-        } else {
-          resetForm();
-        }
+        if (!isOpen) resetForm();
       }}
     >
       <DialogTrigger asChild>
@@ -64,16 +78,16 @@ export function FinancialNewTransactionDialog(props: {
         </DialogHeader>
 
         <form
-          onSubmit={(e) =>
-            handleNewTransactionSubmit({
+          onSubmit={(e) => {
+            void handleNewTransactionSubmit({
               e,
               formData,
               clientes,
               addTransacao: onCreateTransacao,
               resetForm,
               onClose: () => setOpen(false),
-            })
-          }
+            });
+          }}
           className="space-y-4"
         >
           <div className="space-y-2">
@@ -95,15 +109,25 @@ export function FinancialNewTransactionDialog(props: {
 
           {formData.type === "REVENUE" && (
             <div className="space-y-2">
-              <Label htmlFor="clienteId">Cliente</Label>
-              <Select value={formData.clientId} onValueChange={(value) => setFormData((prev) => ({ ...prev, clientId: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
+              <Label htmlFor="clienteId">Cliente (EUA)</Label>
+              {clientesLoading && <p className="text-xs text-muted-foreground">Carregando clientes…</p>}
+              {!clientesLoading && clientes.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Nenhum cliente ativo. Cadastre ou ative um cliente.
+                </p>
+              )}
+              <Select
+                value={formData.clientId || undefined}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, clientId: value }))}
+                disabled={clientesLoading || clientes.length === 0}
+              >
+                <SelectTrigger id="clienteId">
+                  <SelectValue placeholder={clientesLoading ? "Carregando…" : "Selecione o cliente"} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[300] max-h-72">
                   {clientes.map((cliente) => (
                     <SelectItem key={cliente.id} value={cliente.id}>
-                      {cliente.usaNome}
+                      {formatFinancialClientOptionLabel(cliente)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -179,12 +203,11 @@ export function FinancialNewTransactionDialog(props: {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="descricao">Descrição *</Label>
+            <Label htmlFor="descricao">Descrição</Label>
             <Input
               id="descricao"
               value={formData.description}
               onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-              required
             />
           </div>
 

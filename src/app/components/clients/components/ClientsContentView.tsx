@@ -54,7 +54,7 @@ export function ClientsContentView({
                           <User className="w-6 h-6 text-blue-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <CardTitle className="text-lg mb-1 break-words">{cliente.usaNome}</CardTitle>
+                          <CardTitle className="text-lg mb-1 break-words">{cliente.usaName}</CardTitle>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-xs">
                               {cliente.user?.name ?? '—'}
@@ -87,7 +87,7 @@ export function ClientsContentView({
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4 flex-shrink-0" />
                       <span>
-                        Cadastrado em {new Date(cliente.dataCadastro).toLocaleDateString('pt-BR')}
+                        Cadastrado em {new Date(cliente.createdAt).toLocaleDateString('pt-BR')}
                       </span>
                     </div>
 
@@ -109,7 +109,7 @@ export function ClientsContentView({
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDelete(cliente.id, cliente.usaNome);
+                          onDelete(cliente.id, cliente.usaName);
                         }}
                         className="text-red-600 hover:text-red-700"
                       >
@@ -170,7 +170,7 @@ export function ClientsContentView({
                             </div>
                             <div className="flex-1 min-w-0 space-y-2">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="font-semibold text-base sm:text-lg break-words">{cliente.usaNome}</h3>
+                                <h3 className="font-semibold text-base sm:text-lg break-words">{cliente.usaName}</h3>
                                 <Badge variant="outline">{cliente.user?.name ?? '—'}</Badge>
                                 <Badge variant={cliente.status === 'ACTIVE' ? 'secondary' : 'destructive'}>
                                   {cliente.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
@@ -209,7 +209,7 @@ export function ClientsContentView({
                                       {(cliente.brazilAddress as { estado?: string }).estado}
                                     </span>
                                   </p>
-                                  <p className="text-xs text-muted-foreground">{cliente.brazilNome}</p>
+                                  <p className="text-xs text-muted-foreground">{cliente.brazilName}</p>
                                 </div>
                               </div>
                             </div>
@@ -231,7 +231,7 @@ export function ClientsContentView({
                               size="icon"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onDelete(cliente.id, cliente.usaNome);
+                                onDelete(cliente.id, cliente.usaName);
                               }}
                               className="text-red-600 hover:text-red-700"
                             >

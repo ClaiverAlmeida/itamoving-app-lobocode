@@ -176,11 +176,11 @@ export default function ClientesView() {
     ) as (typeof possiveisCampos)[number][];
 
     const old: Record<string, unknown> = {
-      usaName: editingCliente!.usaNome,
+      usaName: editingCliente!.usaName,
       usaCpf: editingCliente!.usaCpf,
       usaPhone: editingCliente!.usaPhone,
       usaAddress: editingCliente!.usaAddress,
-      brazilName: editingCliente!.brazilNome,
+      brazilName: editingCliente!.brazilName,
       brazilCpf: editingCliente!.brazilCpf,
       brazilPhone: editingCliente!.brazilPhone,
       brazilAddress: editingCliente!.brazilAddress,
@@ -211,16 +211,16 @@ export default function ClientesView() {
 
     const clienteData: Client = {
       id: editingCliente!.id,
-      usaNome: formData.usaName,
+      usaName: formData.usaName,
       usaCpf: formData.usaCpf,
       usaPhone: formData.usaPhone,
       usaAddress: formData.usaAddress,
-      brazilNome: formData.brazilName,
+      brazilName: formData.brazilName,
       brazilCpf: formData.brazilCpf,
       brazilPhone: formData.brazilPhone,
       brazilAddress: formData.brazilAddress,
       user: editingCliente!.user ?? { id: formData.userId, name: "" },
-      dataCadastro: editingCliente!.dataCadastro,
+      createdAt: editingCliente!.createdAt,
       status: formData.status as "ACTIVE" | "INACTIVE",
     };
 
@@ -270,13 +270,13 @@ export default function ClientesView() {
       const usaAddr = cliente.usaAddress as { cidade?: string };
       const brAddr = cliente.brazilAddress as { cidade?: string };
       const matchesSearch =
-        cliente.usaNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cliente.usaName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         cliente.usaCpf.includes(searchTerm) ||
         cliente.usaPhone.includes(searchTerm) ||
         (usaAddr?.cidade ?? "")
           .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        cliente.brazilNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cliente.brazilName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         cliente.brazilCpf.includes(searchTerm) ||
         cliente.brazilPhone.includes(searchTerm) ||
         (brAddr?.cidade ?? "").toLowerCase().includes(searchTerm.toLowerCase());
@@ -306,7 +306,7 @@ export default function ClientesView() {
       // Período
       if (filters.periodo !== "todos") {
         const now = new Date();
-        const cadastroDate = new Date(cliente.dataCadastro);
+        const cadastroDate = new Date(cliente.createdAt);
 
         if (filters.periodo === "semana") {
           const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -333,7 +333,7 @@ export default function ClientesView() {
 
     const novosUltimaSemana = filteredClientes.filter((c) => {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      return new Date(c.dataCadastro) >= weekAgo;
+      return new Date(c.createdAt) >= weekAgo;
     }).length;
 
     const estadosUnicos = new Set(

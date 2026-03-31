@@ -1,0 +1,1 @@
+export const FINANCIAL_HISTORY_PAGE_SIZE = 10;

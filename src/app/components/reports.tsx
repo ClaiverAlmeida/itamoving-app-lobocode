@@ -1,17 +1,16 @@
 import React, { useMemo, useState } from "react";
-import { useData } from "../context/DataContext";
 import { useDashboardData, type DashboardDataConfig } from "../hooks/useDashboardData";
 import { ESTOQUE_IDEAL, ESTOQUE_MINIMO } from "./stock";
 import type { ReportType } from "./reports/reports.constants";
 import { REPORT_TYPES } from "./reports/reports.constants";
 import { filterClientesBySearch, formatCurrencyUSD } from "./reports/reports.utils";
 import {
-  buildCategoriasDespesas,
+  buildCategoriasReceitaDespesa,
   buildClientesPorEstado,
   buildEstatisticasGerais,
   buildPerformanceAtendentes,
   buildReceitasMensais,
-  type CategoriaDespesa,
+  type CategoriaReceitaDespesa,
   type EstatisticasGerais,
   type PerformanceAtendente,
 } from "./reports/reports.payload";
@@ -29,13 +28,11 @@ interface DashboardViewProps {
 }
 
 export default function RelatoriosView({ onNavigate, dataSources }: DashboardViewProps = {}) {
-  const { transacoes } = useData();
-
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedReport, setSelectedReport] = useState<ReportType>("visao-geral");
   const [showFilters, setShowFilters] = useState(false);
 
-  const { clientes, containers, agendamentos, estoque } = useDashboardData(dataSources);
+  const { clientes, containers, agendamentos, estoque, transacoes } = useDashboardData(dataSources);
 
   // Estoque (normaliza porque a API pode retornar undefined nos campos).
   const estoqueSafe = {
@@ -70,8 +67,8 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
     [clientes, transacoes],
   );
 
-  const categoriasDespesas = useMemo<CategoriaDespesa[]>(
-    () => buildCategoriasDespesas(transacoes),
+  const categoriasReceitaDespesa = useMemo<CategoriaReceitaDespesa[]>(
+    () => buildCategoriasReceitaDespesa(transacoes),
     [transacoes],
   );
 
@@ -116,7 +113,7 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
         <FinanceiroReportSection
           estatisticas={estatisticas}
           transacoes={transacoes}
-          categoriasDespesas={categoriasDespesas}
+          categoriasReceitaDespesa={categoriasReceitaDespesa}
           formatCurrency={formatCurrency}
           onExport={gerarRelatorioPDF}
         />

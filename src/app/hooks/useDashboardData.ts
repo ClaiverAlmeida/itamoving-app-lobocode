@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { clientsService, containersServices, stockService, appointmentsService } from '../api';
-import type { Appointment, Client, Container, Estoque } from '../api';
+import { clientsService, containersServices, stockService, appointmentsService, financialTransactionService } from '../api';
+import type { Appointment, Client, Container, Estoque, FinancialTransaction } from '../api';
 
 /** Quais fontes de dados do dashboard devem ser carregadas. Omitir = true (carrega). */
 export interface DashboardDataConfig {
@@ -9,6 +9,7 @@ export interface DashboardDataConfig {
   containers?: boolean;
   estoque?: boolean;
   agendamentos?: boolean;
+  transacoes?: boolean;
 }
 
 const defaultConfig: Required<DashboardDataConfig> = {
@@ -16,6 +17,7 @@ const defaultConfig: Required<DashboardDataConfig> = {
   containers: true,
   estoque: true,
   agendamentos: true,
+  transacoes: true,
 };
 
 const defaultEstoque: Estoque = {
@@ -30,6 +32,7 @@ export interface UseDashboardDataResult {
   clientes: Client[];
   containers: Container[];
   agendamentos: Appointment[];
+  transacoes: FinancialTransaction[];
   estoque: Estoque;
   isLoading: boolean;
   refetch: () => Promise<void>;
@@ -47,6 +50,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): UseDashboard
   const [containers, setContainers] = useState<Container[]>([]);
   const [agendamentos, setAgendamentos] = useState<Appointment[]>([]);
   const [estoque, setEstoque] = useState<Estoque>(defaultEstoque);
+  const [transacoes, setTransacoes] = useState<FinancialTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const carregar = async () => {
@@ -57,6 +61,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): UseDashboard
     if (opts.containers) promises.push(containersServices.getAll());
     if (opts.estoque) promises.push(stockService.getAll());
     if (opts.agendamentos) promises.push(appointmentsService.getAll());
+    if (opts.transacoes) promises.push(financialTransactionService.getAll());
 
     if (promises.length === 0) {
       setIsLoading(false);
@@ -95,7 +100,11 @@ export function useDashboardData(config: DashboardDataConfig = {}): UseDashboard
       if (res.success && res.data) setAgendamentos(res.data);
       else if (res.error) toast.error(res.error);
     }
-
+    if (opts.transacoes) {
+      const res = results[idx++] as Awaited<ReturnType<typeof financialTransactionService.getAll>>;
+      if (res.success && res.data) setTransacoes(res.data);
+      else if (res.error) toast.error(res.error);
+    }
     if (!cancelledRef.current) setIsLoading(false);
   };
 
@@ -105,13 +114,14 @@ export function useDashboardData(config: DashboardDataConfig = {}): UseDashboard
     return () => {
       cancelledRef.current = true;
     };
-  }, [opts.clientes, opts.containers, opts.estoque, opts.agendamentos]);
+  }, [opts.clientes, opts.containers, opts.estoque, opts.agendamentos, opts.transacoes]);
 
   return {
     clientes,
     containers,
-    agendamentos,
     estoque,
+    agendamentos,
+    transacoes,
     isLoading,
     refetch: carregar,
   };

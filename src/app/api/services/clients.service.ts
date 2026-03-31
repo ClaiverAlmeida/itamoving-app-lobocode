@@ -8,9 +8,7 @@ import type {
   UpdateClientsDTO,
 } from "../types";
 
-/**
- * Mapeia os dados do backend para o formato do frontend
- */
+/** Normaliza JSON de endereços e CPFs opcionais; escalares iguais ao backend (`usaName`, `brazilName`, `createdAt`, …). */
 function mapBackendToFrontend(client: ClientBackend): Client {
   // Mapeia usaAddress (JSON) para enderecoUSA estruturado
   const usaAddress = client.usaAddress as any;
@@ -46,16 +44,16 @@ function mapBackendToFrontend(client: ClientBackend): Client {
 
   return {
     id: client.id,
-    usaNome: client.usaName,
-    usaCpf: client.usaCpf,
+    usaName: client.usaName,
+    usaCpf: client.usaCpf ?? "",
     usaPhone: client.usaPhone,
     usaAddress: enderecoUSA,
-    brazilNome: client.brazilName,
-    brazilCpf: client.brazilCpf,
+    brazilName: client.brazilName,
+    brazilCpf: client.brazilCpf ?? "",
     brazilPhone: client.brazilPhone,
     brazilAddress: enderecoBrasil,
     user,
-    dataCadastro: client.createdAt,
+    createdAt: client.createdAt,
     status: client.status,
   };
 }

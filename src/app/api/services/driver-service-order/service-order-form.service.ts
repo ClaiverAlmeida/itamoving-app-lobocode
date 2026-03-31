@@ -32,7 +32,7 @@ export class ServiceOrderFormService {
 
     async getAllCompletedAndNotAssignedToContainer(): Promise<{ success: boolean; data?: DriverServiceOrderView[]; error?: string }> {
         try {
-            const result = await api.get<unknown>("/driver-service-order/completed", { useCache: false });
+            const result = await api.get<unknown>("/driver-service-order/completed");
             if (result.success && result.data != null) {
                 const list = extractDriverServiceOrderList(result.data);
                 const mapped = list

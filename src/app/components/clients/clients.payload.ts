@@ -38,11 +38,11 @@ export function buildClientUpdatePayload(
 
   const patch: UpdateClientsDTO = {};
 
-  if (current.usaName !== editingCliente.usaNome) patch.usaName = current.usaName;
+  if (current.usaName !== editingCliente.usaName) patch.usaName = current.usaName;
   if (current.usaCpf !== editingCliente.usaCpf) patch.usaCpf = current.usaCpf;
   if (current.usaPhone !== editingCliente.usaPhone)
     patch.usaPhone = current.usaPhone;
-  if (current.brazilName !== editingCliente.brazilNome)
+  if (current.brazilName !== editingCliente.brazilName)
     patch.brazilName = current.brazilName;
   if (current.brazilCpf !== editingCliente.brazilCpf)
     patch.brazilCpf = current.brazilCpf;

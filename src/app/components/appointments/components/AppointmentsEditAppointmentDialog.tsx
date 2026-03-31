@@ -129,7 +129,7 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
               <SelectContent>
                 {clientesAtivos.map((cliente) => (
                   <SelectItem key={cliente.id} value={cliente.id}>
-                    {cliente.usaNome} - {cliente.usaAddress.cidade as string},{" "}
+                    {cliente.usaName} - {cliente.usaAddress.cidade as string},{" "}
                     {cliente.usaAddress.estado as string}
                   </SelectItem>
                 ))}

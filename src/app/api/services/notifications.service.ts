@@ -13,11 +13,11 @@ function toMutationResult(res: ApiResponse<unknown>): NotificationMutationResult
 
 export const notificationsService = {
   async getList(params?: { page?: number; limit?: number; isRead?: boolean }): Promise<ApiResponse<NotificationsListResponse>> {
-    return api.get<NotificationsListResponse>('/notifications', { params: params ?? {}, useCache: false });
+    return api.get<NotificationsListResponse>('/notifications', { params: params ?? {} });
   },
 
   async getUnreadCount(): Promise<ApiResponse<number>> {
-    const res = await api.get<number>('/notifications/unread-count', { useCache: false });
+    const res = await api.get<number>('/notifications/unread-count');
     return res;
   },
 

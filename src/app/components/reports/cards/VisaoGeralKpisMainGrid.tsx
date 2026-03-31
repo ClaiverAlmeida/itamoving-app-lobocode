@@ -2,9 +2,11 @@ import React from "react";
 import { ArrowUpRight, DollarSign, Ship, Target, TrendingDown, TrendingUp, Users } from "lucide-react";
 import { Card, CardContent } from "../../ui/card";
 import type { EstatisticasGerais } from "../reports.payload";
+import { formatPercentDelta } from "../reports.utils";
 
 export function VisaoGeralKpisMainGrid(props: { estatisticas: EstatisticasGerais; formatCurrency: (value: number) => string }) {
   const { estatisticas, formatCurrency } = props;
+  const receitasMoM = formatPercentDelta(estatisticas.crescimentoMensal);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
@@ -18,8 +20,10 @@ export function VisaoGeralKpisMainGrid(props: { estatisticas: EstatisticasGerais
             {formatCurrency(estatisticas.receitas)}
           </p>
           <p className="text-xs text-blue-700 mt-1 flex items-center gap-1">
-            <ArrowUpRight className="w-3 h-3" />
-            +{estatisticas.crescimentoMensal}% este mês
+            <ArrowUpRight className="w-3 h-3 shrink-0" />
+            <span>
+              {receitasMoM} receitas <span className="text-blue-600/80">vs mês anterior</span>
+            </span>
           </p>
         </CardContent>
       </Card>
@@ -68,7 +72,15 @@ export function VisaoGeralKpisMainGrid(props: { estatisticas: EstatisticasGerais
         </div>
         <CardContent className="p-0">
           <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-orange-900">{estatisticas.totalContainers}</p>
-          <p className="text-xs text-orange-700 mt-1">{estatisticas.containersTransito} em trânsito</p>
+          <div className="text-[10px] sm:text-xs text-orange-700 mt-1 space-y-0.5 leading-tight">
+            <p>
+              Prep. {estatisticas.containersPreparacao} · Env. {estatisticas.containersEnviado} · Trâns.{" "}
+              {estatisticas.containersTransito}
+            </p>
+            <p>
+              Entr. {estatisticas.containersEntregue} · Canc. {estatisticas.containersCancelados}
+            </p>
+          </div>
         </CardContent>
       </Card>
 

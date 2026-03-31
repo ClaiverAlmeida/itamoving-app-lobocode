@@ -1,13 +1,14 @@
 /**
- * Legacy UI list shape (e.g. appointments pickers). Prefer {@link ClientBackend} for API payloads.
+ * Cliente no app após `clients.service` (endereços JSON normalizados para objeto com rua/cidade/etc.;
+ * escalares com os mesmos nomes do backend / Prisma).
  */
 export interface Client {
   id: string;
-  usaNome: string;
+  usaName: string;
   usaCpf: string;
   usaPhone: string;
   usaAddress: Record<string, unknown>;
-  brazilNome: string;
+  brazilName: string;
   brazilCpf: string;
   brazilPhone: string;
   brazilAddress: Record<string, unknown>;
@@ -15,7 +16,7 @@ export interface Client {
     id: string;
     name: string;
   };
-  dataCadastro: string;
+  createdAt: string;
   status: "ACTIVE" | "INACTIVE";
 }
 
@@ -71,11 +72,11 @@ export interface ClientBackend {
   id: string;
   companyId: string;
   usaName: string;
-  usaCpf: string;
+  usaCpf: string | null;
   usaPhone: string;
   usaAddress: Record<string, unknown>;
   brazilName: string;
-  brazilCpf: string;
+  brazilCpf: string | null;
   brazilPhone: string;
   brazilAddress: Record<string, unknown>;
   status: 'ACTIVE' | 'INACTIVE';

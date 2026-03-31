@@ -52,7 +52,7 @@ export function ClientsSidePanel({
                   <User className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">{selectedCliente.usaNome}</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-2">{selectedCliente.usaName}</h2>
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge className="bg-blue-100 text-blue-700">{selectedCliente.user?.name ?? '—'}</Badge>
                     <Badge
@@ -63,7 +63,7 @@ export function ClientsSidePanel({
                       {selectedCliente.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
                     </Badge>
                     <Badge variant="outline">
-                      Cliente desde {new Date(selectedCliente.dataCadastro).toLocaleDateString('pt-BR')}
+                      Cliente desde {new Date(selectedCliente.createdAt).toLocaleDateString('pt-BR')}
                     </Badge>
                   </div>
                 </div>
@@ -149,7 +149,7 @@ export function ClientsSidePanel({
               <CardContent className="space-y-3">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Nome do Recebedor</p>
-                  <p className="font-semibold">{selectedCliente.brazilNome}</p>
+                  <p className="font-semibold">{selectedCliente.brazilName}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">CPF do Recebedor</p>
@@ -188,7 +188,7 @@ export function ClientsSidePanel({
                 <CardTitle className="text-lg text-red-900">Zona de Perigo</CardTitle>
               </CardHeader>
               <CardContent>
-                <Button variant="destructive" className="w-full" onClick={() => onDelete(selectedCliente.id, selectedCliente.usaNome)}>
+                <Button variant="destructive" className="w-full" onClick={() => onDelete(selectedCliente.id, selectedCliente.usaName)}>
                   <Trash2 className="w-4 h-4 mr-2" />
                   Excluir Cliente
                 </Button>
