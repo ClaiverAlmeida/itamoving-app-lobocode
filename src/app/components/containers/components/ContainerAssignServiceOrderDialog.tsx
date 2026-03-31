@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import type { Container, DriverServiceOrder } from "../../../api";
+import type { Container } from "../../../api";
 import { serviceOrderFormService } from "../../../api";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "../../ui/select";
 import { containersCrud } from "../containers.crud";
+import { getServiceOrderAssociationCaption } from "../containers.utils";
 import { isValidVolumeLetter, previewNextLabels } from "../utils/container-box-numbering.utils";
 import { ServiceOrderBoxesPreview } from "./ServiceOrderBoxesPreview";
 import type { DriverServiceOrderView } from "../../../api/services/driver-service-order/service-order-form.service";
@@ -35,6 +36,8 @@ import {
   PackagePlus,
   Truck,
 } from "lucide-react";
+import { AtendenteSelect } from "../../forms";
+import { useAuth } from "../../../context/AuthContext";
 
 type Props = {
   open: boolean;
@@ -68,12 +71,14 @@ export function ContainerAssignServiceOrderDialog({
   onSuccess,
   onUnassignServiceOrder,
 }: Props) {
+  const { user } = useAuth();
   const [orders, setOrders] = useState<DriverServiceOrderView[]>([]);
   const [loadingList, setLoadingList] = useState(false);
   const [selectedId, setSelectedId] = useState<string>("");
-  const [detail, setDetail] = useState<DriverServiceOrder | null>(null);
+  const [detail, setDetail] = useState<DriverServiceOrderView | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [letterDraft, setLetterDraft] = useState("");
+  const [selectedAtendente, setSelectedAtendente] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [linkedDetailsLoading, setLinkedDetailsLoading] = useState(false);
   const [linkedOrderDetails, setLinkedOrderDetails] = useState<Record<string, DriverServiceOrderView>>({});
@@ -127,6 +132,7 @@ export function ContainerAssignServiceOrderDialog({
     setSelectedId("");
     setDetail(null);
     setLetterDraft("");
+    setSelectedAtendente("");
     setLinkedOrderDetails({});
     if (!container.id) return;
     let cancelled = false;
@@ -221,15 +227,30 @@ export function ContainerAssignServiceOrderDialog({
   }, [linkedOrderDetails, linkedOrders.length]);
 
   const confirmar = async () => {
-    if (!workingContainer.id || !selectedId) return;
+    if (!workingContainer.id || !selectedId || !detail) return;
     if (precisaLetra && !isValidVolumeLetter(letterDraft)) {
       toast.error("Informe uma letra de volume (A–Z) para este container.");
+      return;
+    }
+    const clientId = detail.appointment?.client?.id?.trim();
+    const boxes = detail.driverServiceOrderProducts ?? [];
+    const driverServiceOrderProductIds = boxes
+      .map((p) => p.id?.trim())
+      .filter((id): id is string => Boolean(id));
+    if (!clientId) {
+      toast.error("Cliente do agendamento não identificado. Recarregue a ordem.");
+      return;
+    }
+    if (driverServiceOrderProductIds.length === 0 || driverServiceOrderProductIds.length !== boxes.length) {
+      toast.error("Todas as caixas da ordem precisam estar carregadas com id para vincular.");
       return;
     }
     setSubmitting(true);
     try {
       const result = await containersCrud.assignServiceOrder(workingContainer.id, {
         driverServiceOrderId: selectedId,
+        clientId,
+        driverServiceOrderProductIds,
         ...(precisaLetra ? { volumeLetter: letterDraft.trim().toUpperCase() } : {}),
       });
       if (result.success && result.data) {
@@ -291,9 +312,8 @@ export function ContainerAssignServiceOrderDialog({
             <div>
               <SectionLabel step={1}>Situação deste container</SectionLabel>
               <div
-                className={`grid gap-3 pl-0 sm:pl-11 grid-cols-2 ${
-                  fullW != null && fullW > 0 ? "sm:grid-cols-4" : "sm:grid-cols-3"
-                }`}
+                className={`grid gap-3 pl-0 sm:pl-11 grid-cols-2 ${fullW != null && fullW > 0 ? "sm:grid-cols-4" : "sm:grid-cols-3"
+                  }`}
               >
                 <div className="rounded-lg border bg-card px-3 py-2.5 min-h-[96px] grid place-items-center text-center">
                   <div className="flex flex-col items-center justify-center gap-1">
@@ -421,6 +441,12 @@ export function ContainerAssignServiceOrderDialog({
                               {weight.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
                             </Badge>
                           </div>
+                          {(() => {
+                            const cap = getServiceOrderAssociationCaption(order);
+                            return cap ? (
+                              <p className="text-[11px] text-muted-foreground mt-1 leading-snug">{cap}</p>
+                            ) : null;
+                          })()}
                         </div>
                         <Button
                           type="button"
@@ -462,7 +488,7 @@ export function ContainerAssignServiceOrderDialog({
                                 </div>
                                 <div className="mt-1">
                                   <Badge variant="outline" className="text-[10px]">
-                                    Tipo: {box.type?.trim() || "N/A"}
+                                    Tipo: {box.type?.trim() || "—"}
                                   </Badge>
                                 </div>
                                 <div className="mt-1 flex flex-wrap gap-1">
@@ -529,11 +555,27 @@ export function ContainerAssignServiceOrderDialog({
               </div>
             </div>
 
+            <Separator />
+            <div>
+              <SectionLabel step={4}>Escolher atendente responsável</SectionLabel>
+              <div className="sm:pl-11 flex flex-col sm:flex-row sm:items-end gap-3">
+                <div className="space-y-2 w-full">
+                  <AtendenteSelect
+                    user={user ? { id: user.id, nome: user.nome } : null}
+                    value={selectedAtendente}
+                    onValueChange={(id) => setSelectedAtendente(id)}
+                    label="Atendente *"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
             {precisaLetra && (
               <>
                 <Separator />
                 <div>
-                  <SectionLabel step={4}>Letra do volume (primeira vez neste container)</SectionLabel>
+                  <SectionLabel step={5}>Letra do volume (primeira vez neste container)</SectionLabel>
                   <div className="sm:pl-11 flex flex-col sm:flex-row sm:items-end gap-3">
                     <div className="space-y-2">
                       <Label htmlFor="aso-volume-letter">Uma letra de A a Z</Label>

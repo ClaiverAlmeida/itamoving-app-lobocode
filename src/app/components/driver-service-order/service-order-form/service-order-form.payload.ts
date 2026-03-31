@@ -65,8 +65,8 @@ type BuildPayloadParams = {
   existingProductIds: Set<string>;
   assinaturaClienteFinal: string;
   assinaturaAgenteFinal: string;
-  driverName: string;
-  userId: string;
+  /** CUID do motorista; na criação, gestão envia o escolhido; motorista logado pode omitir (API usa o token). */
+  driverId: string;
   status: DriverServiceOrder["status"];
   valorPago: string;
   observations: string | undefined;
@@ -111,11 +111,13 @@ export function buildServiceOrderPayload(params: BuildPayloadParams): DriverServ
     clientSignature: params.assinaturaClienteFinal,
     agentSignature: params.assinaturaAgenteFinal,
     signatureDate: new Date().toISOString(),
-    driverName: params.driverName,
-    userId: params.userId,
+    driverId: params.driverId,
     status: params.status,
     chargedValue: parseFloat(params.valorPago),
-    observations: params.observations,
+    observations:
+      params.observations !== undefined && params.observations !== null && String(params.observations).trim() !== ""
+        ? String(params.observations).trim()
+        : undefined,
   };
 }
 

@@ -7,6 +7,13 @@ import {
 import { UpdateFinancialTransactionDTO } from "../types/financial";
 import { toDateOnly } from "../../utils/date";
 
+function pickClientDisplayName(client?: FinancialTransactionBackend["client"]): string | undefined {
+    if (!client) return undefined;
+    const usa = client.usaName?.trim();
+    if (usa) return usa;
+    return undefined;
+}
+
 function mapBackendToFrontend(row: FinancialTransactionBackend): FinancialTransaction {
     const rawVal = row.value;
     const num = typeof rawVal === "number" ? rawVal : Number(rawVal);
@@ -14,7 +21,7 @@ function mapBackendToFrontend(row: FinancialTransactionBackend): FinancialTransa
     return {
         id: row.id,
         clientId: row.client?.id ?? undefined,
-        clientName: row.client?.usaName ?? undefined,
+        clientName: pickClientDisplayName(row.client),
         type: row.type,
         category: row.category,
         value: Number.isFinite(num) ? num : 0,

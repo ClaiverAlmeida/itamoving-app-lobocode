@@ -59,7 +59,7 @@ export function ContainersContentView({
                           <StatusIcon className={`w-6 h-6 ${colors.text}`} />
                         </div>
                         <div>
-                          <CardTitle className="text-lg">{container.number} - Lacre: {container.seal || "N/A"}</CardTitle>
+                          <CardTitle className="text-lg">{container.number} - Lacre: {container.seal || "—"}</CardTitle>
                           <Badge className={colors.badge}>{getStatusLabel(container.status)}</Badge>
                         </div>
                       </div>
@@ -137,12 +137,12 @@ export function ContainersContentView({
                                   <div className="flex flex-wrap items-center gap-1">
                                     <div className="inline-flex items-center gap-1 min-w-0">
                                       <MapPin className="w-3 h-3 text-blue-600 shrink-0" />
-                                      <span className="font-medium break-words">{container.origin || "N/A"}</span>
+                                      <span className="font-medium break-words">{container.origin || "—"}</span>
                                     </div>
                                     <ArrowRight className="w-3 h-3 shrink-0" />
                                     <div className="inline-flex items-center gap-1 min-w-0">
                                       <MapPin className="w-3 h-3 text-green-600 shrink-0" />
-                                      <span className="font-medium break-words">{container.destination || "N/A"}</span>
+                                      <span className="font-medium break-words">{container.destination || "—"}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -195,7 +195,7 @@ export function ContainersContentView({
               <CardContent className="p-3 space-y-2">
                 <h4 className="font-semibold text-sm">{container.number}</h4>
                 <div className="text-xs text-muted-foreground">
-                  <p>{container.origin || "N/A"} → {container.destination || "N/A"}</p>
+                  <p>{container.origin || "—"} → {container.destination || "—"}</p>
                 </div>
               </CardContent>
             </Card>
@@ -217,7 +217,7 @@ export function ContainersContentView({
               <CardContent className="p-3 space-y-2">
                 <h4 className="font-semibold text-sm">{container.number}</h4>
                 <div className="text-xs text-muted-foreground">
-                  <p>{container.origin || "N/A"} → {container.destination || "N/A"}</p>
+                  <p>{container.origin || "—"} → {container.destination || "—"}</p>
                 </div>
               </CardContent>
             </Card>
@@ -239,7 +239,7 @@ export function ContainersContentView({
               <CardContent className="p-3 space-y-2">
                 <h4 className="font-semibold text-sm">{container.number}</h4>
                 <div className="text-xs text-muted-foreground">
-                  <p>{container.origin || "N/A"} → {container.destination || "N/A"}</p>
+                  <p>{container.origin || "—"} → {container.destination || "—"}</p>
                 </div>
               </CardContent>
             </Card>

@@ -48,8 +48,10 @@ export interface DriverServiceOrder {
   clientSignature: string;
   agentSignature: string;
   signatureDate: string;
-  driverName: string;
-  userId: string;
+  /** Preenchido a partir da relação `driver` na resposta da API. */
+  driverName?: string;
+  /** CUID do motorista (`DriverServiceOrder.driverId`). Envio opcional na criação (gestão); omitido na resposta transformada se vier só `driver`. */
+  driverId?: string;
   status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
   chargedValue: number;
   observations?: string;

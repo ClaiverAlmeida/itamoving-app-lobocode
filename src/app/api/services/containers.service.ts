@@ -4,15 +4,28 @@ import type { ContainersBackend, CreateContainersDTO, UpdateContainersDTO } from
 import { BaseCrudService } from "./base-crud.service";
 import { api } from "./api.service";
 
+function pickClientDisplayName(client?: {
+  usaName?: string | null;
+  brazilName?: string | null;
+}): string {
+  const u = client?.usaName?.trim() ?? "";
+  if (u) return u;
+  const b = client?.brazilName?.trim() ?? "";
+  return b;
+}
+
 function mapBackendToFrontend(container: ContainersBackend): Container {
   const fromProducts = Array.isArray(container.products)
-    ? container.products.map((p) => ({
-        clientId: p.clientId ?? "",
-        clientName: p.clientName ?? "",
-        boxNumber: p.boxNumber,
-        size: p.size,
-        weight: p.weight,
-      }))
+    ? container.products.map((p) => {
+        const linked = p.driverServiceOrderProducts?.[0];
+        return {
+          clientId: p.clientId ?? "",
+          clientName: pickClientDisplayName(p.client ?? undefined) || "",
+          boxNumber: p.boxNumber,
+          size: linked?.type ?? p.size ?? "",
+          weight: linked?.weight ?? p.weight ?? 0,
+        };
+      })
     : [];
   const boxes = fromProducts.length ? fromProducts : container.boxes ?? [];
   const totalWeight =
@@ -45,6 +58,7 @@ function mapBackendToFrontend(container: ContainersBackend): Container {
           status: o.status,
           recipientName: o.appointment?.client?.usaName ?? null,
           createdAt: o.createdAt,
+          attendant: o.attendant ? { id: o.attendant.id, name: o.attendant.name } : null,
         }))
       : undefined,
   };
@@ -52,6 +66,8 @@ function mapBackendToFrontend(container: ContainersBackend): Container {
 
 export type AssignContainerServiceOrderPayload = {
   driverServiceOrderId: string;
+  clientId: string;
+  driverServiceOrderProductIds: string[];
   volumeLetter?: string;
 };
 

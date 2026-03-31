@@ -16,6 +16,11 @@ export type DriverServiceOrderView = DriverServiceOrder & {
     isPeriodic?: boolean;
     value?: number;
     downPayment?: number;
+    client?: {
+      id: string;
+      usaName?: string;
+      brazilName?: string;
+    };
   };
   company?: {
     id?: string;
@@ -148,14 +153,15 @@ export function mapDriverServiceOrderApiToView(raw: unknown): DriverServiceOrder
     clientSignature: String(r.clientSignature ?? ""),
     agentSignature: String(r.agentSignature ?? ""),
     signatureDate: toIso(r.signatureDate),
-    driverName: String(r.driverName ?? driver?.name ?? ""),
-    userId: String(r.userId ?? driver?.id ?? ""),
+    driverName: String(driver?.name ?? r.driverName ?? ""),
+    driverId: String(driver?.id ?? r.driverId ?? ""),
     status: normalizeStatus(r.status),
     chargedValue: Number(r.chargedValue) || 0,
     observations: r.observations != null ? String(r.observations) : undefined,
   };
 
   if (aptNested) {
+    const aptClient = asRecord(aptNested.client);
     ordem.appointment = {
       id: String(aptNested.id ?? appointmentId),
       collectionDate:
@@ -167,6 +173,13 @@ export function mapDriverServiceOrderApiToView(raw: unknown): DriverServiceOrder
       downPayment:
         aptNested.downPayment != null ? Number(aptNested.downPayment) : undefined,
     };
+    if (aptClient?.id != null) {
+      ordem.appointment.client = {
+        id: String(aptClient.id),
+        usaName: aptClient.usaName != null ? String(aptClient.usaName) : undefined,
+        brazilName: aptClient.brazilName != null ? String(aptClient.brazilName) : undefined,
+      };
+    }
   }
 
   const comp = asRecord(r.company);

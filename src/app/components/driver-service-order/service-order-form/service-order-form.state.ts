@@ -328,7 +328,7 @@ export function useServiceOrderFormState({
     setDestinatarioComplemento(existingOrdem.recipient.brazilAddress.complemento?.trim() || "-");
     setOrdemStatus(existingOrdem.status);
     setOrdemObservacoes(existingOrdem.observations ?? "");
-    setMotoristaResponsavel(existingOrdem.userId || "");
+    setMotoristaResponsavel(existingOrdem.driverId || (existingOrdem as { userId?: string }).userId || "");
 
     existingProductIdsRef.current = new Set(
       (existingOrdem.driverServiceOrderProducts ?? [])

@@ -13,7 +13,6 @@ export interface FinancialTransaction {
 
 export interface CreateFinancialTransactionDTO {
   clientId?: string;
-  clientName?: string;
   type: "REVENUE" | "EXPENSE";
   category: string;
   value: number;
@@ -26,8 +25,8 @@ export interface FinancialTransactionBackend {
   id: string;
   client?: {
     id: string;
-    usaName: string;
-    usaAddress: {
+    usaName?: string;
+    usaAddress?: {
       cidade: string;
       estado: string;
     };

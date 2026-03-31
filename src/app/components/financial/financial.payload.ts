@@ -22,8 +22,7 @@ export function buildTransacaoFromFormData(params: {
   if (formData.type === "REVENUE") {
     return {
       ...base,
-      clientId: formData.clientId,
-      clientName: cliente?.usaName,
+      clientId: cliente!.id!,
     };
   }
 

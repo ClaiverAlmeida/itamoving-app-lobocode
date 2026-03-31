@@ -79,6 +79,17 @@ export const getContainerStatusLabel = (status: string) => {
   }
 };
 
+export type ServiceOrderAssociationFields = {
+  attendant?: { id: string; name: string } | null;
+};
+
+/** Atendente da OS (gravado como `attendantId` ao vincular ao container; limpo ao desvincular). */
+export function getServiceOrderAssociationCaption(order: ServiceOrderAssociationFields): string | null {
+  const name = order.attendant?.name?.trim();
+  if (!name) return null;
+  return `Atendente: ${name}`;
+}
+
 export const getContainersByStatus = (containers: Container[]) => ({
   preparacao: containers.filter((c) => c.status === "PREPARATION"),
   transito: containers.filter((c) => c.status === "IN_TRANSIT" || c.status === "SHIPPED"),

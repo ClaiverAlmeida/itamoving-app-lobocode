@@ -5,6 +5,7 @@ import { ptBR } from "date-fns/locale/pt-BR";
 import type { Container } from "../../../api";
 import { serviceOrderFormService } from "../../../api";
 import type { DriverServiceOrderView } from "../../../api/services/driver-service-order/service-order-form.service";
+import { getServiceOrderAssociationCaption } from "../containers.utils";
 import { ContainerAssignServiceOrderCard } from "./ContainerAssignServiceOrderCard";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
@@ -157,12 +158,12 @@ export function ContainersSidePanel(props: Props) {
                     <h2 className="text-base sm:text-lg lg:text-2xl font-bold text-foreground mb-2 break-words">
                       {selectedContainer.number}
                     </h2>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
                       <Badge variant="default" className="text-xs">
-                        Lacre: {selectedContainer.seal || "N/A"}
+                        Lacre: {selectedContainer.seal || "—"}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
                       <Badge className={getStatusColor(selectedContainer.status).badge}>
                         {getStatusLabel(selectedContainer.status)}
                       </Badge>
@@ -418,6 +419,12 @@ export function ContainersSidePanel(props: Props) {
                           <div className="flex gap-1 mt-1">
                             <Badge variant="outline" className="text-[10px]">{boxes.length} caixas</Badge>
                           </div>
+                          {(() => {
+                            const cap = getServiceOrderAssociationCaption(order);
+                            return cap ? (
+                              <p className="text-[11px] text-muted-foreground mt-1 leading-snug">{cap}</p>
+                            ) : null;
+                          })()}
                         </div>
                         <Button
                           variant="outline"
@@ -438,7 +445,7 @@ export function ContainersSidePanel(props: Props) {
                           boxes.map((box, idx) => (
                             <div key={box.id ?? `${order.id}-${idx}`} className="rounded border bg-background px-2 py-1.5">
                               <p className="text-xs font-medium">
-                                Caixa #{box.number || idx + 1} - {box.type || "N/A"}
+                                Caixa #{box.number || idx + 1} - {box.type || "—"}
                               </p>
                             </div>
                           ))

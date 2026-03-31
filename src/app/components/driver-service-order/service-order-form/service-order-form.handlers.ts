@@ -132,9 +132,10 @@ export function useServiceOrderFormSave(params: Params) {
     if (params.caixas.length !== expectedCaixasCount) return;
     const expectedItensCount = (params.existingOrdem.driverServiceOrderProducts ?? []).reduce((sum, p) => sum + (p.driverServiceOrderProductsItems?.length ?? 0), 0);
     if (params.itens.length !== expectedItensCount) return;
-    let expectedMotoristaId = params.existingOrdem.userId || "";
-    if (params.motoristas.length) {
-      const matchByName = params.motoristas.find((m) => m.name === params.existingOrdem?.driverName);
+    const ordem = params.existingOrdem as { driverId?: string; userId?: string; driverName?: string };
+    let expectedMotoristaId = ordem.driverId || ordem.userId || "";
+    if (params.motoristas.length && ordem.driverName) {
+      const matchByName = params.motoristas.find((m) => m.name === ordem.driverName);
       if (matchByName) expectedMotoristaId = matchByName.id;
     }
     if (params.motoristaResponsavel !== expectedMotoristaId) return;
@@ -207,11 +208,12 @@ export function useServiceOrderFormSave(params: Params) {
       existingProductIds: params.existingProductIds,
       assinaturaClienteFinal,
       assinaturaAgenteFinal,
-      driverName: params.isEditMode ? (params.motoristaResponsavelNome || params.existingOrdem?.driverName || params.user?.nome || "Motorista") : (criandoComoMotorista ? (params.user?.nome || "Motorista") : (params.motoristaResponsavelNome || "Motorista")),
-      userId: idMotoristaResponsavel,
+      driverId: idMotoristaResponsavel,
       status: criandoComoMotorista ? "COMPLETED" : params.ordemStatus,
       valorPago: params.valorPago,
-      observations: !params.isEditMode ? params.observations : params.ordemObservacoes.trim() || undefined,
+      observations: !params.isEditMode
+        ? params.observations?.trim() || undefined
+        : params.ordemObservacoes.trim() || undefined,
     });
 
     if (!params.isEditMode || !params.existingOrdem?.id) {
@@ -254,8 +256,7 @@ export function useServiceOrderFormSave(params: Params) {
     if (observationsChanged) patch.observations = currentObj?.ordem?.observations ?? "";
     if (chargedValueChanged) patch.chargedValue = payload.chargedValue;
     if (motoristaChanged) {
-      patch.userId = payload.userId;
-      patch.driverName = payload.driverName;
+      patch.driverId = payload.driverId;
     }
     if (clientSignatureChanged) patch.clientSignature = payload.clientSignature;
     if (agentSignatureChanged) patch.agentSignature = payload.agentSignature;
@@ -317,10 +318,6 @@ export function useServiceOrderFormSave(params: Params) {
       }
     }
 
-    if (Object.keys(patch).length > 0) {
-      patch.userId = payload.userId;
-      patch.driverName = payload.driverName;
-    }
     for (const [k, v] of Object.entries(patch)) {
       if (v === undefined) delete (patch as any)[k];
     }

@@ -101,7 +101,7 @@ export function DeliveryReceipt({
           </div>
           <p className="text-sm text-muted-foreground">Mudanças internacionais EUA–Brasil</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Miami, FL - Sao Paulo, SP{companyContactPhone ? ` | ${companyContactPhone}` : ""}
+            {ordem.sender.usaAddress.cidade}, {ordem.sender.usaAddress.estado} - {ordem.recipient.brazilAddress.cidade}, {ordem.recipient.brazilAddress.estado} - {companyContactPhone}
           </p>
         </div>
 
@@ -228,10 +228,20 @@ export function DeliveryReceipt({
           <p className="text-xs text-muted-foreground mt-4 text-center">Declaro que recebi os itens acima relacionados em perfeito estado.</p>
         </div>
 
-        <div className="mt-8 pt-6 border-t text-center text-xs text-muted-foreground">
-          <p>ITAMOVING — Mudanças internacionais</p>
-          <p>www.itamoving.com | contato@itamoving.com</p>
-          <p className="mt-2">Este documento comprova a entrega e o pagamento dos serviços prestados.</p>
+        <div className="mt-8 pt-6 border-t text-xs text-muted-foreground">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+            <div className="text-left shrink-0">
+              <p className="font-semibold text-[#1E3A5F] text-sm">Motorista</p>
+              <p className="mt-0.5 text-foreground font-medium">
+                {ordem.driverName?.trim() ? ordem.driverName.trim() : "—"}
+              </p>
+            </div>
+            <div className="text-center sm:text-right flex-1 min-w-0">
+              <p>ITAMOVING — Mudanças internacionais</p>
+              <p>www.itamoving.com | contato@itamoving.com</p>
+              <p className="mt-2">Este documento comprova a entrega e o pagamento dos serviços prestados.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

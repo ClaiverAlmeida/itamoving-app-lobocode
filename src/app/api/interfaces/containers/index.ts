@@ -28,6 +28,8 @@ export interface Container {
     status?: string;
     recipientName?: string | null;
     createdAt?: string;
+    /** Atendente da OS (`attendantId`); na associação ao container vira o usuário logado; limpo ao desvincular. */
+    attendant?: { id: string; name: string } | null;
   }[];
   boxes?: {
     clientId: string;
@@ -75,9 +77,12 @@ export interface ContainersBackend {
   products?: Array<{
     id: string;
     boxNumber: string;
-    size: string;
-    weight: number;
     clientId?: string | null;
+    client?: { id?: string; usaName?: string | null; brazilName?: string | null } | null;
+    driverServiceOrderProducts?: Array<{ type?: string; weight?: number | null }>;
+    /** Legado se a API ainda enviar campos desnormalizados. */
+    size?: string;
+    weight?: number;
     clientName?: string | null;
   }>;
   boxes?: { clientId: string; clientName: string; boxNumber: string; size: string; weight: number }[];
@@ -87,6 +92,7 @@ export interface ContainersBackend {
     status?: string;
     appointment?: { client?: { usaName?: string | null } | null } | null;
     createdAt?: string;
+    attendant?: { id: string; name: string } | null;
   }[];
   createdAt?: string;
   updatedAt?: string;

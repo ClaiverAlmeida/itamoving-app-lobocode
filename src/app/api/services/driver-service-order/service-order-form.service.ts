@@ -65,13 +65,16 @@ export class ServiceOrderFormService {
         }
     }
 
-    async create(data: DriverServiceOrder): Promise<{ success: boolean; data?: DriverServiceOrder; error?: string }> {
+    async create(
+        data: DriverServiceOrder,
+    ): Promise<{ success: boolean; data?: DriverServiceOrderView; error?: string }> {
         try {
             const result = await api.post<DriverServiceOrder | { data: DriverServiceOrder }>("/driver-service-order", data);
             if (result.success && result.data) {
                 const raw = (result.data as any)?.data ?? result.data;
-                const serviceOrder = raw as DriverServiceOrder;
-                return { success: true, data: serviceOrder };
+                const mapped = mapDriverServiceOrderApiToView(raw);
+                if (mapped) return { success: true, data: mapped };
+                return { success: false, error: "Resposta inválida da ordem de serviço" };
             }
             return { success: false, error: result.error || "Erro ao criar ordem de serviço" };
         } catch (error) {
