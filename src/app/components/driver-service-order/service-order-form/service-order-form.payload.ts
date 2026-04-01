@@ -1,6 +1,4 @@
-import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from "../../stock";
 import type { Caixa, Item, DriverServiceOrder, ProductPrice } from "../../../api";
-import { obterTipoProdutoDaCaixa } from "./service-order-form.verifications";
 
 type BuildProductsParams = {
   caixas: Caixa[];
@@ -20,10 +18,11 @@ function buildDriverServiceOrderProducts({
     ...(c.productId
       ? { productId: c.productId }
       : (() => {
-          const produto = opcoesCaixa.find((p) => p.size === c.type || p.name === c.type);
+          const produto = opcoesCaixa.find(
+            (p) => p.size === c.type || p.name === c.type || (p.dimensions != null && p.dimensions === c.type),
+          );
           return produto?.id ? { productId: produto.id } : {};
         })()),
-    type: `${c.type} - ${ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[obterTipoProdutoDaCaixa(c, opcoesCaixa) as keyof typeof PRODUCT_TYPE_TO_ITEM_KEY]]}`,
     value: c.value,
     weight: c.weight,
     driverServiceOrderProductsItems: itens
@@ -113,7 +112,10 @@ export function buildServiceOrderPayload(params: BuildPayloadParams): DriverServ
     signatureDate: new Date().toISOString(),
     driverId: params.driverId,
     status: params.status,
-    chargedValue: parseFloat(params.valorPago),
+    chargedValue: (() => {
+      const n = parseFloat(String(params.valorPago).trim().replace(",", "."));
+      return Number.isFinite(n) && n >= 0 ? n : 0;
+    })(),
     observations:
       params.observations !== undefined && params.observations !== null && String(params.observations).trim() !== ""
         ? String(params.observations).trim()

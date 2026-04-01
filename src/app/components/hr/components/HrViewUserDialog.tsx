@@ -75,7 +75,7 @@ export function HrViewUserDialog({
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Salário</Label>
                 <p className="text-sm font-semibold text-green-700">
-                  {selectedUsuario.salary != null ? `R$ ${Number(selectedUsuario.salary).toFixed(2)}` : "-"}
+                  {selectedUsuario.salary != null ? `$ ${Number(selectedUsuario.salary).toFixed(2)}` : "-"}
                 </p>
               </div>
               <div className="col-span-2 space-y-1.5">

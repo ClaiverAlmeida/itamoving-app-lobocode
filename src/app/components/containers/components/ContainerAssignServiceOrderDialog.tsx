@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import type { Container } from "../../../api";
 import { serviceOrderFormService } from "../../../api";
 import { Button } from "../../ui/button";
-import { Badge } from "../../ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
 import {
   Dialog,
@@ -16,6 +15,7 @@ import {
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Separator } from "../../ui/separator";
+import { cn } from "../../ui/utils";
 import {
   Select,
   SelectContent,
@@ -23,12 +23,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../ui/select";
+import { VOLUME_REFERENCIA_INFORMATIVO } from "../containers.constants";
 import { containersCrud } from "../containers.crud";
 import { getServiceOrderAssociationCaption } from "../containers.utils";
 import { isValidVolumeLetter, previewNextLabels } from "../utils/container-box-numbering.utils";
 import { ServiceOrderBoxesPreview } from "./ServiceOrderBoxesPreview";
+import { ContainerBoxItemsList } from "./ContainerBoxItemsList";
 import type { DriverServiceOrderView } from "../../../api/services/driver-service-order/service-order-form.service";
 import {
+  AlertTriangle,
   Container as ContainerIcon,
   Hash,
   Loader2,
@@ -198,9 +201,16 @@ export function ContainerAssignServiceOrderDialog({
     [workingContainer.boxes],
   );
 
-  const cap = workingContainer.volumeCapacity ?? 220;
+  const volRef = VOLUME_REFERENCIA_INFORMATIVO;
   const atual = workingContainer.boxes?.length ?? 0;
   const fullW = workingContainer.fullWeight;
+  const pesoTotalAposVinculo = pesoAtualContainer + pesoNovas;
+  const excedePesoCheio =
+    fullW != null && fullW > 0 && pesoTotalAposVinculo > fullW;
+  const excedePesoJaCarregado =
+    fullW != null && fullW > 0 && pesoAtualContainer > fullW;
+  const excedeVolumesNoContainer = atual > volRef;
+  const excedeVolumesAposVinculo = atual + nCaixasOrdem > volRef;
   const precisaLetra = !workingContainer.volumeLetter?.trim();
   const linkedOrders = workingContainer.serviceOrders ?? [];
 
@@ -225,6 +235,10 @@ export function ContainerAssignServiceOrderDialog({
       totalWeight,
     };
   }, [linkedOrderDetails, linkedOrders.length]);
+
+  const excedePesoVisaoGeral =
+    fullW != null && fullW > 0 && linkedOverview.totalWeight > fullW;
+  const excedeVolumesVisaoGeral = linkedOverview.totalBoxes > volRef;
 
   const confirmar = async () => {
     if (!workingContainer.id || !selectedId || !detail) return;
@@ -315,28 +329,52 @@ export function ContainerAssignServiceOrderDialog({
                 className={`grid gap-3 pl-0 sm:pl-11 grid-cols-2 ${fullW != null && fullW > 0 ? "sm:grid-cols-4" : "sm:grid-cols-3"
                   }`}
               >
-                <div className="rounded-lg border bg-card px-3 py-2.5 min-h-[96px] grid place-items-center text-center">
+                <div
+                  className={cn(
+                    "rounded-lg border bg-card px-3 py-2.5 min-h-[96px] grid place-items-center text-center transition-colors",
+                    excedeVolumesNoContainer &&
+                      "border-destructive/50 bg-destructive/5 ring-1 ring-destructive/25",
+                  )}
+                >
                   <div className="flex flex-col items-center justify-center gap-1">
                     <p className="text-[11px] leading-tight font-medium text-muted-foreground uppercase tracking-wide">
                       Caixas já no container
                     </p>
-                    <p className="text-xl leading-none font-semibold tabular-nums">{atual}</p>
+                    <p
+                      className={cn(
+                        "text-xl leading-none font-semibold tabular-nums",
+                        excedeVolumesNoContainer && "text-destructive",
+                      )}
+                    >
+                      {atual}
+                    </p>
                   </div>
                 </div>
                 <div className="rounded-lg border bg-card px-3 py-2.5 min-h-[96px] grid place-items-center text-center">
                   <div className="flex flex-col items-center justify-center gap-1">
                     <p className="text-[11px] leading-tight font-medium text-muted-foreground uppercase tracking-wide">
-                      Limite de volumes
+                      Referência (volumes)
                     </p>
-                    <p className="text-xl leading-none font-semibold tabular-nums">{cap}</p>
+                    <p className="text-xl leading-none font-semibold tabular-nums">{volRef}</p>
                   </div>
                 </div>
-                <div className="rounded-lg border bg-card px-3 py-2.5 min-h-[96px] grid place-items-center text-center">
+                <div
+                  className={cn(
+                    "rounded-lg border bg-card px-3 py-2.5 min-h-[96px] grid place-items-center text-center transition-colors",
+                    excedePesoJaCarregado &&
+                      "border-destructive/50 bg-destructive/5 ring-1 ring-destructive/25",
+                  )}
+                >
                   <div className="flex flex-col items-center justify-center gap-1">
                     <p className="text-[11px] leading-tight font-medium text-muted-foreground uppercase tracking-wide">
                       Peso já carregado
                     </p>
-                    <p className="text-lg leading-none font-semibold tabular-nums">
+                    <p
+                      className={cn(
+                        "text-lg leading-none font-semibold tabular-nums",
+                        excedePesoJaCarregado && "text-destructive",
+                      )}
+                    >
                       {pesoAtualContainer.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kg
                     </p>
                   </div>
@@ -380,17 +418,41 @@ export function ContainerAssignServiceOrderDialog({
                       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ordens</p>
                       <p className="text-lg font-semibold tabular-nums">{linkedOverview.totalOrders}</p>
                     </div>
-                    <div className="rounded-md border bg-background px-3 py-2 text-center">
+                    <div
+                      className={cn(
+                        "rounded-md border bg-background px-3 py-2 text-center transition-colors",
+                        excedeVolumesVisaoGeral &&
+                          "border-destructive/45 bg-destructive/5 ring-1 ring-destructive/20",
+                      )}
+                    >
                       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caixas</p>
-                      <p className="text-lg font-semibold tabular-nums">{linkedOverview.totalBoxes}</p>
+                      <p
+                        className={cn(
+                          "text-lg font-semibold tabular-nums",
+                          excedeVolumesVisaoGeral && "text-destructive",
+                        )}
+                      >
+                        {linkedOverview.totalBoxes}
+                      </p>
                     </div>
                     <div className="rounded-md border bg-background px-3 py-2 text-center">
                       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Itens</p>
                       <p className="text-lg font-semibold tabular-nums">{linkedOverview.totalItems}</p>
                     </div>
-                    <div className="rounded-md border bg-background px-3 py-2 text-center">
+                    <div
+                      className={cn(
+                        "rounded-md border bg-background px-3 py-2 text-center transition-colors",
+                        excedePesoVisaoGeral &&
+                          "border-destructive/45 bg-destructive/5 ring-1 ring-destructive/20",
+                      )}
+                    >
                       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Peso total</p>
-                      <p className="text-lg font-semibold tabular-nums">
+                      <p
+                        className={cn(
+                          "text-lg font-semibold tabular-nums",
+                          excedePesoVisaoGeral && "text-destructive",
+                        )}
+                      >
                         {linkedOverview.totalWeight.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
                       </p>
                     </div>
@@ -405,13 +467,6 @@ export function ContainerAssignServiceOrderDialog({
                 {linkedOrders.map((order) => {
                   const detailByOrder = linkedOrderDetails[order.id];
                   const boxes = detailByOrder?.driverServiceOrderProducts ?? [];
-                  const uniqueTypes = Array.from(
-                    new Set(
-                      boxes
-                        .map((b) => (typeof b.type === "string" ? b.type.trim() : ""))
-                        .filter((t) => t.length > 0),
-                    ),
-                  );
                   const itemCount = boxes.reduce(
                     (sum, b) =>
                       sum +
@@ -430,17 +485,16 @@ export function ContainerAssignServiceOrderDialog({
                             {order.recipientName?.trim() || "Cliente USA"}
                           </p>
                           <p className="text-[11px] text-muted-foreground font-mono break-all">#{order.id}</p>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            <Badge variant="outline" className="text-[10px]">
-                              {boxes.length} caixas
-                            </Badge>
-                            <Badge variant="outline" className="text-[10px]">
-                              {itemCount} itens
-                            </Badge>
-                            <Badge variant="outline" className="text-[10px]">
-                              {weight.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
-                            </Badge>
-                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+                            <span className="font-semibold text-foreground tabular-nums">{boxes.length}</span> caixas
+                            <span className="mx-1.5 text-border">·</span>
+                            <span className="font-semibold text-foreground tabular-nums">{itemCount}</span> itens
+                            <span className="mx-1.5 text-border">·</span>
+                            <span className="font-semibold text-foreground tabular-nums">
+                              {weight.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
+                            </span>{" "}
+                            kg
+                          </p>
                           {(() => {
                             const cap = getServiceOrderAssociationCaption(order);
                             return cap ? (
@@ -476,27 +530,29 @@ export function ContainerAssignServiceOrderDialog({
                         ) : (
                           <div className="space-y-2">
                             {boxes.map((box, idx) => (
-                              <div key={box.id ?? `${order.id}-${idx}`} className="rounded-md border bg-background px-2.5 py-2">
-                                <div className="flex items-center justify-between gap-2">
-                                  <p className="text-xs font-medium flex items-center gap-1">
-                                    <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                              <div
+                                key={box.id ?? `${order.id}-${idx}`}
+                                className="rounded-lg border border-border/80 bg-background shadow-sm overflow-hidden"
+                              >
+                                <div className="flex items-start justify-between gap-2 px-3 py-2 border-b border-border/50 bg-muted/20">
+                                  <p className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                                    <Package className="h-3.5 w-3.5 text-primary shrink-0" />
                                     Caixa #{box.number || idx + 1}
+                                    <span className="font-normal text-muted-foreground">·</span>
+                                    <span className="font-normal text-muted-foreground">Tipo {box.type?.trim() || "—"}</span>
                                   </p>
-                                  <span className="text-xs text-muted-foreground">
+                                  <span className="text-xs font-medium tabular-nums text-muted-foreground shrink-0">
                                     {(box.weight ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
                                   </span>
                                 </div>
-                                <div className="mt-1">
-                                  <Badge variant="outline" className="text-[10px]">
-                                    Tipo: {box.type?.trim() || "—"}
-                                  </Badge>
-                                </div>
-                                <div className="mt-1 flex flex-wrap gap-1">
-                                  {(box.driverServiceOrderProductsItems ?? []).map((item, itemIdx) => (
-                                    <Badge key={`${item.name}-${itemIdx}`} variant="outline" className="text-[10px]">
-                                      {item.name} x{item.quantity}
-                                    </Badge>
-                                  ))}
+                                <div className="px-3 py-2">
+                                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
+                                    Itens na caixa
+                                  </p>
+                                  <ContainerBoxItemsList
+                                    items={box.driverServiceOrderProductsItems ?? []}
+                                    emptyLabel="Nenhum item listado nesta caixa."
+                                  />
                                 </div>
                               </div>
                             ))}
@@ -628,22 +684,62 @@ export function ContainerAssignServiceOrderDialog({
                         Após vincular
                       </CardTitle>
                       <CardDescription className="text-xs leading-relaxed">
-                        Confira se cabe no container e se o peso total não ultrapassa o limite.
+                        Volumes e peso após vincular são informativos: ficam em vermelho ao passar da referência de{" "}
+                        {volRef} caixas ou do peso cheio cadastrado (sem bloqueio no servidor).
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-wrap gap-4 pb-4">
-                      <div className="rounded-md bg-background border px-4 py-2 min-w-[140px]">
-                        <p className="text-[11px] font-medium text-muted-foreground uppercase">Volumes</p>
-                        <p className="text-lg font-semibold tabular-nums">
-                          {atual} + {nCaixasOrdem} ={" "}
-                          <span className="text-primary">{atual + nCaixasOrdem}</span> / {cap}
+                      <div
+                        className={cn(
+                          "rounded-md border px-4 py-2.5 min-w-[200px] transition-colors",
+                          excedeVolumesAposVinculo
+                            ? "border-destructive/50 bg-destructive/8 shadow-sm ring-2 ring-destructive/25"
+                            : "bg-background border-border",
+                        )}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                          <p className="text-[11px] font-medium text-muted-foreground uppercase">Volumes (caixas)</p>
+                          {excedeVolumesAposVinculo && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-destructive/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
+                              <AlertTriangle className="h-3 w-3" />
+                              Acima
+                            </span>
+                          )}
+                        </div>
+                        <p
+                          className={cn(
+                            "text-lg font-semibold tabular-nums leading-tight",
+                            excedeVolumesAposVinculo && "text-destructive",
+                          )}
+                        >
+                          {atual} + {nCaixasOrdem} = {atual + nCaixasOrdem} / {volRef}
                         </p>
                       </div>
                       {fullW != null && fullW > 0 && (
-                        <div className="rounded-md bg-background border px-4 py-2 min-w-[180px]">
-                          <p className="text-[11px] font-medium text-muted-foreground uppercase">Peso total</p>
-                          <p className="text-lg font-semibold tabular-nums">
-                            {(pesoAtualContainer + pesoNovas).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} /{" "}
+                        <div
+                          className={cn(
+                            "rounded-md border px-4 py-2.5 min-w-[200px] transition-colors",
+                            excedePesoCheio
+                              ? "border-destructive/50 bg-destructive/8 shadow-sm ring-2 ring-destructive/25"
+                              : "bg-background border-border",
+                          )}
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                            <p className="text-[11px] font-medium text-muted-foreground uppercase">Peso total</p>
+                            {excedePesoCheio && (
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-destructive/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
+                                <AlertTriangle className="h-3 w-3" />
+                                Acima
+                              </span>
+                            )}
+                          </div>
+                          <p
+                            className={cn(
+                              "text-lg font-semibold tabular-nums leading-tight",
+                              excedePesoCheio && "text-destructive",
+                            )}
+                          >
+                            {pesoTotalAposVinculo.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} /{" "}
                             {fullW.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
                           </p>
                         </div>

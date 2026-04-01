@@ -20,7 +20,11 @@ export function caixaTemTodosCamposPreenchidos(c: Caixa) {
 
 export function obterTipoProdutoDaCaixa(caixa: Caixa, opcoesCaixa: ProductPrice[]) {
   const produtoDaCaixa = opcoesCaixa.find(
-    (p) => p.type === caixa.type || p.name === caixa.type || p.size === caixa.type,
+    (p) =>
+      p.type === caixa.type ||
+      p.name === caixa.type ||
+      p.size === caixa.type ||
+      (p.dimensions != null && p.dimensions === caixa.type),
   );
   return produtoDaCaixa?.type;
 }

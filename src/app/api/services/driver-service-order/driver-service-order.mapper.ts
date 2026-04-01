@@ -1,4 +1,6 @@
 import type { DriverServiceOrder } from "../../interfaces/service-order";
+import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from "../../../components/stock";
+import type { ProductType } from "../../../components/stock/stock.types";
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   if (v == null || typeof v !== "object" || Array.isArray(v)) return null;
@@ -7,6 +9,11 @@ function asRecord(v: unknown): Record<string, unknown> | null {
 
 /** Ordem no formato do app + metadados opcionais vindos do GET (appointment / company). */
 export type DriverServiceOrderView = DriverServiceOrder & {
+  container?: {
+    id: string | null;
+    number: string | null;
+    type: string | null;
+  };
   createdAt?: string;
   updatedAt?: string;
   appointment?: {
@@ -67,6 +74,15 @@ function normalizeRecipient(r: unknown): DriverServiceOrder["recipient"] {
   };
 }
 
+function normalizeContainer(c: unknown): DriverServiceOrder["container"] {
+  const o = asRecord(c) ?? {};
+  return {
+    id: o.id != null ? String(o.id) : null,
+    number: o.number != null ? String(o.number) : null,
+    type: o.type != null ? String(o.type) : null,
+  };
+}
+
 function normalizeStatus(s: unknown): DriverServiceOrder["status"] {
   const v = String(s ?? "PENDING");
   if (v === "IN_PROGRESS" || v === "COMPLETED" || v === "PENDING") return v;
@@ -89,6 +105,31 @@ function pickItemsArray(row: Record<string, unknown>): unknown {
   return [];
 }
 
+type OsLineProduct = NonNullable<
+  DriverServiceOrder["driverServiceOrderProducts"][number]["product"]
+>;
+
+function mapProductRelation(raw: unknown): OsLineProduct | undefined {
+  const row = asRecord(raw);
+  if (row == null || row.id == null) return undefined;
+  const t = String(row.type ?? "");
+  return {
+    id: String(row.id),
+    type: t as OsLineProduct["type"],
+    name: String(row.name ?? ""),
+    dimensions: row.dimensions != null ? String(row.dimensions) : null,
+  };
+}
+
+function displayTypeFromProductRelation(productRaw: Record<string, unknown> | undefined): string {
+  if (!productRaw) return "";
+  const t = String(productRaw.type ?? "") as ProductType;
+  const itemKey = PRODUCT_TYPE_TO_ITEM_KEY[t];
+  const label = itemKey ? ITEM_LABELS[itemKey] : "";
+  const name = String(productRaw.name ?? "");
+  return label ? `${name} - ${label}` : name;
+}
+
 function mapProducts(raw: unknown): DriverServiceOrder["driverServiceOrderProducts"] {
   const list = Array.isArray(raw) ? raw : [];
   return list.map((p) => {
@@ -108,11 +149,17 @@ function mapProducts(raw: unknown): DriverServiceOrder["driverServiceOrderProduc
         };
       })
       : [];
+    const product = mapProductRelation(row.product);
+    const productRaw = asRecord(row.product) ?? {};
+    const typeFromRelation = displayTypeFromProductRelation(productRaw);
+    const legacyType = String(row.type ?? "");
     return {
       id: String(row.id ?? ""),
       number: String(row.number ?? ""),
       productId: row.productId != null ? String(row.productId) : undefined,
-      type: String(row.type ?? ""),
+      type: typeFromRelation || legacyType,
+      productType: product?.type,
+      product,
       weight: Number(row.weight) || 0,
       value: Number(row.value) || 0,
       driverServiceOrderProductsItems: items,
@@ -148,6 +195,7 @@ export function mapDriverServiceOrderApiToView(raw: unknown): DriverServiceOrder
     updatedAt: toIso(r.updatedAt),
     appointmentId,
     sender: normalizeSender(r.sender),
+    container: normalizeContainer(r.container),
     recipient: normalizeRecipient(r.recipient),
     driverServiceOrderProducts: mapProducts(pickProductsArray(r)),
     clientSignature: String(r.clientSignature ?? ""),

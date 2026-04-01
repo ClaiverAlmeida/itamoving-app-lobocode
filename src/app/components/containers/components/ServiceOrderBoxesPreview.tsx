@@ -1,7 +1,7 @@
 import React from "react";
 import type { DriverServiceOrder } from "../../../api";
-import { Badge } from "../../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
+import { ContainerBoxItemsList } from "./ContainerBoxItemsList";
 import {
   Table,
   TableBody,
@@ -100,7 +100,7 @@ export function ServiceOrderBoxesPreview({ order, previewLabels }: Props) {
                 <TableHead className="w-[72px] font-semibold text-center">Ref. OS</TableHead>
                 <TableHead className="w-[100px] font-semibold text-center">Tipo</TableHead>
                 <TableHead className="text-center w-[100px] font-semibold">Peso (kg)</TableHead>
-                <TableHead className="min-w-[200px] font-semibold text-center">Itens dentro da caixa</TableHead>
+                <TableHead className="min-w-[220px] font-semibold text-left pl-4">Itens dentro da caixa</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -119,26 +119,13 @@ export function ServiceOrderBoxesPreview({ order, previewLabels }: Props) {
                     <TableCell className="text-center tabular-nums text-sm">
                       {(p.weight ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
                     </TableCell>
-                    <TableCell className="text-sm text-center">
-                      {items.length === 0 ? (
-                        <span className="text-muted-foreground">Sem itens listados</span>
-                      ) : (
-                        <ul className="space-y-1.5">
-                          {items.map((it) => (
-                            <li
-                              key={it.id ?? `${it.name}-${it.quantity}`}
-                              className="flex flex-wrap gap-x-1.5 gap-y-0.5 items-baseline"
-                            >
-                              <Badge variant="secondary" className="font-normal text-xs">
-                                {it.name}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">
-                                {it.quantity}× · {(it.weight ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                    <TableCell className="text-sm align-top pl-4 pr-2 py-3">
+                      <ContainerBoxItemsList
+                        items={items}
+                        compact
+                        emptyLabel="Sem itens listados"
+                        className="max-w-md"
+                      />
                     </TableCell>
                   </TableRow>
                 );

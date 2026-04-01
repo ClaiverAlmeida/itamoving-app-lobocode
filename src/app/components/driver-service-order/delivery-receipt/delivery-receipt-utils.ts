@@ -1,5 +1,14 @@
 import type { DriverServiceOrder } from "../../../api";
 
+/** Exibe valor em USD sem forçar 2 casas decimais (ex.: valor recebido em espécie). */
+export function formatUsdValorRecebidoLivre(n: number): string {
+  if (!Number.isFinite(n) || n === 0) return "0.00";
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
 export type ReciboBoxCategory =
   | "pequena"
   | "media"
@@ -17,6 +26,25 @@ export const RECIBO_CATEGORY_LABEL: Record<ReciboBoxCategory, string> = {
 
 function stripDiacritics(s: string): string {
   return s.normalize("NFD").replace(/\p{M}/gu, "");
+}
+
+/** Classifica pela enum do catálogo quando a linha da OS traz `productType` (mapeado a partir de `ProductPrice`). */
+export function mapCatalogProductTypeToRecibo(productType: unknown): ReciboBoxCategory | null {
+  const v = String(productType ?? "").trim();
+  switch (v) {
+    case "SMALL_BOX":
+      return "pequena";
+    case "MEDIUM_BOX":
+      return "media";
+    case "LARGE_BOX":
+      return "grande";
+    case "TAPE_ADHESIVE":
+      return "fita";
+    case "PERSONALIZED_ITEM":
+      return "personalizada";
+    default:
+      return null;
+  }
 }
 
 export function classifyDriverProductType(type: string): ReciboBoxCategory | null {
@@ -107,7 +135,9 @@ export function summarizeOrdemForRecibo(ordem: DriverServiceOrder) {
 
   const rows: ReciboRow[] = products.map((p, idx) => {
     const rawType = String(p?.type ?? "").trim();
-    const category = classifyDriverProductType(rawType);
+    const category =
+      mapCatalogProductTypeToRecibo((p as { productType?: string }).productType) ??
+      classifyDriverProductType(rawType);
     if (category) summary[category] += 1;
 
     const tipoPrincipal = `${rawType}`;
@@ -128,5 +158,25 @@ export function summarizeOrdemForRecibo(ordem: DriverServiceOrder) {
 /** Soma dos valores (USD) das caixas/produtos da ordem — alinhado ao formulário. */
 export function sumValorTotalCaixasFromOrdem(ordem: DriverServiceOrder): number {
   return getOrdemProductsList(ordem).reduce((s, p) => s + Number(p?.value ?? 0), 0);
+}
+
+type OrdemComValorAgendamento = DriverServiceOrder & {
+  appointment?: { value?: number; downPayment?: number };
+};
+
+/**
+ * Mesmo "Total geral" do recibo e do cartão Pagamento na OS:
+ * subtotal (agendamento − antecipação) + total das caixas + valor recebido (`chargedValue` quando &gt; 0).
+ */
+export function totalGeralConsolidadoOrdem(ordem: OrdemComValorAgendamento): number {
+  const valorAgendamento = Number(ordem.appointment?.value ?? 0);
+  const valorAntecipacao = Number(ordem.appointment?.downPayment ?? 0);
+  const subtotalAgendamento = Math.max(valorAgendamento - valorAntecipacao, 0);
+  const valorTotalCaixas = sumValorTotalCaixasFromOrdem(ordem);
+  const valorRecebidoNum = (() => {
+    const n = Number(ordem.chargedValue);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  })();
+  return subtotalAgendamento + valorTotalCaixas + valorRecebidoNum;
 }
 

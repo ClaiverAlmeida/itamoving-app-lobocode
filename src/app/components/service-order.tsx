@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Clock,
   Trash,
+  ContainerIcon,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -22,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
-import { DeliveryReceipt } from "./driver-service-order/delivery-receipt";
+import { DeliveryReceipt, totalGeralConsolidadoOrdem } from "./driver-service-order/delivery-receipt";
 import OrdemServicoForm from "./driver-service-order/service-order-form";
 import { type DriverServiceOrderView } from "../api";
 import {
@@ -312,9 +313,10 @@ export default function OrdemDeServicoView() {
                     <TableRow className="bg-muted/50">
                       <TableHead className="text-center">Nº</TableHead>
                       <TableHead className="text-center">Cliente (remetente)</TableHead>
+                      <TableHead className="text-center">Container</TableHead>
                       <TableHead className="text-center">Status</TableHead>
                       <TableHead className="text-center">Data assinatura</TableHead>
-                      <TableHead className="text-center">Valor (USD)</TableHead>
+                      <TableHead className="text-center">Total geral (USD)</TableHead>
                       <TableHead className="text-center w-[200px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -333,6 +335,15 @@ export default function OrdemDeServicoView() {
                             <div className="font-medium">{o.sender.usaName}</div>
                             <div className="font-normal text-xs text-muted-foreground">{o.sender.usaAddress.rua}, {o.sender.usaAddress.numero}, {o.sender.usaAddress.cidade}, {o.sender.usaAddress.estado}, {o.sender.usaAddress.zipCode}</div>
                           </TableCell>
+                          {o.container && (
+                            <TableCell className="text-center flex items-center gap-2">
+                              <ContainerIcon className="w-4 h-4 text-muted-foreground" size="icon" />
+                              <div className="font-semibold flex flex-col gap-1">
+                                <div>{o.container.number ?? "-"}</div>
+                                <div className="text-xs text-muted-foreground">{o.container.type ?? "-"}</div>
+                              </div>
+                            </TableCell>
+                          )}
                           <TableCell className="text-center">
                             <Badge
                               variant={
@@ -354,8 +365,8 @@ export default function OrdemDeServicoView() {
                           <TableCell className="text-center text-sm text-muted-foreground">
                             {formatDateTime(o.signatureDate)}
                           </TableCell>
-                          <TableCell className="text-center font-semibold tabular-nums">
-                            {formatUsd(o.chargedValue ?? 0)}
+                          <TableCell className="text-center font-semibold tabular-nums text-green-600">
+                            {formatUsd(totalGeralConsolidadoOrdem(o))}
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex justify-center gap-1">
@@ -447,9 +458,9 @@ export default function OrdemDeServicoView() {
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm">
                           <div className="flex justify-between gap-2">
-                            <span className="text-muted-foreground">Valor</span>
+                            <span className="text-muted-foreground">Total geral</span>
                             <span className="font-semibold tabular-nums">
-                              {formatUsd(o.chargedValue ?? 0)}
+                              {formatUsd(totalGeralConsolidadoOrdem(o))}
                             </span>
                           </div>
                           <div className="flex justify-between gap-2">

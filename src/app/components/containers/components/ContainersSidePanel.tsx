@@ -5,12 +5,15 @@ import { ptBR } from "date-fns/locale/pt-BR";
 import type { Container } from "../../../api";
 import { serviceOrderFormService } from "../../../api";
 import type { DriverServiceOrderView } from "../../../api/services/driver-service-order/service-order-form.service";
+import { VOLUME_REFERENCIA_INFORMATIVO } from "../containers.constants";
 import { getServiceOrderAssociationCaption } from "../containers.utils";
+import { ContainerBoxItemsList } from "./ContainerBoxItemsList";
 import { ContainerAssignServiceOrderCard } from "./ContainerAssignServiceOrderCard";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
 import { Progress } from "../../ui/progress";
+import { cn } from "../../ui/utils";
 import { StatusSelect } from "../../forms";
 import {
   Anchor,
@@ -24,6 +27,7 @@ import {
   Globe,
   MapPin,
   Navigation,
+  AlertTriangle,
   Loader2,
   Package,
   Ship,
@@ -136,6 +140,18 @@ export function ContainersSidePanel(props: Props) {
     );
     return { totalBoxes, totalItems };
   }, [linkedOrderDetails]);
+
+  const pesoLimite = selectedContainer?.fullWeight ?? null;
+  const pesoCarga = selectedContainer?.totalWeight ?? 0;
+  const pesoPercent =
+    pesoLimite != null && pesoLimite > 0 ? (pesoCarga / pesoLimite) * 100 : 0;
+  const excedePesoCheio =
+    pesoLimite != null && pesoLimite > 0 && pesoCarga > pesoLimite;
+
+  const volRef = VOLUME_REFERENCIA_INFORMATIVO;
+  const nCaixasContainer = selectedContainer?.boxes?.length ?? 0;
+  const excedeVolumesReferencia = nCaixasContainer > volRef;
+  const volumesPercent = volRef > 0 ? (nCaixasContainer / volRef) * 100 : 0;
 
   return (
     <AnimatePresence>
@@ -326,28 +342,99 @@ export function ContainersSidePanel(props: Props) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
+                <div
+                  className={cn(
+                    "space-y-2 rounded-lg border p-3 transition-colors",
+                    excedePesoCheio
+                      ? "border-destructive/50 bg-destructive/5 shadow-sm ring-1 ring-destructive/20"
+                      : "border-transparent",
+                  )}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-sm text-muted-foreground">Peso da carga</span>
-                    <span className="font-semibold">
-                      {selectedContainer.totalWeight} /{" "}
-                      {selectedContainer.fullWeight != null ? selectedContainer.fullWeight : "—"} kg
+                    {excedePesoCheio && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                        <AlertTriangle className="h-3 w-3 shrink-0" />
+                        Acima do peso cheio
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">Atual / limite</span>
+                    <span
+                      className={cn(
+                        "font-semibold tabular-nums text-base",
+                        excedePesoCheio && "text-destructive",
+                      )}
+                    >
+                      {pesoCarga.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} /{" "}
+                      {pesoLimite != null ? pesoLimite.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "—"}{" "}
+                      kg
                     </span>
                   </div>
                   <Progress
-                    value={
-                      selectedContainer.fullWeight != null && selectedContainer.fullWeight > 0
-                        ? ((selectedContainer.totalWeight ?? 0) / selectedContainer.fullWeight) * 100
-                        : 0
-                    }
+                    value={Math.min(100, pesoPercent)}
+                    variant={excedePesoCheio ? "destructive" : "default"}
                     className="h-3"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {selectedContainer.fullWeight != null && selectedContainer.fullWeight > 0
-                      ? `${(((selectedContainer.totalWeight ?? 0) / selectedContainer.fullWeight) * 100).toFixed(1)}% do limite (peso cheio)`
+                  <p
+                    className={cn(
+                      "text-xs leading-relaxed",
+                      excedePesoCheio ? "font-medium text-destructive" : "text-muted-foreground",
+                    )}
+                  >
+                    {pesoLimite != null && pesoLimite > 0
+                      ? `${pesoPercent.toFixed(1)}% do limite (peso cheio)${
+                          excedePesoCheio ? " — acima do cadastrado." : ""
+                        }`
                       : "Defina o peso cheio do container para usar o limite."}
                   </p>
                 </div>
+
+                <div
+                  className={cn(
+                    "space-y-2 rounded-lg border p-3 transition-colors",
+                    excedeVolumesReferencia
+                      ? "border-destructive/50 bg-destructive/5 shadow-sm ring-1 ring-destructive/20"
+                      : "border-transparent",
+                  )}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm text-muted-foreground">Caixas no container</span>
+                    {excedeVolumesReferencia && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                        <AlertTriangle className="h-3 w-3 shrink-0" />
+                        Acima da referência
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">Atual / referência</span>
+                    <span
+                      className={cn(
+                        "font-semibold tabular-nums text-base",
+                        excedeVolumesReferencia && "text-destructive",
+                      )}
+                    >
+                      {nCaixasContainer} / {volRef}
+                    </span>
+                  </div>
+                  <Progress
+                    value={Math.min(100, volumesPercent)}
+                    variant={excedeVolumesReferencia ? "destructive" : "default"}
+                    className="h-3"
+                  />
+                  <p
+                    className={cn(
+                      "text-xs leading-relaxed",
+                      excedeVolumesReferencia ? "font-medium text-destructive" : "text-muted-foreground",
+                    )}
+                  >
+                    {volumesPercent.toFixed(1)}% da referência de {volRef} caixas
+                    {excedeVolumesReferencia ? " — acima da referência." : "."}
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Volume</p>
@@ -394,9 +481,15 @@ export function ContainersSidePanel(props: Props) {
                     Carregando detalhes...
                   </div>
                 )}
-                <div className="flex flex-wrap gap-1">
-                  <Badge variant="outline">{linkedOverview.totalBoxes} caixas</Badge>
-                  <Badge variant="outline">{linkedOverview.totalItems} itens</Badge>
+                <div className="grid grid-cols-2 gap-2 max-w-xs">
+                  <div className="rounded-lg border bg-muted/30 px-3 py-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Caixas</p>
+                    <p className="text-lg font-semibold tabular-nums leading-tight">{linkedOverview.totalBoxes}</p>
+                  </div>
+                  <div className="rounded-lg border bg-muted/30 px-3 py-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Itens</p>
+                    <p className="text-lg font-semibold tabular-nums leading-tight">{linkedOverview.totalItems}</p>
+                  </div>
                 </div>
                 {(selectedContainer.serviceOrders ?? []).length === 0 && (
                   <p className="text-sm text-muted-foreground rounded-md border border-dashed px-3 py-2">
@@ -406,9 +499,16 @@ export function ContainersSidePanel(props: Props) {
                 {(selectedContainer.serviceOrders ?? []).map((order) => {
                   const detailByOrder = linkedOrderDetails[order.id];
                   const boxes = detailByOrder?.driverServiceOrderProducts ?? [];
+                  const itemCount = boxes.reduce(
+                    (sum, b) =>
+                      sum +
+                      (b.driverServiceOrderProductsItems ?? []).reduce((s, i) => s + (i.quantity ?? 0), 0),
+                    0,
+                  );
+                  const orderWeight = boxes.reduce((sum, b) => sum + (b.weight ?? 0), 0);
                   return (
-                    <details key={order.id} className="rounded-md border bg-card">
-                      <summary className="list-none px-3 py-2 flex items-center justify-between gap-2 cursor-pointer">
+                    <details key={order.id} className="rounded-lg border border-border/80 bg-card shadow-sm group open:border-primary/30">
+                      <summary className="list-none px-3 py-2.5 flex items-center justify-between gap-2 cursor-pointer">
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">
                             {order.recipientName?.trim() || "Cliente USA"}
@@ -416,9 +516,16 @@ export function ContainersSidePanel(props: Props) {
                           <p className="text-[11px] text-muted-foreground font-mono break-all">
                             #{order.id}
                           </p>
-                          <div className="flex gap-1 mt-1">
-                            <Badge variant="outline" className="text-[10px]">{boxes.length} caixas</Badge>
-                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+                            <span className="font-semibold text-foreground tabular-nums">{boxes.length}</span> caixas
+                            <span className="mx-1.5 text-border">·</span>
+                            <span className="font-semibold text-foreground tabular-nums">{itemCount}</span> itens
+                            <span className="mx-1.5 text-border">·</span>
+                            <span className="font-semibold text-foreground tabular-nums">
+                              {orderWeight.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
+                            </span>{" "}
+                            kg
+                          </p>
                           {(() => {
                             const cap = getServiceOrderAssociationCaption(order);
                             return cap ? (
@@ -438,15 +545,34 @@ export function ContainersSidePanel(props: Props) {
                           Remover
                         </Button>
                       </summary>
-                      <div className="px-3 pb-3 pt-1 border-t bg-muted/20 space-y-2">
+                      <div className="px-3 pb-3 pt-2 border-t bg-muted/20 space-y-2">
                         {boxes.length === 0 ? (
                           <p className="text-xs text-muted-foreground">Sem caixas detalhadas.</p>
                         ) : (
                           boxes.map((box, idx) => (
-                            <div key={box.id ?? `${order.id}-${idx}`} className="rounded border bg-background px-2 py-1.5">
-                              <p className="text-xs font-medium">
-                                Caixa #{box.number || idx + 1} - {box.type || "—"}
-                              </p>
+                            <div
+                              key={box.id ?? `${order.id}-${idx}`}
+                              className="rounded-lg border border-border/70 bg-background overflow-hidden"
+                            >
+                              <div className="flex items-start justify-between gap-2 px-2.5 py-2 border-b border-border/50 bg-muted/15">
+                                <p className="text-xs font-semibold text-foreground leading-snug">
+                                  Caixa #{box.number || idx + 1}
+                                  <span className="font-normal text-muted-foreground"> · Tipo {box.type || "—"}</span>
+                                </p>
+                                <span className="text-[11px] font-medium tabular-nums text-muted-foreground shrink-0">
+                                  {(box.weight ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
+                                </span>
+                              </div>
+                              <div className="px-2.5 py-2">
+                                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1">
+                                  Itens na caixa
+                                </p>
+                                <ContainerBoxItemsList
+                                  items={box.driverServiceOrderProductsItems ?? []}
+                                  compact
+                                  emptyLabel="Nenhum item listado."
+                                />
+                              </div>
                             </div>
                           ))
                         )}

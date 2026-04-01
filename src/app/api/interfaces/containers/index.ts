@@ -18,8 +18,8 @@ export interface Container {
   status: "PREPARATION" | "SHIPPED" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
   /** Letra do volume (ex.: A, B) — numeração 1-A, 2-A… (gravada após a primeira ordem com caixas). */
   volumeLetter?: string;
-  /** Limite alvo de volumes por container (padrão ~220). */
-  volumeCapacity?: number;
+  /** Contador de ordens de serviço vinculadas (incrementado pela API a cada vínculo). */
+  volumeCapacity?: number | null;
   /** Quantidade de ordens de serviço já vinculadas a este container. */
   linkedServiceOrderCount?: number;
   /** Ordens de serviço vinculadas ao container. */
@@ -73,13 +73,16 @@ export interface ContainersBackend {
   status: string;
   totalWeight?: number;
   volumeLetter?: string | null;
-  volumeCapacity?: number;
+  volumeCapacity?: number | null;
   products?: Array<{
     id: string;
     boxNumber: string;
     clientId?: string | null;
     client?: { id?: string; usaName?: string | null; brazilName?: string | null } | null;
-    driverServiceOrderProducts?: Array<{ type?: string; weight?: number | null }>;
+    driverServiceOrderProducts?: Array<{
+      weight?: number | null;
+      product?: { type?: string; name?: string; dimensions?: string | null } | null;
+    }>;
     /** Legado se a API ainda enviar campos desnormalizados. */
     size?: string;
     weight?: number;

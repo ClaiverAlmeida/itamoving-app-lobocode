@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner";
 import type { Caixa, DriverUser, Item, ProductPrice } from "../../../api";
 import { serviceOrderFormCrud } from "./service-order-form.crud";
-import { loadDataUrlOnCanvas, resolveCaixaDisplayType } from "./service-order-form.utils";
+import { loadDataUrlOnCanvas, resolveCaixaSelectValueFromApiLine } from "./service-order-form.utils";
 import { caixaTemTodosCamposPreenchidos, novoIdItem, renumerarCaixas } from "./service-order-form.verifications";
 
 type Params = {
@@ -70,7 +70,7 @@ export function useServiceOrderFormState({
   const [assinaturaAgente, setAssinaturaAgente] = useState("");
   const clienteAssinaturaDirtyRef = useRef(false);
   const agenteAssinaturaDirtyRef = useRef(false);
-  const [valorPago, setValorPago] = useState("0.00");
+  const [valorPago, setValorPago] = useState("");
   const [observations, setObservations] = useState("");
   const [ordemStatus, setOrdemStatus] = useState<any>("COMPLETED");
   const [ordemObservacoes, setOrdemObservacoes] = useState("");
@@ -341,7 +341,7 @@ export function useServiceOrderFormState({
         existingOrdem.driverServiceOrderProducts.map((p: any) => ({
           id: p.id!,
           productId: p.productId ?? undefined,
-          type: resolveCaixaDisplayType(p.type, prods),
+          type: resolveCaixaSelectValueFromApiLine(p, prods),
           number: "",
           value: p.value,
           weight: p.weight,
@@ -364,8 +364,8 @@ export function useServiceOrderFormState({
     }
     setItens(mappedItens);
 
-    const cv = existingOrdem.chargedValue ?? 0;
-    setValorPago(Number.isFinite(Number(cv)) ? String(cv) : "0");
+    const cv = Number(existingOrdem.chargedValue ?? 0);
+    setValorPago(Number.isFinite(cv) && cv !== 0 ? String(existingOrdem.chargedValue) : "");
     const sigC = existingOrdem.clientSignature || "";
     const sigA = existingOrdem.agentSignature || "";
     setAssinaturaCliente(sigC);

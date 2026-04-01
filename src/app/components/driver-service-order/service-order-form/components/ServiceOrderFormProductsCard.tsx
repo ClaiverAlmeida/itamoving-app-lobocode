@@ -107,7 +107,15 @@ export function ServiceOrderFormProductsCard(props: Props) {
                     </div>
                     <div className="md:col-span-3">
                       <Label className="md:hidden mb-2">Valor</Label>
-                      <Input type="number" value={caixa.value} onChange={(e) => atualizarCaixa(caixa.id, "value", parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" disabled={!opcoesCaixa.find((p) => p.type === caixa.type || p.name === caixa.type)?.variablePrice} />
+                      <Input type="number" value={caixa.value} onChange={(e) => atualizarCaixa(caixa.id, "value", parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" disabled={
+                        !opcoesCaixa.find(
+                          (p) =>
+                            p.type === caixa.type ||
+                            p.name === caixa.type ||
+                            p.size === caixa.type ||
+                            (p.dimensions != null && p.dimensions === caixa.type),
+                        )?.variablePrice
+                      } />
                     </div>
                     <div className="md:col-span-1 flex justify-end md:justify-center">
                       <Button variant="ghost" size="icon" onClick={() => removerCaixa(caixa.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50">
@@ -120,14 +128,36 @@ export function ServiceOrderFormProductsCard(props: Props) {
                     <div className="rounded-lg border border-dashed border-border bg-white p-3 space-y-2">
                       <p className="text-xs font-semibold text-muted-foreground">Itens da caixa</p>
                       {itensDaCaixa.map((item, idx) => (
-                        <div key={item.id} className="grid grid-cols-1 sm:grid-cols-11 gap-2 items-end rounded-md border bg-muted/30 p-2">
-                          <div className="sm:col-span-1 flex h-9 items-center justify-center rounded-md bg-muted text-xs font-semibold text-muted-foreground">{idx + 1}</div>
-                          <div className="sm:col-span-3"><Input value={item.name} onChange={(e) => atualizarItem(item.id, "name", e.target.value)} placeholder="Nome do item" /></div>
-                          <div className="sm:col-span-2"><Input value={item.quantity} type="number" min={0} onChange={(e) => atualizarItem(item.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="0" /></div>
-                          <div className="sm:col-span-2"><Input type="number" min={0} step="0.1" value={item.weight} onChange={(e) => atualizarItem(item.id, "weight", parseFloat(e.target.value) || 0)} placeholder="kg" /></div>
-                          <div className="sm:col-span-2"><Input type="text" value={item.observations ?? ""} onChange={(e) => atualizarItem(item.id, "observations", e.target.value)} placeholder="Observacao" /></div>
-                          <div className="sm:col-span-1 flex justify-end">
-                            <Button type="button" variant="ghost" size="icon" onClick={() => removerItens(item.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
+                        <div key={item.id} className="grid grid-cols-1 sm:grid-cols-11 gap-2 rounded-md border bg-muted/30 p-2">
+                          <div className="sm:col-span-1 space-y-1">
+                            <Label className="text-xs text-muted-foreground">Nº</Label>
+                            <div className="flex h-9 items-center justify-center rounded-md bg-muted text-xs font-semibold text-muted-foreground">{idx + 1}</div>
+                          </div>
+                          <div className="sm:col-span-3 space-y-1">
+                            <Label className="text-xs text-muted-foreground">Nome do item</Label>
+                            <Input value={item.name} onChange={(e) => atualizarItem(item.id, "name", e.target.value)} placeholder="Nome do item" />
+                          </div>
+                          <div className="sm:col-span-2 space-y-1">
+                            <Label className="text-xs text-muted-foreground">Quantidade</Label>
+                            <Input value={item.quantity} type="number" min={0} onChange={(e) => atualizarItem(item.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="0" />
+                          </div>
+                          <div className="sm:col-span-2 space-y-1">
+                            <Label className="text-xs text-muted-foreground">Peso (kg)</Label>
+                            <Input type="number" min={0} step="0.1" value={item.weight} onChange={(e) => atualizarItem(item.id, "weight", parseFloat(e.target.value) || 0)} placeholder="kg" />
+                          </div>
+                          <div className="sm:col-span-2 space-y-1">
+                            <Label className="text-xs text-muted-foreground">Observações</Label>
+                            <Input type="text" value={item.observations ?? ""} onChange={(e) => atualizarItem(item.id, "observations", e.target.value)} placeholder="Observações" />
+                          </div>
+                          <div className="sm:col-span-1 space-y-1">
+                            <Label className="text-xs text-transparent select-none pointer-events-none" aria-hidden>
+                              {"\u00A0"}
+                            </Label>
+                            <div className="flex justify-end">
+                              <Button type="button" variant="ghost" size="icon" onClick={() => removerItens(item.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50" aria-label="Remover item">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))}

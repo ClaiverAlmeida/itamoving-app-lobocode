@@ -78,7 +78,7 @@ export function HrUsersTable({
                 </TableCell>
                 <TableCell className="text-center">
                   <span className="font-semibold text-green-700">
-                    {user.salary != null ? `R$ ${Number(user.salary).toFixed(2)}` : "-"}
+                    {user.salary != null ? `$ ${Number(user.salary).toFixed(2)}` : "-"}
                   </span>
                 </TableCell>
                 <TableCell className="text-center">

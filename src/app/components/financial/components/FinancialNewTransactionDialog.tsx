@@ -157,7 +157,7 @@ export function FinancialNewTransactionDialog(props: {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="valor">Valor (USD) *</Label>
+              <Label htmlFor="valor">Valor ($) *</Label>
               <Input
                 id="valor"
                 type="number"

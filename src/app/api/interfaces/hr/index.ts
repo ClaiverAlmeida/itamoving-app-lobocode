@@ -27,6 +27,9 @@ export interface StaffUser {
   benefits?: string[];
 }
 
+/** Alias para código legado; preferir {@link StaffUser}. */
+export type Usuario = StaffUser;
+
 export interface CreateUsersDTO {
   name: string;
   email: string;

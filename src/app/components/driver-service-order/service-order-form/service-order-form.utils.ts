@@ -4,6 +4,27 @@ export function valorSelectCaixa(p: ProductPrice): string {
   return p.size || p.name;
 }
 
+/** Valor do Select da caixa ao hidratar a OS a partir da API (productId + relação `product`). */
+export function resolveCaixaSelectValueFromApiLine(
+  p: {
+    productId?: string;
+    product?: { dimensions?: string | null; name?: string } | null;
+  },
+  produtos: ProductPrice[],
+): string {
+  if (p.productId) {
+    const m = produtos.find((x) => x.id === p.productId);
+    if (m) return valorSelectCaixa(m);
+  }
+  const pr = p.product;
+  if (pr) {
+    const dim = pr.dimensions != null ? String(pr.dimensions).trim() : "";
+    const nm = pr.name != null ? String(pr.name).trim() : "";
+    return dim || nm || "";
+  }
+  return "";
+}
+
 export function resolveCaixaDisplayType(persistedType: string, produtos: ProductPrice[]): string {
   const t = String(persistedType ?? "").trim();
   if (!t) return "";

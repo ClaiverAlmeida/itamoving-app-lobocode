@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Caixa, DriverUser, Item, DriverServiceOrder, ProductPrice } from "../../../api";
 import { buildServiceOrderPayload } from "./service-order-form.payload";
-import { caixaTemTodosCamposPreenchidos, isCaixaPersonalizada, isFitaAdesiva, obterTipoProdutoDaCaixa } from "./service-order-form.verifications";
-import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from "../../stock";
+import { caixaTemTodosCamposPreenchidos, isCaixaPersonalizada, isFitaAdesiva } from "./service-order-form.verifications";
 import { serviceOrderFormCrud } from "./service-order-form.crud";
 
 type Params = {
@@ -164,7 +163,6 @@ export function useServiceOrderFormSave(params: Params) {
     const assinaturaAgenteFinal = params.assinaturaAgente?.trim() || (params.isEditMode ? (params.existingOrdem?.agentSignature ?? "") : "");
     if (!assinaturaClienteFinal) return toast.error("É necessária a assinatura do cliente");
     if (!assinaturaAgenteFinal) return toast.error("É necessária a assinatura do agente");
-    if ((params.ordemStatus === "COMPLETED" || !params.isEditMode) && Number(params.valorPago) <= 0) return toast.error(params.isEditMode ? "Para ordem concluída, informe o valor recebido." : "O valor pago deve ser maior que 0");
 
     const criandoComoMotorista = !params.isEditMode && params.user?.role === "motorista";
     let idMotoristaResponsavel = "";
@@ -280,7 +278,11 @@ export function useServiceOrderFormSave(params: Params) {
           changedCaixaIds.add(curId);
           continue;
         }
-        const caixaDiff = cur.type !== init.type || cur.value !== init.value || cur.weight !== init.weight;
+        const caixaDiff =
+          String(cur.productId ?? "") !== String(init.productId ?? "") ||
+          cur.type !== init.type ||
+          cur.value !== init.value ||
+          cur.weight !== init.weight;
         if (caixaDiff) {
           changedCaixaIds.add(curId);
           continue;
@@ -301,8 +303,14 @@ export function useServiceOrderFormSave(params: Params) {
           .filter((c) => changedCaixaIds.has(String(c.id)))
           .map((c) => ({
             ...(params.existingProductIds.has(c.id) ? { id: c.id } : {}),
-            ...(c.productId ? { productId: c.productId } : {}),
-            type: `${c.type} - ${ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[obterTipoProdutoDaCaixa(c, params.opcoesCaixa) as keyof typeof PRODUCT_TYPE_TO_ITEM_KEY]]}`,
+            ...(c.productId
+              ? { productId: c.productId }
+              : (() => {
+                  const produto = params.opcoesCaixa.find(
+                    (p) => p.size === c.type || p.name === c.type || (p.dimensions != null && p.dimensions === c.type),
+                  );
+                  return produto?.id ? { productId: produto.id } : {};
+                })()),
             value: c.value,
             weight: c.weight,
             driverServiceOrderProductsItems: params.itens

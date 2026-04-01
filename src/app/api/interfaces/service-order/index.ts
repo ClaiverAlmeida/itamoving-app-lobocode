@@ -28,12 +28,29 @@ export interface DriverServiceOrder {
     };
     brazilPhone: string;
   };
+  container?: {
+    id: string | null;
+    number: string | null;
+    type: string | null;
+  };
   driverServiceOrderProducts: {
     id?: string;
     /** Número da caixa na ordem (referência operacional). */
     number?: string;
     productId?: string;
+    /**
+     * Rótulo para exibição (ex.: nome + tipo amigável), montado a partir de `product` na resposta da API.
+     * Não é mais persistido na tabela da OS.
+     */
     type: string;
+    /** `ProductPrice.type` quando a API inclui a relação `product`. */
+    productType?: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_ITEM" | "TAPE_ADHESIVE";
+    product?: {
+      id: string;
+      type: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_ITEM" | "TAPE_ADHESIVE";
+      name: string;
+      dimensions?: string | null;
+    };
     weight: number;
     value: number;
     driverServiceOrderProductsItems?: {

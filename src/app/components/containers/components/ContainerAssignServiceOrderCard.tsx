@@ -3,6 +3,8 @@ import type { Container } from "../../../api";
 import { Button } from "../../ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
 import { ClipboardList, Hash, Link2, Truck } from "lucide-react";
+import { cn } from "../../ui/utils";
+import { VOLUME_REFERENCIA_INFORMATIVO } from "../containers.constants";
 import { ContainerAssignServiceOrderDialog } from "./ContainerAssignServiceOrderDialog";
 
 type Props = {
@@ -14,6 +16,11 @@ type Props = {
 export function ContainerAssignServiceOrderCard({ container, onAssigned, onUnassignServiceOrder }: Props) {
   const [open, setOpen] = useState(false);
   const linkedCount = container.linkedServiceOrderCount ?? container.serviceOrders?.length ?? 0;
+  const volRef = VOLUME_REFERENCIA_INFORMATIVO;
+  const boxCount = container.boxes?.length ?? 0;
+  const excedeVolumesRef = boxCount > volRef;
+  /** Contador de volumes (OS) mantido na API; pode diferir do que o painel ainda carregou. */
+  const volumeContador = container.volumeCapacity ?? container.linkedServiceOrderCount ?? 0;
 
   return (
     <>
@@ -34,10 +41,15 @@ export function ContainerAssignServiceOrderCard({ container, onAssigned, onUnass
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div className="rounded-md border bg-muted/20 px-3 py-2">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Ordens</p>
-              <p className="text-sm font-semibold tabular-nums">{linkedCount}</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Volume (OS)</p>
+              <p className="text-sm font-semibold tabular-nums">{volumeContador}</p>
+              {linkedCount !== volumeContador && (
+                <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight">
+                  Vista no painel: {linkedCount}
+                </p>
+              )}
             </div>
             <div className="rounded-md border bg-muted/20 px-3 py-2">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Letra</p>
@@ -45,9 +57,23 @@ export function ContainerAssignServiceOrderCard({ container, onAssigned, onUnass
                 {container.volumeLetter?.toUpperCase() ?? "—"}
               </p>
             </div>
-            <div className="rounded-md border bg-muted/20 px-3 py-2 col-span-2 sm:col-span-1">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Limite</p>
-              <p className="text-sm font-semibold tabular-nums">{container.volumeCapacity ?? 220}</p>
+            <div
+              className={cn(
+                "rounded-md border px-3 py-2 transition-colors",
+                excedeVolumesRef
+                  ? "border-destructive/45 bg-destructive/5 ring-1 ring-destructive/20"
+                  : "border-muted bg-muted/20",
+              )}
+            >
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Caixas</p>
+              <p className={cn("text-sm font-semibold tabular-nums", excedeVolumesRef && "text-destructive")}>
+                {boxCount}
+              </p>
+            </div>
+            <div className="rounded-md border bg-muted/20 px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Referência</p>
+              <p className="text-sm font-semibold tabular-nums">{volRef}</p>
+              <p className="text-[9px] text-muted-foreground leading-tight mt-0.5">caixas (nota)</p>
             </div>
           </div>
         </CardHeader>

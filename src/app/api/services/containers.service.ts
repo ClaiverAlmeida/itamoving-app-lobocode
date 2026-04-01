@@ -22,7 +22,7 @@ function mapBackendToFrontend(container: ContainersBackend): Container {
           clientId: p.clientId ?? "",
           clientName: pickClientDisplayName(p.client ?? undefined) || "",
           boxNumber: p.boxNumber,
-          size: linked?.type ?? p.size ?? "",
+          size: linked?.product?.type ?? p.size ?? "",
           weight: linked?.weight ?? p.weight ?? 0,
         };
       })
@@ -48,7 +48,12 @@ function mapBackendToFrontend(container: ContainersBackend): Container {
     totalWeight,
     boxes,
     volumeLetter: container.volumeLetter ?? undefined,
-    volumeCapacity: container.volumeCapacity ?? 220,
+    volumeCapacity:
+      container.volumeCapacity !== undefined && container.volumeCapacity !== null
+        ? container.volumeCapacity
+        : Array.isArray(container.driverServiceOrders)
+          ? container.driverServiceOrders.length
+          : undefined,
     linkedServiceOrderCount: Array.isArray(container.driverServiceOrders)
       ? container.driverServiceOrders.length
       : undefined,

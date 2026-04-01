@@ -7,8 +7,10 @@ import { Badge } from "../../../ui/badge";
 import type { DriverServiceOrderView } from "../../../../api";
 import {
   RECIBO_CATEGORY_LABEL,
+  formatUsdValorRecebidoLivre,
   summarizeOrdemForRecibo,
   sumValorTotalCaixasFromOrdem,
+  totalGeralConsolidadoOrdem,
   type ReciboBoxCategory,
 } from "../delivery-receipt-utils";
 
@@ -55,8 +57,7 @@ export function DeliveryReceipt({
     const n = Number(ordem.chargedValue);
     return Number.isFinite(n) && n > 0 ? n : 0;
   })();
-  const totalConsolidado =
-    subtotalAgendamento + valorTotalCaixas + valorRecebidoNum;
+  const totalConsolidado = totalGeralConsolidadoOrdem(ordem);
 
   return (
     <div className={`space-y-4 sm:space-y-6 print:bg-white min-w-0 ${className ?? ""}`}>
@@ -110,7 +111,7 @@ export function DeliveryReceipt({
             <h2 className="text-xl sm:text-2xl font-bold text-[#1E3A5F]">RECIBO DE ENTREGA</h2>
             <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">
               <CheckCircle className="w-4 h-4 mr-1" />
-              CONCLUIDO
+              CONCLUÍDO
             </Badge>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
@@ -136,7 +137,7 @@ export function DeliveryReceipt({
           <h3 className="font-semibold text-[#1E3A5F] mb-3 flex items-center gap-2"><Box className="w-5 h-5" />Caixas e produtos entregues</h3>
           <div className="overflow-x-auto -mx-1">
             <table className="w-full text-sm min-w-[280px]">
-              <thead className="border-b"><tr className="text-center"><th className="pb-2 pr-2 text-center">Tipo do Produto</th><th className="pb-2 text-center whitespace-nowrap">Peso (kg)</th><th className="pb-2 text-center whitespace-nowrap">Valor (USD)</th></tr></thead>
+              <thead className="border-b"><tr className="text-center"><th className="pb-2 pr-2 text-center">Tipo do Produto</th><th className="pb-2 text-center whitespace-nowrap">Peso (kg)</th><th className="pb-2 text-center whitespace-nowrap">Valor ($)</th></tr></thead>
               <tbody className="divide-y">
                 {reciboRows.map((row) => (
                   <tr key={row.key}>
@@ -189,7 +190,7 @@ export function DeliveryReceipt({
             <div className="flex justify-between gap-4 text-sm">
               <span className="text-muted-foreground">Valor recebido (espécie / Zelle):</span>
               <span className="font-semibold tabular-nums">
-                $ {valorRecebidoNum.toFixed(2)}
+                $ {formatUsdValorRecebidoLivre(valorRecebidoNum)}
               </span>
             </div>
           </div>
@@ -207,7 +208,7 @@ export function DeliveryReceipt({
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">+ Valor recebido</span>
-              <span className="font-medium tabular-nums">$ {valorRecebidoNum.toFixed(2)}</span>
+              <span className="font-medium tabular-nums">$ {formatUsdValorRecebidoLivre(valorRecebidoNum)}</span>
             </div>
             <div className="flex justify-between gap-4 pt-2 border-t border-green-200">
               <span className="text-base font-bold text-green-900">Total geral</span>
