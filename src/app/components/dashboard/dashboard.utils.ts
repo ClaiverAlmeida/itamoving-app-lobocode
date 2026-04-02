@@ -1,4 +1,34 @@
 import type { Appointment, Client, Container, Estoque, FinancialTransaction } from "../../api";
+
+const APPOINTMENT_STATUS_LABEL: Record<Appointment["status"], string> = {
+  PENDING: "Pendente",
+  CONFIRMED: "Confirmado",
+  COLLECTED: "Coletado",
+  CANCELLED: "Cancelado",
+};
+
+/** Considera editado quando `updatedAt` é claramente posterior a `createdAt`. */
+export function isAgendamentoEditado(a: Pick<Appointment, "createdAt" | "updatedAt">): boolean {
+  if (!a.updatedAt) return false;
+  if (!a.createdAt) return true;
+  return new Date(a.updatedAt).getTime() - new Date(a.createdAt).getTime() > 1500;
+}
+
+export function descricaoAtividadeAgendamento(a: Appointment): string {
+  const nome = a.client?.name?.trim() || "Cliente";
+  const status = APPOINTMENT_STATUS_LABEL[a.status] ?? a.status;
+  if (isAgendamentoEditado(a)) {
+    return `Agendamento editado — ${nome} — status: ${status}`;
+  }
+  return `Agendamento criado para ${nome}`;
+}
+
+export function dataAtividadeAgendamento(a: Appointment): Date {
+  if (isAgendamentoEditado(a) && a.updatedAt) return new Date(a.updatedAt);
+  if (a.createdAt) return new Date(a.createdAt);
+  if (a.updatedAt) return new Date(a.updatedAt);
+  return new Date();
+}
 import { format, isPast, isToday, isValid, startOfMonth, subDays, subMonths } from "date-fns";
 import type { LucideIcon } from "lucide-react";
 import { ALARTE_COLOR_MAP, type Alerta, type AtividadeRecente } from "./dashboard.constants";
@@ -262,16 +292,23 @@ export function buildAtividadesRecentes(params: {
       });
     });
 
-  agendamentos.slice(0, 2).forEach((a) => {
-    atividades.push({
-      id: `agendamento-${(a as any).id}`,
-      tipo: "agendamento",
-      descricao: `Agendamento criado para ${(a as any).client?.name}`,
-      data: new Date(),
-      icone: icons.Calendar,
-      color: "green",
+  [...agendamentos]
+    .sort((a, b) => {
+      const ta = new Date(a.updatedAt ?? a.createdAt ?? 0).getTime();
+      const tb = new Date(b.updatedAt ?? b.createdAt ?? 0).getTime();
+      return tb - ta;
+    })
+    .slice(0, 2)
+    .forEach((a) => {
+      atividades.push({
+        id: `agendamento-${a.id ?? ""}`,
+        tipo: "agendamento",
+        descricao: descricaoAtividadeAgendamento(a),
+        data: dataAtividadeAgendamento(a),
+        icone: icons.Calendar,
+        color: "green",
+      });
     });
-  });
 
   containers.slice(0, 2).forEach((c) => {
     const dataEmbarque = new Date((c as any).boardingDate || "");

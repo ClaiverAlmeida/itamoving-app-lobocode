@@ -48,6 +48,8 @@ export function mapBackendToFrontend(appointment: AppointmentsBackend): Appointm
     isPeriodic: Boolean(appointment.isPeriodic),
     qtyBoxes: Number(appointment.qtyBoxes),
     appointmentPeriodId: appointment.appointmentPeriodId ?? "",
+    createdAt: appointment.createdAt,
+    updatedAt: appointment.updatedAt,
   };
 }
 

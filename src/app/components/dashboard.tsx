@@ -12,6 +12,8 @@ import {
   buildEstoqueData,
   buildFinanceiroData,
   buildPerformanceData,
+  dataAtividadeAgendamento,
+  descricaoAtividadeAgendamento,
   formatCurrencyCompactUSD,
 } from "./dashboard/dashboard.utils";
 import {
@@ -179,17 +181,22 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
         }
       });
 
-    // Últimos agendamentos
-    agendamentos
+    // Últimos agendamentos (por última alteração; criado vs editado)
+    [...agendamentos]
+      .sort((a, b) => {
+        const ta = new Date(a.updatedAt ?? a.createdAt ?? 0).getTime();
+        const tb = new Date(b.updatedAt ?? b.createdAt ?? 0).getTime();
+        return tb - ta;
+      })
       .slice(0, 2)
-      .forEach(a => {
+      .forEach((a) => {
         atividades.push({
           id: `agendamento-${a.id}`,
-          tipo: 'agendamento',
-          descricao: `Agendamento criado para ${a.client.name}`,
-          data: new Date(),
+          tipo: "agendamento",
+          descricao: descricaoAtividadeAgendamento(a),
+          data: dataAtividadeAgendamento(a),
           icone: Calendar,
-          color: 'green',
+          color: "green",
         });
       });
 

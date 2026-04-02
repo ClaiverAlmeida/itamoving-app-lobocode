@@ -12,6 +12,9 @@ export interface Appointment {
   user: { id: string; name: string };
   client: { id: string; name: string; usaAddress: string };
   status: "PENDING" | "CONFIRMED" | "COLLECTED" | "CANCELLED";
+  /** ISO — para atividades recentes (criação vs edição). */
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateAppointmentsPeriodsDTO {
