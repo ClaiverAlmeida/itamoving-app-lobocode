@@ -6,9 +6,23 @@ import type { Container } from "../../../api";
 import { serviceOrderFormService } from "../../../api";
 import type { DriverServiceOrderView } from "../../../api/services/driver-service-order/service-order-form.service";
 import { VOLUME_REFERENCIA_INFORMATIVO } from "../containers.constants";
-import { getServiceOrderAssociationCaption } from "../containers.utils";
+import {
+  buildTransferBoxCandidates,
+  filterDriverServiceProductsOnContainer,
+  formatProductTypeForDisplay,
+  formatServiceOrderBoxLine,
+  getContainerBoxLabel,
+  getLoosePhysicalBoxes,
+  getServiceOrderAssociationCaption,
+  linkedDriverServiceOrderIdsToFetch,
+  mergeOrderProductWithPhysicalBox,
+} from "../containers.utils";
 import { ContainerBoxItemsList } from "./ContainerBoxItemsList";
 import { ContainerAssignServiceOrderCard } from "./ContainerAssignServiceOrderCard";
+import {
+  ContainerTransferBoxesDialog,
+  type TransferBoxCandidate,
+} from "./ContainerTransferBoxesDialog";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
@@ -19,6 +33,7 @@ import {
   Anchor,
   ArrowRight,
   ArrowUpRight,
+  ArrowRightLeft,
   CheckCircle2,
   Container as ContainerIcon,
   Edit,
@@ -61,6 +76,9 @@ type Props = {
   statusItems: readonly { value: Container["status"]; label: string }[];
   onContainerVolumesUpdated: (updated: Container) => void | Promise<void>;
   onUnassignServiceOrder: (containerId: string, driverServiceOrderId: string) => void | Promise<void>;
+  /** Lista completa de containers (mesma empresa) para escolher destino na transferência de caixas. */
+  allContainers: Container[];
+  onTransferCompleted: (payload: { source: Container; target: Container }) => void | Promise<void>;
 };
 
 const getEventoIcon = (tipo: ContainerEvento["tipo"]) => {
@@ -94,26 +112,46 @@ export function ContainersSidePanel(props: Props) {
     statusItems,
     onContainerVolumesUpdated,
     onUnassignServiceOrder,
+    allContainers,
+    onTransferCompleted,
   } = props;
   const [linkedDetailsLoading, setLinkedDetailsLoading] = useState(false);
   const [linkedOrderDetails, setLinkedOrderDetails] = useState<Record<string, DriverServiceOrderView>>({});
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [transferInitialIds, setTransferInitialIds] = useState<string[] | undefined>(undefined);
+
+  const containerSyncKey = useMemo(() => {
+    const c = selectedContainer;
+    if (!c?.id) return "";
+    const orderSig = (c.serviceOrders ?? [])
+      .map((o) => o.id)
+      .sort()
+      .join(",");
+    const boxSig = (c.boxes ?? [])
+      .map((b) =>
+        [b.driverServiceOrderProductId ?? "", b.boxNumber, b.orderPrimaryContainerId ?? ""].join(":"),
+      )
+      .sort()
+      .join("|");
+    return `${c.id}|${orderSig}|${boxSig}|${String(c.volumeCapacity ?? "")}|${String(c.totalWeight ?? "")}`;
+  }, [selectedContainer]);
 
   useEffect(() => {
     if (!selectedContainer) {
       setLinkedOrderDetails({});
       return;
     }
-    const linked = selectedContainer.serviceOrders ?? [];
-    if (linked.length === 0) {
+    const orderIds = linkedDriverServiceOrderIdsToFetch(selectedContainer);
+    if (orderIds.length === 0) {
       setLinkedOrderDetails({});
       return;
     }
     let cancelled = false;
     setLinkedDetailsLoading(true);
     void Promise.all(
-      linked.map(async (o) => {
-        const r = await serviceOrderFormService.getById(o.id);
-        return { id: o.id, data: r.success ? r.data : null };
+      orderIds.map(async (id) => {
+        const r = await serviceOrderFormService.getById(id);
+        return { id, data: r.success ? r.data : null };
       }),
     ).then((rows) => {
       if (cancelled) return;
@@ -127,19 +165,27 @@ export function ContainersSidePanel(props: Props) {
     return () => {
       cancelled = true;
     };
-  }, [selectedContainer?.id, selectedContainer?.serviceOrders]);
+  }, [containerSyncKey]);
 
   const linkedOverview = useMemo(() => {
-    const details = Object.values(linkedOrderDetails);
-    const boxes = details.flatMap((o) => o.driverServiceOrderProducts ?? []);
+    const boxes = selectedContainer?.boxes ?? [];
     const totalBoxes = boxes.length;
     const totalItems = boxes.reduce(
-      (sum, box) =>
-        sum + (box.driverServiceOrderProductsItems ?? []).reduce((s, it) => s + (it.quantity ?? 0), 0),
+      (sum, box) => sum + (box.items ?? []).reduce((s, it) => s + (it.quantity ?? 0), 0),
       0,
     );
     return { totalBoxes, totalItems };
-  }, [linkedOrderDetails]);
+  }, [selectedContainer?.boxes]);
+
+  const transferCandidates = useMemo(
+    (): TransferBoxCandidate[] => buildTransferBoxCandidates(selectedContainer, linkedOrderDetails),
+    [selectedContainer, linkedOrderDetails],
+  );
+
+  const loosePhysicalBoxes = useMemo(
+    () => getLoosePhysicalBoxes(selectedContainer),
+    [selectedContainer],
+  );
 
   const pesoLimite = selectedContainer?.fullWeight ?? null;
   const pesoCarga = selectedContainer?.totalWeight ?? 0;
@@ -465,14 +511,32 @@ export function ContainersSidePanel(props: Props) {
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Truck className="w-5 h-5" />
-                  Ordens vinculadas
-                </CardTitle>
-                <CardDescription>
-                  {selectedContainer.serviceOrders?.length ?? 0} ordem(ns) associada(s) a este container.
-                </CardDescription>
+              <CardHeader className="space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Truck className="w-5 h-5" />
+                      Ordens vinculadas
+                    </CardTitle>
+                    <CardDescription>
+                      {selectedContainer.serviceOrders?.length ?? 0} ordem(ns) associada(s) a este container.
+                    </CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 gap-1.5"
+                    disabled={transferCandidates.length === 0 || linkedDetailsLoading}
+                    onClick={() => {
+                      setTransferInitialIds(undefined);
+                      setTransferDialogOpen(true);
+                    }}
+                  >
+                    <ArrowRightLeft className="h-3.5 w-3.5" />
+                    Transferir caixas
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-2">
                 {linkedDetailsLoading && (
@@ -491,6 +555,68 @@ export function ContainersSidePanel(props: Props) {
                     <p className="text-lg font-semibold tabular-nums leading-tight">{linkedOverview.totalItems}</p>
                   </div>
                 </div>
+                {loosePhysicalBoxes.length > 0 && (
+                  <div className="rounded-lg border border-amber-500/35 bg-amber-50/50 px-3 py-2.5 space-y-2">
+                    <p className="text-xs font-semibold text-amber-900/90 uppercase tracking-wide">
+                      Caixas soltas neste volume
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Carga física aqui, mas a ordem continua vinculada a outro container. Itens conforme o servidor.
+                    </p>
+                    <div className="space-y-2">
+                      {loosePhysicalBoxes.map((box, li) => (
+                        <div
+                          key={box.driverServiceOrderProductId ?? `${box.boxNumber}-${li}`}
+                          className="rounded-md border border-border/80 bg-background overflow-hidden"
+                        >
+                          <div className="flex items-start justify-between gap-2 px-2.5 py-2 border-b border-border/50 bg-muted/15">
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-foreground truncate">
+                                {box.clientName?.trim() || "Cliente"}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground font-mono">
+                                OS #{box.driverServiceOrderId ?? "—"}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">
+                                {formatServiceOrderBoxLine(box)}
+                              </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              {box.driverServiceOrderProductId && (
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-7 text-[10px] gap-1"
+                                  onClick={() => {
+                                    setTransferInitialIds([box.driverServiceOrderProductId!]);
+                                    setTransferDialogOpen(true);
+                                  }}
+                                >
+                                  <ArrowRightLeft className="h-3 w-3" />
+                                  Transferir
+                                </Button>
+                              )}
+                              <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                                {(box.weight ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
+                              </span>
+                            </div>
+                          </div>
+                          <div className="px-2.5 py-2">
+                            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1">
+                              Itens na caixa
+                            </p>
+                            <ContainerBoxItemsList
+                              items={box.items ?? []}
+                              compact
+                              emptyLabel="Nenhum item listado."
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {(selectedContainer.serviceOrders ?? []).length === 0 && (
                   <p className="text-sm text-muted-foreground rounded-md border border-dashed px-3 py-2">
                     Nenhuma ordem vinculada no momento.
@@ -498,7 +624,10 @@ export function ContainersSidePanel(props: Props) {
                 )}
                 {(selectedContainer.serviceOrders ?? []).map((order) => {
                   const detailByOrder = linkedOrderDetails[order.id];
-                  const boxes = detailByOrder?.driverServiceOrderProducts ?? [];
+                  const boxes = filterDriverServiceProductsOnContainer(
+                    detailByOrder?.driverServiceOrderProducts,
+                    selectedContainer,
+                  );
                   const itemCount = boxes.reduce(
                     (sum, b) =>
                       sum +
@@ -549,19 +678,43 @@ export function ContainersSidePanel(props: Props) {
                         {boxes.length === 0 ? (
                           <p className="text-xs text-muted-foreground">Sem caixas detalhadas.</p>
                         ) : (
-                          boxes.map((box, idx) => (
+                          boxes.map((box, idx) => {
+                            const boxView = mergeOrderProductWithPhysicalBox(selectedContainer, box);
+                            return (
                             <div
                               key={box.id ?? `${order.id}-${idx}`}
                               className="rounded-lg border border-border/70 bg-background overflow-hidden"
                             >
-                              <div className="flex items-start justify-between gap-2 px-2.5 py-2 border-b border-border/50 bg-muted/15">
-                                <p className="text-xs font-semibold text-foreground leading-snug">
-                                  Caixa #{box.number || idx + 1}
-                                  <span className="font-normal text-muted-foreground"> · Tipo {box.type || "—"}</span>
+                                <div className="flex items-start justify-between gap-2 px-2.5 py-2 border-b border-border/50 bg-muted/15">
+                                <p className="text-xs font-semibold text-foreground leading-snug min-w-0">
+                                  <span className="font-mono tabular-nums">
+                                    {getContainerBoxLabel(boxView) ?? "—"}
+                                  </span>
+                                  <span className="font-normal text-muted-foreground">
+                                    {" "}
+                                    · Tipo {formatProductTypeForDisplay(boxView.type)}
+                                  </span>
                                 </p>
-                                <span className="text-[11px] font-medium tabular-nums text-muted-foreground shrink-0">
-                                  {(box.weight ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
-                                </span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {box.id && (
+                                    <Button
+                                      type="button"
+                                      variant="secondary"
+                                      size="sm"
+                                      className="h-7 text-[10px] gap-1"
+                                      onClick={() => {
+                                        setTransferInitialIds([box.id!]);
+                                        setTransferDialogOpen(true);
+                                      }}
+                                    >
+                                      <ArrowRightLeft className="h-3 w-3" />
+                                      Transferir
+                                    </Button>
+                                  )}
+                                  <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                                    {(box.weight ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
+                                  </span>
+                                </div>
                               </div>
                               <div className="px-2.5 py-2">
                                 <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1">
@@ -574,7 +727,8 @@ export function ContainersSidePanel(props: Props) {
                                 />
                               </div>
                             </div>
-                          ))
+                            );
+                          })
                         )}
                       </div>
                     </details>
@@ -585,10 +739,24 @@ export function ContainersSidePanel(props: Props) {
 
             <ContainerAssignServiceOrderCard
               container={selectedContainer}
+              allContainers={allContainers}
+              onTransferCompleted={onTransferCompleted}
               onAssigned={onContainerVolumesUpdated}
               onUnassignServiceOrder={onUnassignServiceOrder}
             />
           </div>
+
+          {selectedContainer && (
+            <ContainerTransferBoxesDialog
+              open={transferDialogOpen}
+              onOpenChange={setTransferDialogOpen}
+              sourceContainer={selectedContainer}
+              allContainers={allContainers}
+              candidates={transferCandidates}
+              initialSelectedIds={transferInitialIds}
+              onCompleted={onTransferCompleted}
+            />
+          )}
         </motion.div>
       )}
     </AnimatePresence>

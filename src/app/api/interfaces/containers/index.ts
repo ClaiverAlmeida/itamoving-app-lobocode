@@ -1,3 +1,24 @@
+/** Uma caixa fisicamente neste container (`ContainerProduct` + linha da OS). */
+export type ContainerBoxLine = {
+  clientId: string;
+  clientName: string;
+  boxNumber: string;
+  size: string;
+  weight: number;
+  driverServiceOrderProductId?: string;
+  driverServiceOrderId?: string;
+  /** `DriverServiceOrder.containerId` — onde a OS está vinculada (pode diferir do container da carga). */
+  orderPrimaryContainerId?: string | null;
+  /** Itens da caixa quando o GET do container incluir `driverServiceOrderProductsItems`. */
+  items?: Array<{
+    id?: string;
+    name: string;
+    quantity: number;
+    weight: number;
+    observations?: string;
+  }>;
+};
+
 /** UI model for a shipping container (distinct from {@link ContainersBackend}). */
 export interface Container {
   id?: string;
@@ -31,13 +52,7 @@ export interface Container {
     /** Atendente da OS (`attendantId`); na associação ao container vira o usuário logado; limpo ao desvincular. */
     attendant?: { id: string; name: string } | null;
   }[];
-  boxes?: {
-    clientId: string;
-    clientName: string;
-    boxNumber: string;
-    size: string;
-    weight: number;
-  }[];
+  boxes?: ContainerBoxLine[];
   totalWeight?: number;
 }
 
@@ -80,15 +95,33 @@ export interface ContainersBackend {
     clientId?: string | null;
     client?: { id?: string; usaName?: string | null; brazilName?: string | null } | null;
     driverServiceOrderProducts?: Array<{
+      id?: string;
+      containerProductId?: string | null;
+      driverServiceOrderId?: string;
       weight?: number | null;
       product?: { type?: string; name?: string; dimensions?: string | null } | null;
+      driverServiceOrder?: {
+        id?: string;
+        containerId?: string | null;
+        appointment?: {
+          client?: { usaName?: string | null; brazilName?: string | null } | null;
+        } | null;
+      } | null;
+      driverServiceOrderProductsItems?: Array<{
+        id?: string;
+        name?: string;
+        quantity?: number;
+        weight?: number;
+        observations?: string | null;
+        deletedAt?: string | null;
+      }>;
     }>;
     /** Legado se a API ainda enviar campos desnormalizados. */
     size?: string;
     weight?: number;
     clientName?: string | null;
   }>;
-  boxes?: { clientId: string; clientName: string; boxNumber: string; size: string; weight: number }[];
+  boxes?: ContainerBoxLine[];
   /** Ordens de serviço vinculadas (quando o GET incluir a relação). */
   driverServiceOrders?: {
     id: string;

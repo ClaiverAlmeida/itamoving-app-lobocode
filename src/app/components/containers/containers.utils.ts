@@ -1,5 +1,8 @@
 import { CheckCircle2, Container as ContainerIcon, Package, Ship, Truck, X } from "lucide-react";
-import type { Container } from "../../api";
+import type { Container, ContainerBoxLine } from "../../api";
+import type { DriverServiceOrderView } from "../../api/services/driver-service-order/service-order-form.service";
+import { resolveProductTypeLabel } from "../prices/products-prices/products-prices.utils";
+import type { TransferBoxCandidate } from "./transfer-boxes-dialog/transfer-boxes-dialog.types";
 import { MESES_PT } from "./containers.constants";
 
 export const dataPickerBlocked = () => new Date().toISOString().split("T")[0];
@@ -96,4 +99,164 @@ export const getContainersByStatus = (containers: Container[]) => ({
   entregue: containers.filter((c) => c.status === "DELIVERED"),
   cancelado: containers.filter((c) => c.status === "CANCELLED"),
 });
+
+/** Etiqueta sequencial no container (ex.: `12-A`), quando já vinculada a um `ContainerProduct`. */
+export function getContainerBoxLabel(box: {
+  containerBoxNumber?: string | null;
+  boxNumber?: string | null;
+}): string | null {
+  const bn = (box.containerBoxNumber ?? box.boxNumber)?.trim();
+  return bn && bn.length > 0 ? bn : null;
+}
+
+/**
+ * Linha física no payload `container.boxes` para uma linha de produto da OS
+ * (etiqueta e tipo após transferência / renumeração).
+ */
+export function physicalBoxLineForOrderProduct(
+  container: Container | null | undefined,
+  driverServiceOrderProductId: string | undefined,
+): ContainerBoxLine | undefined {
+  if (!driverServiceOrderProductId || !container?.boxes?.length) return undefined;
+  return container.boxes.find((b) => b.driverServiceOrderProductId === driverServiceOrderProductId);
+}
+
+/**
+ * Mescla detalhe da OS com carga física do GET do container (evita etiqueta antiga após transferir caixa solta).
+ */
+export function mergeOrderProductWithPhysicalBox<
+  T extends { id?: string; containerBoxNumber?: string | null; type?: string },
+>(container: Container | null | undefined, line: T): T & { boxNumber?: string; size?: string } {
+  const phys = physicalBoxLineForOrderProduct(container, line.id);
+  if (!phys) return { ...line, boxNumber: line.containerBoxNumber ?? undefined };
+  return {
+    ...line,
+    containerBoxNumber: phys.boxNumber,
+    boxNumber: phys.boxNumber,
+    type: phys.size || line.type,
+    size: phys.size,
+  };
+}
+
+/**
+ * Texto para listas (transferência, etc.): etiqueta real + tipo do produto.
+ * Sem etiqueta ainda, mostra só o tipo (evita `#1`, `#2`).
+ */
+export function formatServiceOrderBoxLine(
+  box: { containerBoxNumber?: string | null; boxNumber?: string | null; type?: string; size?: string },
+): string {
+  const raw = (box.type ?? box.size)?.trim();
+  const t = raw ? resolveProductTypeLabel(raw) : "—";
+  const label = getContainerBoxLabel(box);
+  return label ? `${label} · ${t}` : t;
+}
+
+/** Tipo de produto (enum da API) para exibição na UI de containers / OS. */
+export function formatProductTypeForDisplay(raw: string | null | undefined): string {
+  return resolveProductTypeLabel(raw);
+}
+
+/** IDs de linha de produto da OS presentes fisicamente neste container (payload `boxes`). */
+export function productIdsOnPhysicalContainer(container: Container | null | undefined): Set<string> {
+  const ids = new Set<string>();
+  for (const b of container?.boxes ?? []) {
+    if (b.driverServiceOrderProductId) ids.add(b.driverServiceOrderProductId);
+  }
+  return ids;
+}
+
+/** Mantém só produtos da OS cuja carga está neste container. */
+export function filterDriverServiceProductsOnContainer<T extends { id?: string }>(
+  products: T[] | undefined,
+  container: Container | null | undefined,
+): T[] {
+  const ids = productIdsOnPhysicalContainer(container);
+  if (ids.size === 0) return [];
+  return (products ?? []).filter((p) => p.id && ids.has(p.id));
+}
+
+/**
+ * Caixas físicas cuja ordem está vinculada a outro container — carga “solta” neste volume.
+ */
+export function getLoosePhysicalBoxes(container: Container | null | undefined): ContainerBoxLine[] {
+  const cid = container?.id;
+  if (!cid) return [];
+  return (container?.boxes ?? []).filter(
+    (b) =>
+      b.orderPrimaryContainerId != null &&
+      String(b.orderPrimaryContainerId) !== "" &&
+      String(b.orderPrimaryContainerId) !== cid,
+  );
+}
+
+/**
+ * IDs de ordem a carregar para o painel/diálogo: vínculos do container + ordens referenciadas nas caixas físicas
+ * (caixas “soltas” cuja OS está em outro container não aparecem em `serviceOrders` do GET).
+ */
+export function linkedDriverServiceOrderIdsToFetch(container: Container | null | undefined): string[] {
+  const ids = new Set<string>();
+  for (const o of container?.serviceOrders ?? []) {
+    if (o.id?.trim()) ids.add(o.id.trim());
+  }
+  for (const b of container?.boxes ?? []) {
+    if (b.driverServiceOrderId?.trim()) ids.add(b.driverServiceOrderId.trim());
+  }
+  return [...ids];
+}
+
+function recipientLabelFromOrderView(d: DriverServiceOrderView): string {
+  const r = d.recipient?.brazilName?.trim();
+  if (r) return r;
+  const apt = d.appointment?.client?.usaName?.trim() || d.appointment?.client?.brazilName?.trim();
+  if (apt) return apt;
+  return "Cliente";
+}
+
+/**
+ * Candidatos à transferência: uma entrada por caixa física em `container.boxes` (inclui soltas).
+ * Usa `linkedOrderDetails` quando a OS já foi carregada; senão cai no texto da linha física.
+ */
+export function buildTransferBoxCandidates(
+  container: Container | null | undefined,
+  linkedOrderDetails: Record<string, DriverServiceOrderView>,
+): TransferBoxCandidate[] {
+  const productByDspId = new Map<
+    string,
+    { detail: DriverServiceOrderView; product: NonNullable<DriverServiceOrderView["driverServiceOrderProducts"]>[number] }
+  >();
+  for (const detail of Object.values(linkedOrderDetails)) {
+    if (!detail?.id) continue;
+    for (const p of detail.driverServiceOrderProducts ?? []) {
+      if (p.id) productByDspId.set(p.id, { detail, product: p });
+    }
+  }
+
+  const out: TransferBoxCandidate[] = [];
+  const seen = new Set<string>();
+  for (const line of container?.boxes ?? []) {
+    const dspId = line.driverServiceOrderProductId?.trim();
+    if (!dspId || seen.has(dspId)) continue;
+    seen.add(dspId);
+
+    const found = productByDspId.get(dspId);
+    const label = found
+      ? formatServiceOrderBoxLine(mergeOrderProductWithPhysicalBox(container, found.product))
+      : formatServiceOrderBoxLine(line);
+
+    const orderContext = found
+      ? `${recipientLabelFromOrderView(found.detail)} · #${String(found.detail.id ?? "").slice(-8)}`
+      : `${line.clientName?.trim() || "Cliente"} · OS #${(line.driverServiceOrderId ?? "").slice(-8)}`;
+
+    const w = found?.product?.weight ?? line.weight;
+    const weightKg = typeof w === "number" && Number.isFinite(w) ? w : 0;
+
+    out.push({
+      driverServiceOrderProductId: dspId,
+      label,
+      orderContext,
+      weightKg,
+    });
+  }
+  return out;
+}
 

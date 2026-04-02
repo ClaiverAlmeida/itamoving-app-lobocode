@@ -37,6 +37,8 @@ export interface DriverServiceOrder {
     id?: string;
     /** Número da caixa na ordem (referência operacional). */
     number?: string;
+    /** Etiqueta no container após vínculo (ex.: 3-A). Vem de `containerProduct.boxNumber`. */
+    containerBoxNumber?: string | null;
     productId?: string;
     /**
      * Rótulo para exibição (ex.: nome + tipo amigável), montado a partir de `product` na resposta da API.

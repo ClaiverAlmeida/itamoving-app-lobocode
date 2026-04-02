@@ -17,5 +17,13 @@ export const containersCrud = {
     id: string,
     driverServiceOrderId: string,
   ) => containersServices.unassignServiceOrder(id, driverServiceOrderId),
+  previewTransferBoxes: (
+    id: string,
+    payload: Parameters<typeof containersServices.previewTransferBoxes>[1],
+  ) => containersServices.previewTransferBoxes(id, payload),
+  transferBoxes: (
+    id: string,
+    payload: Parameters<typeof containersServices.transferBoxes>[1],
+  ) => containersServices.transferBoxes(id, payload),
 };
 

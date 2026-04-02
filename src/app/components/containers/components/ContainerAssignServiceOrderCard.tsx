@@ -9,11 +9,19 @@ import { ContainerAssignServiceOrderDialog } from "./ContainerAssignServiceOrder
 
 type Props = {
   container: Container;
+  allContainers: Container[];
+  onTransferCompleted: (payload: { source: Container; target: Container }) => void | Promise<void>;
   onAssigned: (updated: Container) => void | Promise<void>;
   onUnassignServiceOrder: (containerId: string, driverServiceOrderId: string) => void | Promise<void>;
 };
 
-export function ContainerAssignServiceOrderCard({ container, onAssigned, onUnassignServiceOrder }: Props) {
+export function ContainerAssignServiceOrderCard({
+  container,
+  allContainers,
+  onTransferCompleted,
+  onAssigned,
+  onUnassignServiceOrder,
+}: Props) {
   const [open, setOpen] = useState(false);
   const linkedCount = container.linkedServiceOrderCount ?? container.serviceOrders?.length ?? 0;
   const volRef = VOLUME_REFERENCIA_INFORMATIVO;
@@ -99,6 +107,8 @@ export function ContainerAssignServiceOrderCard({ container, onAssigned, onUnass
         open={open}
         onOpenChange={setOpen}
         container={container}
+        allContainers={allContainers}
+        onTransferCompleted={onTransferCompleted}
         onSuccess={onAssigned}
         onUnassignServiceOrder={onUnassignServiceOrder}
       />

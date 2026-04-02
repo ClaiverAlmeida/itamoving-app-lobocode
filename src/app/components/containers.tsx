@@ -174,6 +174,25 @@ export default function ContainersView() {
     }
   };
 
+  const handleTransferCompleted = async ({
+    source,
+    target,
+  }: {
+    source: Container;
+    target: Container;
+  }) => {
+    const refreshOne = async (c: Container) => {
+      if (!c.id) return;
+      const r = await containersCrud.getById(c.id);
+      if (r.success && r.data) {
+        updateContainer(c.id, r.data);
+        setSelectedContainer((prev) => (prev?.id === c.id ? r.data! : prev));
+      }
+    };
+    await refreshOne(source);
+    await refreshOne(target);
+  };
+
   const handleContainerOrderUnlinked = async (
     containerId: string,
     driverServiceOrderId: string,
@@ -545,6 +564,8 @@ export default function ContainersView() {
         statusItems={CONTAINER_STATUS_ITEMS}
         onContainerVolumesUpdated={handleContainerVolumesUpdated}
         onUnassignServiceOrder={handleContainerOrderUnlinked}
+        allContainers={containers}
+        onTransferCompleted={handleTransferCompleted}
       />
 
       <ContainersEditDialog

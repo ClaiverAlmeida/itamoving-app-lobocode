@@ -153,9 +153,15 @@ function mapProducts(raw: unknown): DriverServiceOrder["driverServiceOrderProduc
     const productRaw = asRecord(row.product) ?? {};
     const typeFromRelation = displayTypeFromProductRelation(productRaw);
     const legacyType = String(row.type ?? "");
+    const cp = asRecord(row.containerProduct ?? (row as Record<string, unknown>).container_product);
+    const containerBoxNumber =
+      cp != null && cp.boxNumber != null && String(cp.boxNumber).trim() !== ""
+        ? String(cp.boxNumber).trim()
+        : undefined;
     return {
       id: String(row.id ?? ""),
       number: String(row.number ?? ""),
+      containerBoxNumber,
       productId: row.productId != null ? String(row.productId) : undefined,
       type: typeFromRelation || legacyType,
       productType: product?.type,

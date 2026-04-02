@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "../../ui/table";
 import { Boxes, Package, Scale, UserRound, Weight } from "lucide-react";
+import { formatProductTypeForDisplay } from "../containers.utils";
 
 type Props = {
   order: DriverServiceOrder;
@@ -115,7 +116,7 @@ export function ServiceOrderBoxesPreview({ order, previewLabels }: Props) {
                     <TableCell className="text-muted-foreground text-sm text-center">
                       {p.number?.trim() ? p.number : "—"}
                     </TableCell>
-                    <TableCell className="text-sm text-center">{p.type}</TableCell>
+                    <TableCell className="text-sm text-center">{formatProductTypeForDisplay(p.type)}</TableCell>
                     <TableCell className="text-center tabular-nums text-sm">
                       {(p.weight ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
                     </TableCell>

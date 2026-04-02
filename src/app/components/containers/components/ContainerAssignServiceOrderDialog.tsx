@@ -25,13 +25,24 @@ import {
 } from "../../ui/select";
 import { VOLUME_REFERENCIA_INFORMATIVO } from "../containers.constants";
 import { containersCrud } from "../containers.crud";
-import { getServiceOrderAssociationCaption } from "../containers.utils";
+import {
+  buildTransferBoxCandidates,
+  filterDriverServiceProductsOnContainer,
+  formatProductTypeForDisplay,
+  formatServiceOrderBoxLine,
+  getContainerBoxLabel,
+  getLoosePhysicalBoxes,
+  getServiceOrderAssociationCaption,
+  linkedDriverServiceOrderIdsToFetch,
+  mergeOrderProductWithPhysicalBox,
+} from "../containers.utils";
 import { isValidVolumeLetter, previewNextLabels } from "../utils/container-box-numbering.utils";
 import { ServiceOrderBoxesPreview } from "./ServiceOrderBoxesPreview";
 import { ContainerBoxItemsList } from "./ContainerBoxItemsList";
 import type { DriverServiceOrderView } from "../../../api/services/driver-service-order/service-order-form.service";
 import {
   AlertTriangle,
+  ArrowRightLeft,
   Container as ContainerIcon,
   Hash,
   Loader2,
@@ -39,6 +50,10 @@ import {
   PackagePlus,
   Truck,
 } from "lucide-react";
+import {
+  ContainerTransferBoxesDialog,
+  type TransferBoxCandidate,
+} from "./ContainerTransferBoxesDialog";
 import { AtendenteSelect } from "../../forms";
 import { useAuth } from "../../../context/AuthContext";
 
@@ -46,6 +61,8 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   container: Container;
+  allContainers: Container[];
+  onTransferCompleted: (payload: { source: Container; target: Container }) => void | Promise<void>;
   onSuccess: (updated: Container) => void | Promise<void>;
   onUnassignServiceOrder: (containerId: string, driverServiceOrderId: string) => void | Promise<void>;
 };
@@ -71,6 +88,8 @@ export function ContainerAssignServiceOrderDialog({
   open,
   onOpenChange,
   container,
+  allContainers,
+  onTransferCompleted,
   onSuccess,
   onUnassignServiceOrder,
 }: Props) {
@@ -87,6 +106,8 @@ export function ContainerAssignServiceOrderDialog({
   const [linkedOrderDetails, setLinkedOrderDetails] = useState<Record<string, DriverServiceOrderView>>({});
   /** Container atualizado do servidor ao abrir (letra, caixas, contagem de ordens) para várias vinculações seguidas. */
   const [workingContainer, setWorkingContainer] = useState(container);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [transferInitialIds, setTransferInitialIds] = useState<string[] | undefined>(undefined);
 
   const loadList = useCallback(async () => {
     setLoadingList(true);
@@ -103,17 +124,17 @@ export function ContainerAssignServiceOrderDialog({
   }, []);
 
   const loadLinkedOrderDetails = useCallback(async (current: Container) => {
-    const linked = current.serviceOrders ?? [];
-    if (linked.length === 0) {
+    const orderIds = linkedDriverServiceOrderIdsToFetch(current);
+    if (orderIds.length === 0) {
       setLinkedOrderDetails({});
       return;
     }
     setLinkedDetailsLoading(true);
     try {
       const result = await Promise.all(
-        linked.map(async (o) => {
-          const r = await serviceOrderFormService.getById(o.id);
-          return { id: o.id, data: r.success ? r.data : null };
+        orderIds.map(async (id) => {
+          const r = await serviceOrderFormService.getById(id);
+          return { id, data: r.success ? r.data : null };
         }),
       );
       const next: Record<string, DriverServiceOrderView> = {};
@@ -128,16 +149,38 @@ export function ContainerAssignServiceOrderDialog({
     }
   }, []);
 
+  const containerDataSignature = useMemo(
+    () =>
+      [
+        container.id ?? "",
+        (container.serviceOrders ?? [])
+          .map((o) => o.id)
+          .sort()
+          .join(","),
+        (container.boxes ?? [])
+          .map((b) =>
+            [b.driverServiceOrderProductId ?? "", b.boxNumber, b.orderPrimaryContainerId ?? ""].join(":"),
+          )
+          .sort()
+          .join("|"),
+        String(container.volumeCapacity ?? ""),
+        String(container.totalWeight ?? ""),
+      ].join("§"),
+    [container],
+  );
+
   useEffect(() => {
     if (!open) return;
-    setWorkingContainer(container);
     void loadList();
     setSelectedId("");
     setDetail(null);
     setLetterDraft("");
     setSelectedAtendente("");
-    setLinkedOrderDetails({});
-    if (!container.id) return;
+  }, [open, loadList]);
+
+  useEffect(() => {
+    if (!open || !container.id) return;
+    setWorkingContainer(container);
     let cancelled = false;
     void containersCrud.getById(container.id).then((r) => {
       if (cancelled) return;
@@ -151,7 +194,7 @@ export function ContainerAssignServiceOrderDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, loadList, loadLinkedOrderDetails, container.id]);
+  }, [open, loadLinkedOrderDetails, containerDataSignature]);
 
   useEffect(() => {
     if (!open || !selectedId) {
@@ -215,16 +258,11 @@ export function ContainerAssignServiceOrderDialog({
   const linkedOrders = workingContainer.serviceOrders ?? [];
 
   const linkedOverview = useMemo(() => {
-    const details = Object.values(linkedOrderDetails);
-    const boxes = details.flatMap((o) => o.driverServiceOrderProducts ?? []);
+    const boxes = workingContainer.boxes ?? [];
     const totalBoxes = boxes.length;
     const totalItems = boxes.reduce(
       (sum, box) =>
-        sum +
-        (box.driverServiceOrderProductsItems ?? []).reduce(
-          (s, it) => s + (it.quantity ?? 0),
-          0,
-        ),
+        sum + (box.items ?? []).reduce((s, it) => s + (it.quantity ?? 0), 0),
       0,
     );
     const totalWeight = boxes.reduce((sum, box) => sum + (box.weight ?? 0), 0);
@@ -234,7 +272,17 @@ export function ContainerAssignServiceOrderDialog({
       totalItems,
       totalWeight,
     };
-  }, [linkedOrderDetails, linkedOrders.length]);
+  }, [linkedOrders.length, workingContainer.boxes]);
+
+  const loosePhysicalBoxes = useMemo(
+    () => getLoosePhysicalBoxes(workingContainer),
+    [workingContainer],
+  );
+
+  const transferCandidates = useMemo(
+    (): TransferBoxCandidate[] => buildTransferBoxCandidates(workingContainer, linkedOrderDetails),
+    [linkedOrderDetails, workingContainer],
+  );
 
   const excedePesoVisaoGeral =
     fullW != null && fullW > 0 && linkedOverview.totalWeight > fullW;
@@ -282,6 +330,7 @@ export function ContainerAssignServiceOrderDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!flex h-[min(92vh,860px)] max-h-[92vh] flex-col gap-0 overflow-hidden p-0 min-h-0 w-[calc(100vw-1.5rem)] sm:max-w-3xl">
         <DialogHeader className="shrink-0 space-y-1 px-6 pt-6 pb-4 border-b bg-gradient-to-br from-slate-50/90 to-background dark:from-slate-950/40">
@@ -459,6 +508,61 @@ export function ContainerAssignServiceOrderDialog({
                   </CardContent>
                 </Card>
 
+                {loosePhysicalBoxes.length > 0 && (
+                  <div className="rounded-lg border border-amber-500/35 bg-amber-50/50 px-3 py-2.5 space-y-2">
+                    <p className="text-xs font-semibold text-amber-900/90 uppercase tracking-wide">
+                      Caixas soltas neste volume
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Carga física aqui, mas a ordem continua vinculada a outro container.
+                    </p>
+                    <div className="space-y-2">
+                      {loosePhysicalBoxes.map((box, li) => (
+                        <div
+                          key={box.driverServiceOrderProductId ?? `${box.boxNumber}-${li}`}
+                          className="rounded-md border border-border/80 bg-background overflow-hidden"
+                        >
+                          <div className="flex items-start justify-between gap-2 px-3 py-2 border-b border-border/50 bg-muted/20">
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-foreground truncate">
+                                {box.clientName?.trim() || "Cliente"}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground font-mono">OS #{box.driverServiceOrderId ?? "—"}</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">{formatServiceOrderBoxLine(box)}</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              {box.driverServiceOrderProductId && (
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-7 text-[10px] gap-1"
+                                  onClick={() => {
+                                    setTransferInitialIds([box.driverServiceOrderProductId!]);
+                                    setTransferDialogOpen(true);
+                                  }}
+                                >
+                                  <ArrowRightLeft className="h-3 w-3" />
+                                  Transferir
+                                </Button>
+                              )}
+                              <span className="text-xs font-medium tabular-nums text-muted-foreground">
+                                {(box.weight ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
+                              </span>
+                            </div>
+                          </div>
+                          <div className="px-3 py-2">
+                            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
+                              Itens na caixa
+                            </p>
+                            <ContainerBoxItemsList items={box.items ?? []} emptyLabel="Nenhum item listado nesta caixa." />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {linkedOrders.length === 0 && (
                   <p className="text-sm text-muted-foreground rounded-lg border border-dashed px-3 py-2.5 bg-muted/30">
                     Nenhuma ordem vinculada ainda.
@@ -466,7 +570,10 @@ export function ContainerAssignServiceOrderDialog({
                 )}
                 {linkedOrders.map((order) => {
                   const detailByOrder = linkedOrderDetails[order.id];
-                  const boxes = detailByOrder?.driverServiceOrderProducts ?? [];
+                  const boxes = filterDriverServiceProductsOnContainer(
+                    detailByOrder?.driverServiceOrderProducts,
+                    workingContainer,
+                  );
                   const itemCount = boxes.reduce(
                     (sum, b) =>
                       sum +
@@ -529,21 +636,44 @@ export function ContainerAssignServiceOrderDialog({
                           </p>
                         ) : (
                           <div className="space-y-2">
-                            {boxes.map((box, idx) => (
+                            {boxes.map((box, idx) => {
+                              const boxView = mergeOrderProductWithPhysicalBox(workingContainer, box);
+                              return (
                               <div
                                 key={box.id ?? `${order.id}-${idx}`}
                                 className="rounded-lg border border-border/80 bg-background shadow-sm overflow-hidden"
                               >
                                 <div className="flex items-start justify-between gap-2 px-3 py-2 border-b border-border/50 bg-muted/20">
-                                  <p className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                                  <p className="text-xs font-semibold flex items-center gap-1.5 text-foreground min-w-0">
                                     <Package className="h-3.5 w-3.5 text-primary shrink-0" />
-                                    Caixa #{box.number || idx + 1}
+                                    <span className="font-mono tabular-nums">
+                                      {getContainerBoxLabel(boxView) ?? "—"}
+                                    </span>
                                     <span className="font-normal text-muted-foreground">·</span>
-                                    <span className="font-normal text-muted-foreground">Tipo {box.type?.trim() || "—"}</span>
+                                    <span className="font-normal text-muted-foreground">
+                                      Tipo {formatProductTypeForDisplay(boxView.type)}
+                                    </span>
                                   </p>
-                                  <span className="text-xs font-medium tabular-nums text-muted-foreground shrink-0">
-                                    {(box.weight ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
-                                  </span>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    {box.id && (
+                                      <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="sm"
+                                        className="h-7 text-[10px] gap-1"
+                                        onClick={() => {
+                                          setTransferInitialIds([box.id!]);
+                                          setTransferDialogOpen(true);
+                                        }}
+                                      >
+                                        <ArrowRightLeft className="h-3 w-3" />
+                                        Transferir
+                                      </Button>
+                                    )}
+                                    <span className="text-xs font-medium tabular-nums text-muted-foreground">
+                                      {(box.weight ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
+                                    </span>
+                                  </div>
                                 </div>
                                 <div className="px-3 py-2">
                                   <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
@@ -555,7 +685,8 @@ export function ContainerAssignServiceOrderDialog({
                                   />
                                 </div>
                               </div>
-                            ))}
+                            );
+                            })}
                           </div>
                         )}
                       </div>
@@ -579,12 +710,12 @@ export function ContainerAssignServiceOrderDialog({
                     onValueChange={(v) => setSelectedId(v === "__none__" ? "" : v)}
                     disabled={loadingList}
                   >
-                    <SelectTrigger id="aso-order" className="h-11 bg-background">
+                    <SelectTrigger id="aso-order" className="h-11 w-full rounded-lg border-border/80 bg-background">
                       <SelectValue
                         placeholder={loadingList ? "Carregando ordens…" : "Selecione uma ordem"}
                       />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-w-[min(100vw-1.5rem,28rem)]">
                       <SelectItem value="__none__">Nenhuma selecionada</SelectItem>
                       {orders.map((o) =>
                         o.id ? (
@@ -778,5 +909,25 @@ export function ContainerAssignServiceOrderDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <ContainerTransferBoxesDialog
+      open={transferDialogOpen}
+      onOpenChange={setTransferDialogOpen}
+      sourceContainer={workingContainer}
+      allContainers={allContainers}
+      candidates={transferCandidates}
+      initialSelectedIds={transferInitialIds}
+      onCompleted={async ({ source, target }) => {
+        await onTransferCompleted({ source, target });
+        const idToRefresh = workingContainer.id ?? source.id;
+        if (!idToRefresh) return;
+        const r = await containersCrud.getById(idToRefresh);
+        if (r.success && r.data) {
+          setWorkingContainer(r.data);
+          await loadLinkedOrderDetails(r.data);
+        }
+      }}
+    />
+    </>
   );
 }
