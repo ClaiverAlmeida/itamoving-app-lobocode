@@ -7,7 +7,8 @@ type BuildProductsParams = {
   existingProductIds: Set<string>;
 };
 
-function buildDriverServiceOrderProducts({
+/** Monta linhas de produto da OS (criação e PATCH parcial) — uma única fonte de verdade. */
+export function buildDriverServiceOrderProducts({
   caixas,
   itens,
   opcoesCaixa,
@@ -15,6 +16,7 @@ function buildDriverServiceOrderProducts({
 }: BuildProductsParams) {
   return caixas.map((c) => ({
     ...(existingProductIds.has(c.id) ? { id: c.id } : {}),
+    type: c.type,
     ...(c.productId
       ? { productId: c.productId }
       : (() => {
@@ -64,6 +66,8 @@ type BuildPayloadParams = {
   existingProductIds: Set<string>;
   assinaturaClienteFinal: string;
   assinaturaAgenteFinal: string;
+  /** Criação em duas etapas: OS sem assinaturas para obter o id e depois `PATCH` com URLs do MinIO. */
+  omitSignatures?: boolean;
   /** CUID do motorista; na criação, gestão envia o escolhido; motorista logado pode omitir (API usa o token). */
   driverId: string;
   status: DriverServiceOrder["status"];
@@ -107,8 +111,12 @@ export function buildServiceOrderPayload(params: BuildPayloadParams): DriverServ
       opcoesCaixa: params.opcoesCaixa,
       existingProductIds: params.existingProductIds,
     }),
-    clientSignature: params.assinaturaClienteFinal,
-    agentSignature: params.assinaturaAgenteFinal,
+    ...(params.omitSignatures
+      ? {}
+      : {
+          clientSignature: params.assinaturaClienteFinal,
+          agentSignature: params.assinaturaAgenteFinal,
+        }),
     signatureDate: new Date().toISOString(),
     driverId: params.driverId,
     status: params.status,

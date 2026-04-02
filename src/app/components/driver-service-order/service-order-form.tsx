@@ -119,6 +119,8 @@ export default function OrdemServicoForm({
     stopDrawingAgente,
     limparAssinaturaAgente,
     existingProductIdsRef,
+    clienteAssinaturaDirtyRef,
+    agenteAssinaturaDirtyRef,
   } = useServiceOrderFormState({ appointmentId, agendamento, existingOrdem, user });
 
   const { canSave, salvarOrdemServico } = useServiceOrderFormSave({
@@ -140,6 +142,10 @@ export default function OrdemServicoForm({
     valorPago,
     assinaturaCliente,
     assinaturaAgente,
+    canvasClienteRef,
+    canvasAgenteRef,
+    clienteAssinaturaDirtyRef,
+    agenteAssinaturaDirtyRef,
     remetenteNome,
     remetenteTel,
     remetenteCpfRg,

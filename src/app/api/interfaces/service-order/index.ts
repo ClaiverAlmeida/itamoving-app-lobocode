@@ -64,8 +64,9 @@ export interface DriverServiceOrder {
       observations?: string;
     }[];
   }[];
-  clientSignature: string;
-  agentSignature: string;
+  /** URL no MinIO ou, no envio intermediário, pode estar ausente na criação em duas etapas. */
+  clientSignature?: string;
+  agentSignature?: string;
   signatureDate: string;
   /** Preenchido a partir da relação `driver` na resposta da API. */
   driverName?: string;

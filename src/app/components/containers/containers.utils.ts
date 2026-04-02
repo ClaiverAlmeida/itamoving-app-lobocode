@@ -1,6 +1,18 @@
 import { CheckCircle2, Container as ContainerIcon, Package, Ship, Truck, X } from "lucide-react";
 import type { Container, ContainerBoxLine } from "../../api";
 import type { DriverServiceOrderView } from "../../api/services/driver-service-order/service-order-form.service";
+
+/** Remetente (EUA): prioriza dados completos da OS quando já carregados. */
+export function serviceOrderSenderDisplayName(
+  order: { senderName?: string | null },
+  detail?: DriverServiceOrderView | null,
+): string {
+  const fromOs = detail?.sender?.usaName?.trim();
+  if (fromOs) return fromOs;
+  const fromList = order.senderName?.trim();
+  if (fromList) return fromList;
+  return "Remetente (EUA)";
+}
 import { resolveProductTypeLabel } from "../prices/products-prices/products-prices.utils";
 import type { TransferBoxCandidate } from "./transfer-boxes-dialog/transfer-boxes-dialog.types";
 import { MESES_PT } from "./containers.constants";
@@ -204,10 +216,10 @@ export function linkedDriverServiceOrderIdsToFetch(container: Container | null |
   return [...ids];
 }
 
-function recipientLabelFromOrderView(d: DriverServiceOrderView): string {
-  const r = d.recipient?.brazilName?.trim();
-  if (r) return r;
-  const apt = d.appointment?.client?.usaName?.trim() || d.appointment?.client?.brazilName?.trim();
+function senderLabelFromOrderView(d: DriverServiceOrderView): string {
+  const s = d.sender?.usaName?.trim();
+  if (s) return s;
+  const apt = d.appointment?.client?.usaName?.trim();
   if (apt) return apt;
   return "Cliente";
 }
@@ -244,8 +256,8 @@ export function buildTransferBoxCandidates(
       : formatServiceOrderBoxLine(line);
 
     const orderContext = found
-      ? `${recipientLabelFromOrderView(found.detail)} · #${String(found.detail.id ?? "").slice(-8)}`
-      : `${line.clientName?.trim() || "Cliente"} · OS #${(line.driverServiceOrderId ?? "").slice(-8)}`;
+      ? `${senderLabelFromOrderView(found.detail)} · OS #${found.detail.id ?? "—"}`
+      : `${line.clientName?.trim() || "Cliente"} · OS #${line.driverServiceOrderId ?? "—"}`;
 
     const w = found?.product?.weight ?? line.weight;
     const weightKg = typeof w === "number" && Number.isFinite(w) ? w : 0;

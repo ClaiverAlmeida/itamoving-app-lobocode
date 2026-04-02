@@ -780,7 +780,6 @@ export default function AgendamentosView() {
                               setIsDialogEditPeriodOpen={setIsDialogEditPeriodOpen}
                               formDataPeriod={formDataPeriod}
                               setFormDataPeriod={setFormDataPeriod}
-                              dataPickerBlocked={dataPickerBlocked}
                               handleEditPeriod={handleEditPeriod}
                             />
                             <Button
@@ -947,7 +946,6 @@ export default function AgendamentosView() {
                   clientesAtivos,
                   minCollectionDateByPeriod,
                   maxCollectionDateByPeriod,
-                  dataPickerBlocked,
                   carregarQtdCaixasPorDia,
                   qtdCaixasPorDia,
                   periodos,

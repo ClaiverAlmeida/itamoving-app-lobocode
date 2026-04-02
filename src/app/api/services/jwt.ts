@@ -1,6 +1,6 @@
 /**
- * Decodifica o payload do JWT (apenas leitura, sem validar assinatura).
- * Uso apenas para obter dados do usuário no cliente.
+ * Decodifica o payload do JWT (apenas leitura; a assinatura só é validada no servidor).
+ * Uso no cliente para hidratar UI a partir do token emitido no login/refresh — não substitui GET /auth/me para role definitiva.
  */
 import type { JwtPayload } from '../types';
 

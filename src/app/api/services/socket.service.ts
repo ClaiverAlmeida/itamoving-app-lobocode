@@ -1,4 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
+import { getAccessToken } from './auth-storage';
 
 const getApiBaseUrl = (): string => {
   try {
@@ -21,8 +22,7 @@ let pingIntervalId: ReturnType<typeof setInterval> | null = null;
 const onConnectCallbacks = new Set<() => void>();
 
 function getToken(): string | null {
-  if (typeof localStorage === 'undefined') return null;
-  return localStorage.getItem('auth_token');
+  return getAccessToken();
 }
 
 function startPingPong(sock: Socket) {

@@ -49,19 +49,26 @@ export function resolveCaixaDisplayType(persistedType: string, produtos: Product
   return t;
 }
 
+/** Hidrata o canvas a partir de data URL ou URL http(s) (assinaturas salvas no MinIO). */
 export function loadDataUrlOnCanvas(
-  dataUrl: string | undefined,
+  src: string | undefined,
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
 ) {
-  if (!dataUrl?.startsWith("data:") || !canvasRef.current) return;
+  if (!src?.trim() || !canvasRef.current) return;
+  const s = src.trim();
+  if (!s.startsWith("data:") && !s.startsWith("http://") && !s.startsWith("https://")) return;
   const canvas = canvasRef.current;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   const img = new Image();
+  img.crossOrigin = "anonymous";
   img.onload = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   };
-  img.src = dataUrl;
+  img.onerror = () => {
+    /* CORS ou URL inválida: canvas permanece em branco; o usuário pode assinar de novo. */
+  };
+  img.src = s;
 }
 

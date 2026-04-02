@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance } from 'axios';
 import type { ApiOptions, ApiResponse } from '../types';
 import { API_BASE_URL } from '../config';
+import { getAccessToken, getRefreshToken, clearAllAuthKeys } from './auth-storage';
 
 class ApiService {
   private axiosInstance: AxiosInstance;
@@ -21,9 +22,12 @@ class ApiService {
   private setupInterceptors(): void {
     this.axiosInstance.interceptors.request.use(
       (config) => {
-        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
+        const token = getAccessToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+        }
+        if (config.data instanceof FormData) {
+          delete config.headers['Content-Type'];
         }
         return config;
       },
@@ -42,26 +46,22 @@ class ApiService {
         ) {
           originalRequest._retry = true;
           try {
-            const refreshToken = typeof localStorage !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+            const refreshToken = getRefreshToken();
             if (refreshToken) {
               const response = await this.axiosInstance.post<{
                 access_token: string;
                 refresh_token: string;
               }>('/auth/refresh', { refreshToken });
               const { access_token, refresh_token } = response.data;
-              if (typeof localStorage !== 'undefined') {
-                localStorage.setItem('auth_token', access_token);
-                localStorage.setItem('refresh_token', refresh_token);
-              }
+              const { authService } = await import('./auth.service');
+              authService.applyRefreshedTokens(access_token, refresh_token);
               originalRequest.headers.Authorization = `Bearer ${access_token}`;
               return this.axiosInstance(originalRequest);
             }
           } catch {
-            if (typeof localStorage !== 'undefined') {
-              localStorage.removeItem('auth_token');
-              localStorage.removeItem('refresh_token');
-              localStorage.removeItem('itamoving_user');
-            }
+            clearAllAuthKeys();
+            const { authService } = await import('./auth.service');
+            authService.clearSessionLocal();
             if (typeof window !== 'undefined') {
               window.location.href = '/';
             }
@@ -104,6 +104,24 @@ class ApiService {
     if (options.showLoader !== false) this.loadingStates.set(key, true);
     try {
       const response = await this.axiosInstance.post<T>(endpoint, body, { headers: options.headers });
+      this.invalidateCache(endpoint);
+      return { success: true, data: response.data };
+    } catch (err: unknown) {
+      return this.handleError<T>(err);
+    } finally {
+      if (options.showLoader !== false) this.loadingStates.delete(key);
+    }
+  }
+
+  /** Multipart (ex.: upload). O interceptor remove `Content-Type` para o axios definir o boundary. */
+  async postFormData<T = unknown>(endpoint: string, formData: FormData, options: ApiOptions = {}): Promise<ApiResponse<T>> {
+    const key = `POST_FD:${endpoint}`;
+    if (options.showLoader !== false) this.loadingStates.set(key, true);
+    try {
+      const response = await this.axiosInstance.post<T>(endpoint, formData, {
+        timeout: 120000,
+        headers: options.headers,
+      });
       this.invalidateCache(endpoint);
       return { success: true, data: response.data };
     } catch (err: unknown) {

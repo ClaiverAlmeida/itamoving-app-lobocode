@@ -35,6 +35,7 @@ import {
   getServiceOrderAssociationCaption,
   linkedDriverServiceOrderIdsToFetch,
   mergeOrderProductWithPhysicalBox,
+  serviceOrderSenderDisplayName,
 } from "../containers.utils";
 import { isValidVolumeLetter, previewNextLabels } from "../utils/container-box-numbering.utils";
 import { ServiceOrderBoxesPreview } from "./ServiceOrderBoxesPreview";
@@ -43,6 +44,7 @@ import type { DriverServiceOrderView } from "../../../api/services/driver-servic
 import {
   AlertTriangle,
   ArrowRightLeft,
+  ChevronDown,
   Container as ContainerIcon,
   Hash,
   Loader2,
@@ -56,6 +58,7 @@ import {
 } from "./ContainerTransferBoxesDialog";
 import { AtendenteSelect } from "../../forms";
 import { useAuth } from "../../../context/AuthContext";
+import { UnassignContainerOrderConfirmDialog } from "./UnassignContainerOrderConfirmDialog";
 
 type Props = {
   open: boolean;
@@ -108,6 +111,9 @@ export function ContainerAssignServiceOrderDialog({
   const [workingContainer, setWorkingContainer] = useState(container);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [transferInitialIds, setTransferInitialIds] = useState<string[] | undefined>(undefined);
+  const [unassignConfirmOpen, setUnassignConfirmOpen] = useState(false);
+  const [pendingUnassignOrderId, setPendingUnassignOrderId] = useState<string | null>(null);
+  const [unassigning, setUnassigning] = useState(false);
 
   const loadList = useCallback(async () => {
     setLoadingList(true);
@@ -288,6 +294,36 @@ export function ContainerAssignServiceOrderDialog({
     fullW != null && fullW > 0 && linkedOverview.totalWeight > fullW;
   const excedeVolumesVisaoGeral = linkedOverview.totalBoxes > volRef;
 
+  const pendingUnassignOrder = useMemo(() => {
+    if (!pendingUnassignOrderId) return null;
+    return linkedOrders.find((o) => o.id === pendingUnassignOrderId) ?? null;
+  }, [pendingUnassignOrderId, linkedOrders]);
+
+  const pendingUnassignSenderLabel = pendingUnassignOrder
+    ? serviceOrderSenderDisplayName(
+        pendingUnassignOrder,
+        linkedOrderDetails[pendingUnassignOrder.id],
+      )
+    : "";
+
+  const confirmarUnassign = async () => {
+    if (!workingContainer.id || !pendingUnassignOrderId) return;
+    setUnassigning(true);
+    try {
+      await onUnassignServiceOrder(workingContainer.id, pendingUnassignOrderId);
+      setUnassignConfirmOpen(false);
+      setPendingUnassignOrderId(null);
+      await loadList();
+      const refreshed = await containersCrud.getById(workingContainer.id);
+      if (refreshed.success && refreshed.data) {
+        setWorkingContainer(refreshed.data);
+        await loadLinkedOrderDetails(refreshed.data);
+      }
+    } finally {
+      setUnassigning(false);
+    }
+  };
+
   const confirmar = async () => {
     if (!workingContainer.id || !selectedId || !detail) return;
     if (precisaLetra && !isValidVolumeLetter(letterDraft)) {
@@ -445,8 +481,21 @@ export function ContainerAssignServiceOrderDialog({
 
             <Separator />
 
-            <div>
-              <SectionLabel step={2}>Ordens já vinculadas</SectionLabel>
+            <details className="rounded-xl border border-border/80 bg-muted/10 open:border-primary/30 open:bg-muted/20 open:shadow-sm [&[open]>summary_svg]:rotate-180">
+              <summary className="flex cursor-pointer list-none items-start gap-3 rounded-xl px-2 py-3 sm:px-3 [&::-webkit-details-marker]:hidden">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  2
+                </span>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="text-sm font-semibold text-foreground">Ordens já vinculadas</p>
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    O mesmo resumo está no painel lateral deste container. Abra para revisar caixas, transferir cargas ou
+                    remover vínculos.
+                  </p>
+                </div>
+                <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" aria-hidden />
+              </summary>
+              <div className="border-t border-border/60 px-2 pb-4 pt-4 sm:px-3">
               <div className="grid gap-3 sm:pl-11">
                 {linkedDetailsLoading && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground rounded-lg border px-3 py-2.5 bg-muted/20">
@@ -525,9 +574,11 @@ export function ContainerAssignServiceOrderDialog({
                           <div className="flex items-start justify-between gap-2 px-3 py-2 border-b border-border/50 bg-muted/20">
                             <div className="min-w-0">
                               <p className="text-xs font-medium text-foreground truncate">
-                                {box.clientName?.trim() || "Cliente"}
+                                {box.clientName?.trim() || "Remetente (EUA)"}
                               </p>
-                              <p className="text-[11px] text-muted-foreground font-mono">OS #{box.driverServiceOrderId ?? "—"}</p>
+                              <p className="text-[11px] text-muted-foreground font-mono break-all">
+                                OS #{box.driverServiceOrderId ?? "—"}
+                              </p>
                               <p className="text-[11px] text-muted-foreground mt-0.5">{formatServiceOrderBoxLine(box)}</p>
                             </div>
                             <div className="flex flex-col items-end gap-1 shrink-0">
@@ -589,9 +640,11 @@ export function ContainerAssignServiceOrderDialog({
                       <summary className="list-none cursor-pointer px-3 py-2.5 flex items-center justify-between gap-2">
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">
-                            {order.recipientName?.trim() || "Cliente USA"}
+                            {serviceOrderSenderDisplayName(order, detailByOrder)}
                           </p>
-                          <p className="text-[11px] text-muted-foreground font-mono break-all">#{order.id}</p>
+                          <p className="text-[11px] text-muted-foreground font-mono break-all">
+                            #{order.id}
+                          </p>
                           <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
                             <span className="font-semibold text-foreground tabular-nums">{boxes.length}</span> caixas
                             <span className="mx-1.5 text-border">·</span>
@@ -613,16 +666,11 @@ export function ContainerAssignServiceOrderDialog({
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={async (e) => {
+                          onClick={(e) => {
                             e.preventDefault();
-                            if (!workingContainer.id) return;
-                            await onUnassignServiceOrder(workingContainer.id, order.id);
-                            await loadList();
-                            const refreshed = await containersCrud.getById(workingContainer.id);
-                            if (refreshed.success && refreshed.data) {
-                              setWorkingContainer(refreshed.data);
-                              await loadLinkedOrderDetails(refreshed.data);
-                            }
+                            e.stopPropagation();
+                            setPendingUnassignOrderId(order.id);
+                            setUnassignConfirmOpen(true);
                           }}
                         >
                           Remover
@@ -694,7 +742,8 @@ export function ContainerAssignServiceOrderDialog({
                   );
                 })}
               </div>
-            </div>
+              </div>
+            </details>
 
             <Separator />
 
@@ -909,6 +958,19 @@ export function ContainerAssignServiceOrderDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <UnassignContainerOrderConfirmDialog
+      open={unassignConfirmOpen}
+      onOpenChange={(o) => {
+        setUnassignConfirmOpen(o);
+        if (!o) setPendingUnassignOrderId(null);
+      }}
+      senderLabel={pendingUnassignSenderLabel}
+      orderId={pendingUnassignOrderId ?? ""}
+      containerNumber={workingContainer.number}
+      confirming={unassigning}
+      onConfirm={confirmarUnassign}
+    />
 
     <ContainerTransferBoxesDialog
       open={transferDialogOpen}

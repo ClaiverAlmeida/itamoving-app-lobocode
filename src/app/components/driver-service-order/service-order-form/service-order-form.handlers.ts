@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import type React from "react";
 import { toast } from "sonner";
 import type { Caixa, DriverUser, Item, DriverServiceOrder, ProductPrice } from "../../../api";
-import { buildServiceOrderPayload } from "./service-order-form.payload";
+import { buildDriverServiceOrderProducts, buildServiceOrderPayload } from "./service-order-form.payload";
 import { caixaTemTodosCamposPreenchidos, isCaixaPersonalizada, isFitaAdesiva } from "./service-order-form.verifications";
 import { serviceOrderFormCrud } from "./service-order-form.crud";
+import { resolveSignatureToMinioUrl } from "./service-order-form.signature";
 
 type Params = {
   isEditMode: boolean;
@@ -24,6 +26,10 @@ type Params = {
   valorPago: string;
   assinaturaCliente: string;
   assinaturaAgente: string;
+  canvasClienteRef: React.RefObject<HTMLCanvasElement | null>;
+  canvasAgenteRef: React.RefObject<HTMLCanvasElement | null>;
+  clienteAssinaturaDirtyRef: React.MutableRefObject<boolean>;
+  agenteAssinaturaDirtyRef: React.MutableRefObject<boolean>;
   remetenteNome: string;
   remetenteTel: string;
   remetenteCpfRg: string;
@@ -159,8 +165,8 @@ export function useServiceOrderFormSave(params: Params) {
     const itemInvalido = params.itens.some((i) => !String(i.name ?? "").trim() || Number(i.quantity) <= 0 || Number(i.weight) <= 0);
     if (itemInvalido) return toast.error("Preencha todos os campos dos itens antes de salvar");
 
-    const assinaturaClienteFinal = params.assinaturaCliente?.trim() || (params.isEditMode ? (params.existingOrdem?.clientSignature ?? "") : "");
-    const assinaturaAgenteFinal = params.assinaturaAgente?.trim() || (params.isEditMode ? (params.existingOrdem?.agentSignature ?? "") : "");
+    let assinaturaClienteFinal = params.assinaturaCliente?.trim() || (params.isEditMode ? (params.existingOrdem?.clientSignature ?? "") : "");
+    let assinaturaAgenteFinal = params.assinaturaAgente?.trim() || (params.isEditMode ? (params.existingOrdem?.agentSignature ?? "") : "");
     if (!assinaturaClienteFinal) return toast.error("É necessária a assinatura do cliente");
     if (!assinaturaAgenteFinal) return toast.error("É necessária a assinatura do agente");
 
@@ -177,6 +183,36 @@ export function useServiceOrderFormSave(params: Params) {
       const motoristaNaLista = params.motoristas.some((m) => m.id === idMotoristaResponsavel);
       const motoristaEhUsuarioLogado = params.isEditMode && params.user?.role === "motorista" && idMotoristaResponsavel === params.user?.id;
       if (!motoristaNaLista && !motoristaEhUsuarioLogado) return toast.error("Selecione um motorista válido na lista.");
+    }
+
+    const uploadPair = async (orderId: string) => {
+      const [cu, au] = await Promise.all([
+        resolveSignatureToMinioUrl({
+          raw: assinaturaClienteFinal,
+          canvasRef: params.canvasClienteRef,
+          dirtyRef: params.clienteAssinaturaDirtyRef,
+          serviceOrderId: orderId,
+          role: "client",
+        }),
+        resolveSignatureToMinioUrl({
+          raw: assinaturaAgenteFinal,
+          canvasRef: params.canvasAgenteRef,
+          dirtyRef: params.agenteAssinaturaDirtyRef,
+          serviceOrderId: orderId,
+          role: "agent",
+        }),
+      ]);
+      if (!cu || !au) return null;
+      return { clientUrl: cu, agentUrl: au };
+    };
+
+    if (params.isEditMode && params.existingOrdem?.id) {
+      const urls = await uploadPair(params.existingOrdem.id);
+      if (!urls) {
+        return toast.error("Não foi possível enviar as assinaturas ao armazenamento. Tente novamente.");
+      }
+      assinaturaClienteFinal = urls.clientUrl;
+      assinaturaAgenteFinal = urls.agentUrl;
     }
 
     const payload = buildServiceOrderPayload({
@@ -212,14 +248,37 @@ export function useServiceOrderFormSave(params: Params) {
       observations: !params.isEditMode
         ? params.observations?.trim() || undefined
         : params.ordemObservacoes.trim() || undefined,
+      omitSignatures: !params.isEditMode,
     });
 
     if (!params.isEditMode || !params.existingOrdem?.id) {
       const created = await serviceOrderFormCrud.create(payload);
       if (created.success && created.data) {
+        const newId = created.data.id;
+        if (!newId) {
+          toast.error("Ordem criada sem identificador. Tente novamente.");
+          return;
+        }
+        const urls = await uploadPair(newId);
+        if (!urls) {
+          toast.error("Ordem criada, mas falhou o envio das assinaturas. Abra a ordem e salve novamente.");
+          params.onClose();
+          void Promise.resolve(params.onAgendamentosAtualizados?.()).catch(() => {});
+          params.onSave?.(created.data);
+          return;
+        }
+        const patched = await serviceOrderFormCrud.update(newId, {
+          clientSignature: urls.clientUrl,
+          agentSignature: urls.agentUrl,
+          signatureDate: new Date().toISOString(),
+        });
+        if (!patched.success || !patched.data) {
+          toast.error(patched.error ?? "Não foi possível registrar as URLs das assinaturas.");
+          return;
+        }
         params.onClose();
-        void Promise.resolve(params.onAgendamentosAtualizados?.()).catch(() => { });
-        params.onSave?.(created.data);
+        void Promise.resolve(params.onAgendamentosAtualizados?.()).catch(() => {});
+        params.onSave?.(patched.data);
         toast.success("Ordem de serviço salva com sucesso!");
       }
       return;
@@ -299,30 +358,13 @@ export function useServiceOrderFormSave(params: Params) {
       if (removedBackendProductIds.length) patch.deletedDriverServiceOrderProductIds = removedBackendProductIds;
 
       if (changedCaixaIds.size) {
-        patch.driverServiceOrderProducts = params.caixas
-          .filter((c) => changedCaixaIds.has(String(c.id)))
-          .map((c) => ({
-            ...(params.existingProductIds.has(c.id) ? { id: c.id } : {}),
-            ...(c.productId
-              ? { productId: c.productId }
-              : (() => {
-                  const produto = params.opcoesCaixa.find(
-                    (p) => p.size === c.type || p.name === c.type || (p.dimensions != null && p.dimensions === c.type),
-                  );
-                  return produto?.id ? { productId: produto.id } : {};
-                })()),
-            value: c.value,
-            weight: c.weight,
-            driverServiceOrderProductsItems: params.itens
-              .filter((i) => i.caixaId === c.id)
-              .map((i) => ({
-                id: i.id,
-                name: i.name,
-                quantity: Number(i.quantity) || 0,
-                weight: Number(i.weight) || 0,
-                observations: i.observations ?? "",
-              })),
-          }));
+        const caixasAlteradas = params.caixas.filter((c) => changedCaixaIds.has(String(c.id)));
+        patch.driverServiceOrderProducts = buildDriverServiceOrderProducts({
+          caixas: caixasAlteradas,
+          itens: params.itens,
+          opcoesCaixa: params.opcoesCaixa,
+          existingProductIds: params.existingProductIds,
+        });
       }
     }
 

@@ -29,3 +29,5 @@ export { serviceOrderFormService } from "./driver-service-order/service-order-fo
 export type { DriverServiceOrderView } from "./driver-service-order/service-order-form.service";
 // Serviço de Financial Transactions
 export { financialTransactionService } from "./financial.service";
+// Upload de arquivos (MinIO)
+export { uploadServiceOrderSignature, type UploadedFileRecord } from "./files.service";

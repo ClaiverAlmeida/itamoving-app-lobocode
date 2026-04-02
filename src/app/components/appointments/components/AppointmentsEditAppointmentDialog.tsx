@@ -44,7 +44,6 @@ type Props = {
   clientesAtivos: Client[];
   minCollectionDateByPeriod: string | null | undefined;
   maxCollectionDateByPeriod: string | undefined;
-  dataPickerBlocked: () => string;
   carregarQtdCaixasPorDia: (collectionDate: string, isPeriodic: boolean, appointmentPeriodId: string) => Promise<void>;
   qtdCaixasPorDia: { collectionDate: string; qtyBoxes: number }[];
   periodos: CreateAppointmentsPeriodsDTO[];
@@ -73,7 +72,6 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
     clientesAtivos,
     minCollectionDateByPeriod,
     maxCollectionDateByPeriod,
-    dataPickerBlocked,
     carregarQtdCaixasPorDia,
     qtdCaixasPorDia,
     periodos,
@@ -150,7 +148,7 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
               <Input
                 id="editFormCollectionDate"
                 type="date"
-                min={minCollectionDateByPeriod ?? dataPickerBlocked()}
+                min={minCollectionDateByPeriod ?? undefined}
                 max={maxCollectionDateByPeriod}
                 value={formData.collectionDate}
                 required={!formData.isPeriodic}

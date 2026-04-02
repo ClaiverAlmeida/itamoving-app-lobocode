@@ -200,7 +200,7 @@ export function useServiceOrderFormState({
   const stopDrawingCliente = () => {
     setIsDrawingCliente(false);
     const canvas = canvasClienteRef.current;
-    if (canvas && clienteAssinaturaDirtyRef.current) setAssinaturaCliente(canvas.toDataURL());
+    if (canvas && clienteAssinaturaDirtyRef.current) setAssinaturaCliente(canvas.toDataURL("image/png"));
   };
 
   const limparAssinaturaCliente = () => {
@@ -247,7 +247,7 @@ export function useServiceOrderFormState({
   const stopDrawingAgente = () => {
     setIsDrawingAgente(false);
     const canvas = canvasAgenteRef.current;
-    if (canvas && agenteAssinaturaDirtyRef.current) setAssinaturaAgente(canvas.toDataURL());
+    if (canvas && agenteAssinaturaDirtyRef.current) setAssinaturaAgente(canvas.toDataURL("image/png"));
   };
 
   const limparAssinaturaAgente = () => {
@@ -463,6 +463,8 @@ export function useServiceOrderFormState({
     stopDrawingAgente,
     limparAssinaturaAgente,
     existingProductIdsRef,
+    clienteAssinaturaDirtyRef,
+    agenteAssinaturaDirtyRef,
   };
 }
 

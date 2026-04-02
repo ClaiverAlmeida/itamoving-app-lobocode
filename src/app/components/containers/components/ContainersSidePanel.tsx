@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
@@ -16,6 +16,7 @@ import {
   getServiceOrderAssociationCaption,
   linkedDriverServiceOrderIdsToFetch,
   mergeOrderProductWithPhysicalBox,
+  serviceOrderSenderDisplayName,
 } from "../containers.utils";
 import { ContainerBoxItemsList } from "./ContainerBoxItemsList";
 import { ContainerAssignServiceOrderCard } from "./ContainerAssignServiceOrderCard";
@@ -23,6 +24,7 @@ import {
   ContainerTransferBoxesDialog,
   type TransferBoxCandidate,
 } from "./ContainerTransferBoxesDialog";
+import { UnassignContainerOrderConfirmDialog } from "./UnassignContainerOrderConfirmDialog";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
@@ -119,6 +121,9 @@ export function ContainersSidePanel(props: Props) {
   const [linkedOrderDetails, setLinkedOrderDetails] = useState<Record<string, DriverServiceOrderView>>({});
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [transferInitialIds, setTransferInitialIds] = useState<string[] | undefined>(undefined);
+  const [unassignConfirmOpen, setUnassignConfirmOpen] = useState(false);
+  const [pendingUnassignOrderId, setPendingUnassignOrderId] = useState<string | null>(null);
+  const [unassigning, setUnassigning] = useState(false);
 
   const containerSyncKey = useMemo(() => {
     const c = selectedContainer;
@@ -186,6 +191,27 @@ export function ContainersSidePanel(props: Props) {
     () => getLoosePhysicalBoxes(selectedContainer),
     [selectedContainer],
   );
+
+  const pendingUnassignOrder = useMemo(() => {
+    if (!pendingUnassignOrderId || !selectedContainer) return null;
+    return (selectedContainer.serviceOrders ?? []).find((o) => o.id === pendingUnassignOrderId) ?? null;
+  }, [pendingUnassignOrderId, selectedContainer]);
+
+  const pendingUnassignSenderLabel = pendingUnassignOrder
+    ? serviceOrderSenderDisplayName(pendingUnassignOrder, linkedOrderDetails[pendingUnassignOrder.id])
+    : "";
+
+  const confirmarUnassign = useCallback(async () => {
+    if (!selectedContainer?.id || !pendingUnassignOrderId) return;
+    setUnassigning(true);
+    try {
+      await onUnassignServiceOrder(selectedContainer.id, pendingUnassignOrderId);
+      setUnassignConfirmOpen(false);
+      setPendingUnassignOrderId(null);
+    } finally {
+      setUnassigning(false);
+    }
+  }, [onUnassignServiceOrder, pendingUnassignOrderId, selectedContainer?.id]);
 
   const pesoLimite = selectedContainer?.fullWeight ?? null;
   const pesoCarga = selectedContainer?.totalWeight ?? 0;
@@ -572,9 +598,9 @@ export function ContainersSidePanel(props: Props) {
                           <div className="flex items-start justify-between gap-2 px-2.5 py-2 border-b border-border/50 bg-muted/15">
                             <div className="min-w-0">
                               <p className="text-xs font-medium text-foreground truncate">
-                                {box.clientName?.trim() || "Cliente"}
+                                {box.clientName?.trim() || "Remetente (EUA)"}
                               </p>
-                              <p className="text-[11px] text-muted-foreground font-mono">
+                              <p className="text-[11px] text-muted-foreground font-mono break-all">
                                 OS #{box.driverServiceOrderId ?? "—"}
                               </p>
                               <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -640,7 +666,7 @@ export function ContainersSidePanel(props: Props) {
                       <summary className="list-none px-3 py-2.5 flex items-center justify-between gap-2 cursor-pointer">
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">
-                            {order.recipientName?.trim() || "Cliente USA"}
+                            {serviceOrderSenderDisplayName(order, detailByOrder)}
                           </p>
                           <p className="text-[11px] text-muted-foreground font-mono break-all">
                             #{order.id}
@@ -667,8 +693,10 @@ export function ContainersSidePanel(props: Props) {
                           size="sm"
                           onClick={(e) => {
                             e.preventDefault();
+                            e.stopPropagation();
                             if (!selectedContainer.id) return;
-                            void onUnassignServiceOrder(selectedContainer.id, order.id);
+                            setPendingUnassignOrderId(order.id);
+                            setUnassignConfirmOpen(true);
                           }}
                         >
                           Remover
@@ -755,6 +783,21 @@ export function ContainersSidePanel(props: Props) {
               candidates={transferCandidates}
               initialSelectedIds={transferInitialIds}
               onCompleted={onTransferCompleted}
+            />
+          )}
+
+          {selectedContainer && (
+            <UnassignContainerOrderConfirmDialog
+              open={unassignConfirmOpen}
+              onOpenChange={(o) => {
+                setUnassignConfirmOpen(o);
+                if (!o) setPendingUnassignOrderId(null);
+              }}
+              senderLabel={pendingUnassignSenderLabel}
+              orderId={pendingUnassignOrderId ?? ""}
+              containerNumber={selectedContainer.number}
+              confirming={unassigning}
+              onConfirm={confirmarUnassign}
             />
           )}
         </motion.div>

@@ -93,8 +93,8 @@ export function TransferBoxesReviewStep({ volRef, preview, submitting, onBack, o
             </p>
             <ul className="text-[11px] text-muted-foreground space-y-1">
               {preview.ordersReassigned.map((o) => (
-                <li key={o.driverServiceOrderId}>
-                  Ordem …{o.driverServiceOrderId.slice(-6)} → <span className="font-medium text-foreground">{o.containerNumber}</span>
+                <li key={o.driverServiceOrderId} className="break-all">
+                  Ordem #{o.driverServiceOrderId} → <span className="font-medium text-foreground">{o.containerNumber}</span>
                 </li>
               ))}
             </ul>

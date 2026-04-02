@@ -28,7 +28,6 @@ type Props = {
   setIsDialogEditPeriodOpen: (open: boolean) => void;
   formDataPeriod: PeriodFormData;
   setFormDataPeriod: React.Dispatch<React.SetStateAction<PeriodFormData>>;
-  dataPickerBlocked: () => string;
   handleEditPeriod: (e: React.FormEvent) => void;
 };
 
@@ -42,7 +41,6 @@ export function AppointmentsEditPeriodDialog({
   setIsDialogEditPeriodOpen,
   formDataPeriod,
   setFormDataPeriod,
-  dataPickerBlocked,
   handleEditPeriod,
 }: Props) {
   return (
@@ -92,7 +90,6 @@ export function AppointmentsEditPeriodDialog({
                 <Input
                   id="startDateEdit"
                   type="date"
-                  min={dataPickerBlocked()}
                   max={formDataPeriod.endDate}
                   value={formDataPeriod.startDate}
                   onChange={(e) => setFormDataPeriod({ ...formDataPeriod, startDate: e.target.value })}
@@ -104,7 +101,7 @@ export function AppointmentsEditPeriodDialog({
                 <Input
                   id="endDateEdit"
                   type="date"
-                  min={formDataPeriod.startDate ? formDataPeriod.startDate : dataPickerBlocked()}
+                  min={formDataPeriod.startDate || undefined}
                   value={formDataPeriod.endDate}
                   onChange={(e) => setFormDataPeriod({ ...formDataPeriod, endDate: e.target.value })}
                   required

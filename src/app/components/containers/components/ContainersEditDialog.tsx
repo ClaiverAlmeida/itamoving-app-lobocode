@@ -15,7 +15,6 @@ type Props = {
   resetForm: () => void;
   setIsEditing: (value: boolean) => void;
   onSubmit: (e: React.FormEvent) => void;
-  dataPickerBlocked: () => string;
 };
 
 export function ContainersEditDialog({
@@ -26,7 +25,6 @@ export function ContainersEditDialog({
   resetForm,
   setIsEditing,
   onSubmit,
-  dataPickerBlocked,
 }: Props) {
   return (
     <Dialog
@@ -66,11 +64,11 @@ export function ContainersEditDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-boardingDate">Data de Embarque *</Label>
-              <Input id="edit-boardingDate" type="date" min={dataPickerBlocked()} value={formData.boardingDate} onChange={(e) => setFormData({ ...formData, boardingDate: e.target.value })} required />
+              <Input id="edit-boardingDate" type="date" value={formData.boardingDate} onChange={(e) => setFormData({ ...formData, boardingDate: e.target.value })} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-estimatedArrival">Previsão de Chegada *</Label>
-              <Input id="edit-estimatedArrival" type="date" min={dataPickerBlocked()} value={formData.estimatedArrival} onChange={(e) => setFormData({ ...formData, estimatedArrival: e.target.value })} required />
+              <Input id="edit-estimatedArrival" type="date" value={formData.estimatedArrival} onChange={(e) => setFormData({ ...formData, estimatedArrival: e.target.value })} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-volume">Volume (m³) *</Label>

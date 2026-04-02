@@ -4,14 +4,25 @@ import type { ContainersBackend, CreateContainersDTO, UpdateContainersDTO } from
 import { BaseCrudService } from "./base-crud.service";
 import { api } from "./api.service";
 
-function pickClientDisplayName(client?: {
+/** Nome do remetente (EUA) na carga — não usar `brazilName` (recebedor). */
+function pickSenderNameFromClient(client?: {
   usaName?: string | null;
   brazilName?: string | null;
 }): string {
-  const u = client?.usaName?.trim() ?? "";
-  if (u) return u;
-  const b = client?.brazilName?.trim() ?? "";
-  return b;
+  return client?.usaName?.trim() ?? "";
+}
+
+function pickSenderUsaFromDriverServiceOrder(o: {
+  sender?: unknown;
+  appointment?: { client?: { usaName?: string | null } | null } | null;
+}): string | null {
+  const raw = o.sender;
+  if (raw != null && typeof raw === "object" && !Array.isArray(raw)) {
+    const usa = (raw as { usaName?: unknown }).usaName;
+    if (typeof usa === "string" && usa.trim()) return usa.trim();
+  }
+  const apt = o.appointment?.client?.usaName?.trim();
+  return apt && apt.length > 0 ? apt : null;
 }
 
 type BackendContainerProductRow = NonNullable<ContainersBackend["products"]>[number];
@@ -40,11 +51,13 @@ function mapBackendToFrontend(container: ContainersBackend): Container {
             observations: it.observations != null ? String(it.observations) : undefined,
           }));
         const clientFromOrder = ord?.appointment?.client;
+        const senderFromLinkedOrder = ord ? pickSenderUsaFromDriverServiceOrder(ord) : null;
         return {
           clientId: p.clientId ?? "",
           clientName:
-            pickClientDisplayName(p.client ?? undefined) ||
-            pickClientDisplayName(clientFromOrder ?? undefined) ||
+            pickSenderNameFromClient(p.client ?? undefined) ||
+            (senderFromLinkedOrder ?? "") ||
+            pickSenderNameFromClient(clientFromOrder ?? undefined) ||
             "",
           boxNumber: p.boxNumber,
           size: linked?.product?.type ?? p.size ?? "",
@@ -90,7 +103,7 @@ function mapBackendToFrontend(container: ContainersBackend): Container {
       ? container.driverServiceOrders.map((o) => ({
           id: o.id,
           status: o.status,
-          recipientName: o.appointment?.client?.usaName ?? null,
+          senderName: pickSenderUsaFromDriverServiceOrder(o),
           createdAt: o.createdAt,
           attendant: o.attendant ? { id: o.attendant.id, name: o.attendant.name } : null,
         }))

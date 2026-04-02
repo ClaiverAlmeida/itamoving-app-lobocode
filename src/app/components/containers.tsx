@@ -576,7 +576,6 @@ export default function ContainersView() {
         resetForm={resetForm}
         setIsEditing={setIsEditing}
         onSubmit={handleEditSubmit}
-        dataPickerBlocked={dataPickerBlocked}
       />
 
       <ContainersDeleteDialog

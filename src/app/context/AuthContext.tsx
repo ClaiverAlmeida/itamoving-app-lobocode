@@ -30,7 +30,8 @@ export interface Permission {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, senha: string) => Promise<boolean>;
+  /** `rememberMe`: grava em localStorage (persistente). Se false, sessão só em sessionStorage (fecha ao encerrar a aba). O backend valida o JWT em toda requisição. */
+  login: (email: string, senha: string, rememberMe?: boolean) => Promise<boolean>;
   logout: () => void;
   permissions: Permission;
   hasPermission: (module: keyof Permission, action: 'read' | 'write') => boolean;
@@ -113,6 +114,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, []);
 
+  /** Role e permissões alinhadas ao banco: GET /auth/me após JWT válido (ignora JSON adulterado no storage). */
+  useEffect(() => {
+    if (!authState.isAuthenticated) return;
+    void authService.syncUserFromServer();
+  }, [authState.isAuthenticated]);
+
   // WebSocket: sempre conecta quando logado (notificações em tempo real).
   // Depende de user?.id para não re-executar a cada render.
   useEffect(() => {
@@ -135,8 +142,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, [user?.id]);
 
-  const login = async (email: string, senha: string): Promise<boolean> => {
-    const result = await authService.login(email, senha);
+  const login = async (email: string, senha: string, rememberMe = true): Promise<boolean> => {
+    const result = await authService.login(email, senha, rememberMe);
     return result.success;
   };
 

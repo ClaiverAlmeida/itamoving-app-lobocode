@@ -47,7 +47,8 @@ export interface Container {
   serviceOrders?: {
     id: string;
     status?: string;
-    recipientName?: string | null;
+    /** Nome do remetente (EUA) — da OS ou do cliente do agendamento. */
+    senderName?: string | null;
     createdAt?: string;
     /** Atendente da OS (`attendantId`); na associação ao container vira o usuário logado; limpo ao desvincular. */
     attendant?: { id: string; name: string } | null;
@@ -103,6 +104,7 @@ export interface ContainersBackend {
       driverServiceOrder?: {
         id?: string;
         containerId?: string | null;
+        sender?: unknown;
         appointment?: {
           client?: { usaName?: string | null; brazilName?: string | null } | null;
         } | null;
@@ -126,6 +128,7 @@ export interface ContainersBackend {
   driverServiceOrders?: {
     id: string;
     status?: string;
+    sender?: unknown;
     appointment?: { client?: { usaName?: string | null } | null } | null;
     createdAt?: string;
     attendant?: { id: string; name: string } | null;
