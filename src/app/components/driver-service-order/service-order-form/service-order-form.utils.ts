@@ -72,3 +72,9 @@ export function loadDataUrlOnCanvas(
   img.src = s;
 }
 
+/** Ano de fundação da empresa */
+export const yearsCompanyInfo = (() => {
+  const currentYear = new Date().getFullYear();
+  const startYear = new Date("2014-01-01").getFullYear();
+  return Math.max(0, currentYear - startYear);
+});

@@ -10,6 +10,9 @@ import {
   Clock,
   Trash,
   ContainerIcon,
+  ArchiveRestore,
+  Archive,
+  ListChecks,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -40,6 +43,9 @@ import { useAuth } from "../context/AuthContext";
 export default function OrdemDeServicoView() {
   const [ordens, setOrdens] = useState<DriverServiceOrderView[]>([]);
   const [loading, setLoading] = useState(true);
+  const [abaLista, setAbaLista] = useState<"ativas" | "arquivadas">("ativas");
+  const [ordensArquivadas, setOrdensArquivadas] = useState<DriverServiceOrderView[]>([]);
+  const [loadingArquivadas, setLoadingArquivadas] = useState(false);
 
   const carregarOrdens = useCallback(async () => {
     setLoading(true);
@@ -57,6 +63,18 @@ export default function OrdemDeServicoView() {
     void carregarOrdens();
   }, [carregarOrdens]);
 
+  const carregarArquivadas = useCallback(async () => {
+    setLoadingArquivadas(true);
+    const result = await serviceOrderCrud.getArchived();
+    if (result.success && result.data) {
+      setOrdensArquivadas(result.data);
+    } else {
+      setOrdensArquivadas([]);
+      if (result.error) toast.error(result.error);
+    }
+    setLoadingArquivadas(false);
+  }, []);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [viewOrdem, setViewOrdem] = useState<DriverServiceOrderView | null>(null);
   const [editingOrdem, setEditingOrdem] = useState<DriverServiceOrderView | null>(null);
@@ -65,6 +83,7 @@ export default function OrdemDeServicoView() {
   const [reciboLoading, setReciboLoading] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const { user } = useAuth();
+  const isPodeArquivar = Boolean(user?.role.includes("admin"));
 
   const iniciarEdicao = useCallback(async (o: DriverServiceOrderView) => {
     setEditingOrdemLoading(true);
@@ -117,6 +136,34 @@ export default function OrdemDeServicoView() {
     return [...base].sort((a, b) => ts(b) - ts(a));
   }, [ordens, searchTerm]);
 
+  const ordensArquivadasFiltradas = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    const base = !q
+      ? ordensArquivadas
+      : ordensArquivadas.filter((o) => {
+        const blob = [
+          o.id,
+          o.appointmentId,
+          o.sender?.usaName,
+          o.recipient?.brazilName,
+          o.driverName,
+          o.status,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return blob.includes(q);
+      });
+
+    const ts = (o: DriverServiceOrderView) => {
+      const raw = o.updatedAt;
+      const d = raw ? new Date(raw) : null;
+      return d && !Number.isNaN(d.getTime()) ? d.getTime() : 0;
+    };
+
+    return [...base].sort((a, b) => ts(b) - ts(a));
+  }, [ordensArquivadas, searchTerm]);
+
   const stats = useMemo(() => {
     const list = ordens;
     return {
@@ -126,44 +173,97 @@ export default function OrdemDeServicoView() {
     };
   }, [ordens]);
 
-  const openView = (o: DriverServiceOrderView) => {
-    setViewOrdem(o);
-    setViewOpen(true);
-  };
+  const emArquivadas = isPodeArquivar && abaLista === "arquivadas";
+  const listaExibida = emArquivadas ? ordensArquivadasFiltradas : ordensFiltradas;
+  const carregandoLista = emArquivadas ? loadingArquivadas : loading;
 
-  const excluirOrdem = useCallback(async (order: DriverServiceOrderView) => {
-    if (!user?.role.includes('admin')) return;
+  useEffect(() => {
+    if (isPodeArquivar && abaLista === "arquivadas") {
+      void carregarArquivadas();
+    }
+  }, [abaLista, isPodeArquivar, carregarArquivadas]);
 
-    const confirm = window.confirm(`Você está excluindo uma Ordem de Serviço:\n\nCliente (EUA): ${order.sender.usaName}\nNúmero: #${order.id}\n\nConfirmar ação de exclusão?`);
-    if (confirm) {
-      const result = await serviceOrderCrud.remove(order.id!);
+  const openView = useCallback(
+    (o: DriverServiceOrderView) => {
+      void (async () => {
+        if (o.id && emArquivadas) {
+          const res = await serviceOrderCrud.getById(o.id, { includeDeleted: true });
+          if (res.success && res.data) {
+            setViewOrdem(res.data);
+            setViewOpen(true);
+            return;
+          }
+        }
+        setViewOrdem(o);
+        setViewOpen(true);
+      })();
+    },
+    [emArquivadas],
+  );
+
+  const excluirOrdem = useCallback(
+    async (order: DriverServiceOrderView) => {
+      if (!user?.role.includes("admin")) return;
+
+      const confirm = window.confirm(
+        `Arquivar esta ordem de serviço?\n\nCliente (EUA): ${order.sender.usaName}\nNúmero: #${order.id}\n\nA ordem deixa de aparecer na lista principal; produtos e itens permanecem no registo. Pode desarquivar depois na aba Arquivadas.`,
+      );
+      if (confirm) {
+        const result = await serviceOrderCrud.remove(order.id!);
+        if (!result.success) {
+          toast.error(result.error || "Erro ao arquivar ordem de serviço");
+          return;
+        }
+        toast.success("Ordem de serviço arquivada com sucesso");
+        void carregarOrdens();
+      }
+    },
+    [user, carregarOrdens],
+  );
+
+  const desarquivarOrdem = useCallback(
+    async (order: DriverServiceOrderView) => {
+      if (!user?.role.includes("admin")) return;
+
+      const confirm = window.confirm(
+        `Desarquivar esta ordem de serviço?\n\nCliente (EUA): ${order.sender.usaName}\nNúmero: #${order.id}\n\nEla voltará à lista de ordens ativas.`,
+      );
+      if (!confirm) return;
+      const result = await serviceOrderCrud.restore(order.id!);
       if (!result.success) {
-        toast.error(result.error || "Erro ao excluir ordem de serviço");
+        toast.error(result.error || "Erro ao desarquivar ordem de serviço");
         return;
       }
-      toast.success("Ordem de serviço excluída com sucesso");
+      toast.success("Ordem de serviço desarquivada com sucesso");
+      void carregarArquivadas();
       void carregarOrdens();
-    }
-  }, []);
+    },
+    [user, carregarArquivadas, carregarOrdens],
+  );
 
   const fecharRecibo = useCallback(() => setReciboOrdem(null), []);
 
   /** Mesma ideia do formulário / app motorista: recibo em ecrã cheio + GET por id para dados completos (PDF/impressão). */
-  const abrirRecibo = useCallback(async (o: DriverServiceOrderView) => {
-    setReciboLoading(true);
-    try {
-      if (o.id) {
-        const res = await serviceOrderCrud.getById(o.id);
-        if (res.success && res.data) {
-          setReciboOrdem(res.data);
-          return;
+  const abrirRecibo = useCallback(
+    async (o: DriverServiceOrderView) => {
+      setReciboLoading(true);
+      try {
+        if (o.id) {
+          const res = await serviceOrderCrud.getById(o.id, {
+            includeDeleted: emArquivadas,
+          });
+          if (res.success && res.data) {
+            setReciboOrdem(res.data);
+            return;
+          }
         }
+        setReciboOrdem(o);
+      } finally {
+        setReciboLoading(false);
       }
-      setReciboOrdem(o);
-    } finally {
-      setReciboLoading(false);
-    }
-  }, []);
+    },
+    [emArquivadas],
+  );
 
   if (editingOrdemLoading) {
     return (
@@ -286,14 +386,46 @@ export default function OrdemDeServicoView() {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>Ordens registradas</CardTitle>
-          <CardDescription>
-            Busque por cliente, motorista, número da ordem ou agendamento.
-          </CardDescription>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1.5">
+              <CardTitle>Ordens registradas</CardTitle>
+              <CardDescription>
+                {emArquivadas
+                  ? "Ordens arquivadas — visualize, imprima o recibo ou desarquive para voltar à lista principal."
+                  : "Busque por cliente, motorista, número da ordem ou agendamento."}
+              </CardDescription>
+            </div>
+            {isPodeArquivar ? (
+              <div className="flex gap-1 rounded-lg border bg-muted/60 p-1 w-fit shrink-0">
+                <Button
+                  type="button"
+                  variant={abaLista === "ativas" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-8 gap-1.5 px-2.5"
+                  onClick={() => setAbaLista("ativas")}
+                >
+                  <ListChecks className="size-3.5 shrink-0 opacity-90" aria-hidden />
+                  Ordens ativas
+                </Button>
+                <Button
+                  type="button"
+                  variant={abaLista === "arquivadas" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-8 gap-1.5 px-2.5"
+                  onClick={() => setAbaLista("arquivadas")}
+                >
+                  <Archive className="size-3.5 shrink-0 opacity-90" aria-hidden />
+                  Arquivadas
+                </Button>
+              </div>
+            ) : null}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {loading ? (
-            <p className="text-center py-14 text-muted-foreground">Carregando ordens…</p>
+          {carregandoLista ? (
+            <p className="text-center py-14 text-muted-foreground">
+              {emArquivadas ? "Carregando ordens arquivadas…" : "Carregando ordens…"}
+            </p>
           ) : (
             <>
               <div className="relative">
@@ -321,10 +453,12 @@ export default function OrdemDeServicoView() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {ordensFiltradas.length === 0 ? (
+                    {listaExibida.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                          Nenhuma ordem de serviço encontrada.
+                        <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                          {emArquivadas
+                            ? "Nenhuma ordem arquivada."
+                            : "Nenhuma ordem de serviço encontrada."}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -337,7 +471,7 @@ export default function OrdemDeServicoView() {
                           </TableCell>
                           {o.container && (
                             <TableCell className="text-center flex items-center gap-2">
-                              <ContainerIcon className="w-4 h-4 text-muted-foreground" size="icon" />
+                              <ContainerIcon className="w-4 h-4 text-muted-foreground" />
                               <div className="font-semibold flex flex-col gap-1">
                                 <div>{o.container.number ?? "-"}</div>
                                 <div className="text-xs text-muted-foreground">{o.container.type ?? "-"}</div>
@@ -379,26 +513,42 @@ export default function OrdemDeServicoView() {
                               >
                                 <Eye className="w-4 h-4" />
                               </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                title="Editar"
-                                onClick={() => void iniciarEdicao(o)}
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                title="Excluir"
-                                onClick={() => void excluirOrdem(o)}
-                                disabled={!user?.role.includes('admin')}
-                                className={`${!user?.role.includes('admin') ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
-                              >
-                                <Trash className="w-4 h-4" />
-                              </Button>
+                              {!emArquivadas ? (
+                                <>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    title="Editar"
+                                    onClick={() => void iniciarEdicao(o)}
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    title="Arquivar"
+                                    onClick={() => void excluirOrdem(o)}
+                                    disabled={!user?.role.includes("admin")}
+                                    className={`${!user?.role.includes("admin") ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}`}
+                                  >
+                                    <Archive className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  title="Desarquivar"
+                                  onClick={() => void desarquivarOrdem(o)}
+                                  disabled={!user?.role.includes("admin")}
+                                  className={`${!user?.role.includes("admin") ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}`}
+                                >
+                                  <ArchiveRestore className="w-4 h-4" />
+                                </Button>
+                              )}
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -419,14 +569,16 @@ export default function OrdemDeServicoView() {
 
               {/* Mobile: cards */}
               <div className="md:hidden grid gap-3">
-                {ordensFiltradas.length === 0 ? (
+                {listaExibida.length === 0 ? (
                   <Card>
                     <CardContent className="py-10 text-center text-muted-foreground">
-                      Nenhuma ordem de serviço encontrada.
+                      {emArquivadas
+                        ? "Nenhuma ordem arquivada."
+                        : "Nenhuma ordem de serviço encontrada."}
                     </CardContent>
                   </Card>
                 ) : (
-                  ordensFiltradas.map((o, index) => (
+                  listaExibida.map((o, index) => (
                     <motion.div
                       key={o.id}
                       initial={{ opacity: 0, y: 12 }}
@@ -469,30 +621,45 @@ export default function OrdemDeServicoView() {
                               {formatDateTime(o.signatureDate)}
                             </span>
                           </div>
-                          <div className="flex gap-2 pt-2">
+                          <div className="flex flex-wrap gap-2 pt-2">
                             <Button
                               type="button"
                               variant="outline"
-                              className="flex-1"
+                              className="flex-1 min-w-[88px]"
                               size="sm"
                               onClick={() => openView(o)}
                             >
                               <Eye className="w-4 h-4 mr-1" />
                               Ver
                             </Button>
-                            <Button
-                              type="button"
-                              className="flex-1 bg-[#1E3A5F]"
-                              size="sm"
-                              onClick={() => void iniciarEdicao(o)}
-                            >
-                              <Pencil className="w-4 h-4 mr-1" />
-                              Editar
-                            </Button>
+                            {!emArquivadas ? (
+                              <Button
+                                type="button"
+                                className="flex-1 min-w-[88px] bg-[#1E3A5F]"
+                                size="sm"
+                                onClick={() => void iniciarEdicao(o)}
+                              >
+                                <Pencil className="w-4 h-4 mr-1" />
+                                Editar
+                              </Button>
+                            ) : (
+                              isPodeArquivar && (
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  className="flex-1 min-w-[88px]"
+                                  size="sm"
+                                  onClick={() => void desarquivarOrdem(o)}
+                                >
+                                  <ArchiveRestore className="w-4 h-4 mr-1" />
+                                  Desarquivar
+                                </Button>
+                              )
+                            )}
                             <Button
                               type="button"
                               variant="secondary"
-                              className="flex-1"
+                              className="flex-1 min-w-[88px]"
                               size="sm"
                               onClick={() => void abrirRecibo(o)}
                             >

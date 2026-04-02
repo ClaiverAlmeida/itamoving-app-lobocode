@@ -25,6 +25,7 @@ import {
   ServiceOrderFormSignaturesCards,
   useServiceOrderFormState,
   useServiceOrderFormSave,
+  yearsCompanyInfo,
 } from './service-order-form/index';
 import {
   caixaTemTodosCamposPreenchidos,
@@ -221,7 +222,7 @@ export default function OrdemServicoForm({
       {/* Conteúdo */}
       <div className={`p-4 sm:p-6 space-y-6 min-w-0 ${!embedded ? "max-h-[calc(100vh-200px)] overflow-y-auto" : ""}`}>
         {/* Informações da Empresa */}
-        <ServiceOrderFormCompanyInfoCard contactPhone={agendamento.company.contactPhone} />
+        <ServiceOrderFormCompanyInfoCard contactPhone={agendamento.company.contactPhone} years={yearsCompanyInfo()} />
 
         {isEditMode || user?.role !== 'motorista' ? (
           <ServiceOrderFormBackOfficeCard

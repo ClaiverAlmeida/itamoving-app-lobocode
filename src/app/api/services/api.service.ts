@@ -191,7 +191,7 @@ class ApiService {
       else if (res?.status === 404) message = 'Recurso não encontrado';
       else if (res?.status === 422) message = 'Dados inválidos';
     } else if (error && typeof error === 'object' && 'request' in error) {
-      message = 'Erro de conexão';
+      message = 'Erro de conexão com o servidor!';
     }
     return { success: false, error: message };
   }

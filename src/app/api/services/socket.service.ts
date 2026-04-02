@@ -98,7 +98,7 @@ export function connectSocket(): Socket | null {
   });
 
   sock.on('connect_error', (err) => {
-    console.error(`${PING_LOG_PREFIX} Erro de conexão:`, err.message);
+    console.error(`${PING_LOG_PREFIX} Erro de conexão com o servidor:`, err.message);
     stopPingPong();
   });
 

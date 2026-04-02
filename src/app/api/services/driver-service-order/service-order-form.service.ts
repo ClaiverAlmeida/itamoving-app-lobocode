@@ -30,6 +30,24 @@ export class ServiceOrderFormService {
         }
     }
 
+    /** Ordens arquivadas (`deletedAt`), apenas para perfis com permissão no backend. */
+    async getArchived(): Promise<{ success: boolean; data?: DriverServiceOrderView[]; error?: string }> {
+        try {
+            const result = await api.get<unknown>("/driver-service-order/archived");
+            if (result.success && result.data != null) {
+                const list = extractDriverServiceOrderList(result.data);
+                const mapped = list
+                    .map((row) => mapDriverServiceOrderApiToView(row))
+                    .filter((o): o is DriverServiceOrderView => o != null);
+                return { success: true, data: mapped };
+            }
+            return { success: false, error: result.error || "Erro ao buscar ordens arquivadas" };
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : "Erro ao buscar ordens arquivadas";
+            return { success: false, error: msg };
+        }
+    }
+
     async getAllCompletedAndNotAssignedToContainer(): Promise<{ success: boolean; data?: DriverServiceOrderView[]; error?: string }> {
         try {
             const result = await api.get<unknown>("/driver-service-order/completed");
@@ -49,9 +67,16 @@ export class ServiceOrderFormService {
     }
 
     /** Ordem completa (caixas e itens) para edição — mesmo payload do GET por id. */
-    async getById(id: string): Promise<{ success: boolean; data?: DriverServiceOrderView; error?: string }> {
+    async getById(
+        id: string,
+        options?: { includeDeleted?: boolean },
+    ): Promise<{ success: boolean; data?: DriverServiceOrderView; error?: string }> {
         try {
-            const result = await api.get<unknown>(`/driver-service-order/${id}`);
+            const q =
+                options?.includeDeleted === true
+                    ? "?includeDeleted=true"
+                    : "";
+            const result = await api.get<unknown>(`/driver-service-order/${id}${q}`);
             if (result.success && result.data != null) {
                 const raw = (result.data as { data?: unknown })?.data ?? result.data;
                 const mapped = mapDriverServiceOrderApiToView(raw);
@@ -103,9 +128,21 @@ export class ServiceOrderFormService {
             if (result.success) {
                 return { success: true };
             }
-            return { success: false, error: result.error || "Erro ao excluir ordem de serviço" };
+            return { success: false, error: result.error || "Erro ao arquivar ordem de serviço" };
         } catch (error) {
-            return { success: false, error: error instanceof Error ? error.message : "Erro ao excluir ordem de serviço" };
+            return { success: false, error: error instanceof Error ? error.message : "Erro ao arquivar ordem de serviço" };
+        }
+    }
+
+    async restore(id: string): Promise<{ success: boolean; error?: string }> {
+        try {
+            const result = await api.post<unknown>(`/driver-service-order/${id}/restore`, {});
+            if (result.success) {
+                return { success: true };
+            }
+            return { success: false, error: result.error || "Erro ao desarquivar ordem de serviço" };
+        } catch (error) {
+            return { success: false, error: error instanceof Error ? error.message : "Erro ao desarquivar ordem de serviço" };
         }
     }
 }

@@ -210,11 +210,11 @@ export default function MotoristaApp() {
             Minhas Entregas
           </h2>
           <p className="text-muted-foreground mt-1">
-            Ordens de serviço confirmadas para hoje
+            Agendamentos confirmados para hoje
           </p>
         </div>
         <Badge className="text-base sm:text-lg px-3 sm:px-4 py-2 bg-[#F5A623] w-fit">
-          {agendamentosConfirmados.length} {agendamentosConfirmados.length === 1 ? "ordem" : "ordens"}
+          {agendamentosConfirmados.length} {agendamentosConfirmados.length === 1 ? "agendamento" : "agendamentos"}
         </Badge>
       </div>
 
@@ -364,7 +364,7 @@ export default function MotoristaApp() {
           <CardContent className="text-center py-12">
             <Truck className="w-16 h-16 mx-auto text-muted-foreground mb-4 opacity-50" />
             <p className="text-muted-foreground">
-              Nenhuma ordem de serviço disponível hoje
+              Nenhum agendamento confirmado e disponível para hoje
             </p>
           </CardContent>
         </Card>

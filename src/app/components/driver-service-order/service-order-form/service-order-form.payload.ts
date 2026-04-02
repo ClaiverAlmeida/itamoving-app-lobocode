@@ -16,7 +16,6 @@ export function buildDriverServiceOrderProducts({
 }: BuildProductsParams) {
   return caixas.map((c) => ({
     ...(existingProductIds.has(c.id) ? { id: c.id } : {}),
-    type: c.type,
     ...(c.productId
       ? { productId: c.productId }
       : (() => {

@@ -42,9 +42,9 @@ export interface DriverServiceOrder {
     productId?: string;
     /**
      * Rótulo para exibição (ex.: nome + tipo amigável), montado a partir de `product` na resposta da API.
-     * Não é mais persistido na tabela da OS.
+     * Não é persistido nem enviado no body de criação/atualização (o DTO da API não aceita este campo).
      */
-    type: string;
+    type?: string;
     /** `ProductPrice.type` quando a API inclui a relação `product`. */
     productType?: "SMALL_BOX" | "MEDIUM_BOX" | "LARGE_BOX" | "PERSONALIZED_ITEM" | "TAPE_ADHESIVE";
     product?: {
