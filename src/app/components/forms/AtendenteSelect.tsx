@@ -54,7 +54,7 @@ export function AtendenteSelect({
     }
   }, [user?.id, value, onValueChange]);
 
-  const displayName = user?.nome ?? emptyPlaceholder;
+  const displayName = user ? (user.nome ?? "") : emptyPlaceholder;
   const selectValue = value || user?.id || undefined;
 
   return (
@@ -76,7 +76,7 @@ export function AtendenteSelect({
         <SelectContent>
           {user ? (
             <SelectItem value={user.id}>
-              {user.nome}
+              {user.nome ?? ""}
             </SelectItem>
           ) : (
             <SelectItem value="__none__" disabled>

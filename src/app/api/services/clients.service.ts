@@ -3,6 +3,7 @@ import type { Client } from "../types";
 import { BaseCrudService } from "./base-crud.service";
 import type {
   ClientBackend,
+  ClientsImportResult,
   CreateClientsDTO,
   HistoryPagination,
   UpdateClientsDTO,
@@ -44,13 +45,13 @@ function mapBackendToFrontend(client: ClientBackend): Client {
 
   return {
     id: client.id,
-    usaName: client.usaName,
+    usaName: client.usaName ?? "",
     usaCpf: client.usaCpf ?? "",
-    usaPhone: client.usaPhone,
+    usaPhone: client.usaPhone ?? "",
     usaAddress: enderecoUSA,
-    brazilName: client.brazilName,
+    brazilName: client.brazilName ?? "",
     brazilCpf: client.brazilCpf ?? "",
-    brazilPhone: client.brazilPhone,
+    brazilPhone: client.brazilPhone ?? "",
     brazilAddress: enderecoBrasil,
     user,
     createdAt: client.createdAt,
@@ -71,6 +72,20 @@ export class ClientsService extends BaseCrudService<
       updateError: "Erro ao atualizar cliente",
       deleteError: "Erro ao deletar cliente",
     });
+  }
+
+  /**
+   * Lista completa para o app (a rota `GET /clients` usa paginação padrão e devolve só 10 itens).
+   */
+  async getAll(): Promise<{ success: boolean; data?: Client[]; error?: string }> {
+    const result = await api.get<ClientBackend[] | { data: ClientBackend[] }>(
+      `${this.resource}/all`,
+    );
+    if (!result.success) {
+      return { success: false, error: result.error || this.errorMessages.listError };
+    }
+    const items = this.unwrapList(result.data);
+    return { success: true, data: items.map(this.mapBackendToFrontend) };
   }
 
   async update(
@@ -108,6 +123,14 @@ export class ClientsService extends BaseCrudService<
   }
 
   /** Histórico do cliente com paginação (7 itens por página) */
+  async importClients(
+    file: File,
+  ): Promise<{ success: boolean; data?: ClientsImportResult; error?: string }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.postFormData<ClientsImportResult>("/clients/import", formData);
+  }
+
   async history(
     clientId: string,
     page = 1,

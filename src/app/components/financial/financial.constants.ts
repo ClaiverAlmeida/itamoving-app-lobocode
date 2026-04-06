@@ -18,15 +18,13 @@ export const CATEGORIAS_DESPESA = [
   "Aluguel",
   "Material de Embalagem",
   "Marketing",
+  "Alimentação",
+  "Hospedagem",
   "Outros",
 ] as const;
 
 export const METODOS_PAGAMENTO = [
-  "Cartão de Crédito",
-  "Cartão de Débito",
-  "Transferência Bancária",
-  "PIX",
   "Dinheiro",
-  "Cheque",
+  "Zelle",
 ] as const;
 

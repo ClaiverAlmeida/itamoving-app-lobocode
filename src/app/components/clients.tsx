@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -26,12 +26,16 @@ import {
   Users as UsersIcon,
   Package,
   Upload,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../context/AuthContext";
 import {
   ATIVIDADE_COLOR_CLASSES,
+  CLIENTS_GRID_PAGE_SIZE,
+  CLIENTS_LIST_PAGE_SIZE,
   ClientsViewMode as ViewMode,
   CLIENT_HISTORY_FIELD_LABEL,
   ClienteAtividade,
@@ -49,6 +53,7 @@ import {
   loadHistoricoPage,
   ClientsContentView,
   ClientsMetricsCards,
+  type ClientsStatistics,
   ClientsFormDialog,
   ClientsSidePanel,
   useClientsForm,
@@ -72,8 +77,8 @@ export default function ClientesView() {
     null,
   );
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [listVisibleCount, setListVisibleCount] = useState(40);
-  const listContainerRef = useRef<HTMLDivElement | null>(null);
+  /** Página 1-based na lista filtrada (10 clientes por página). */
+  const [clientListPage, setClientListPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
   const [filters, setFilters] = useState({
@@ -124,16 +129,12 @@ export default function ClientesView() {
 
   const handleCreate = async () => {
     const payload = getCreatePayload();
-    if (payload.usaName.length < 2) {
+    if (payload.usaName.trim().length < 2) {
       toast.error("Nome (USA) deve ter pelo menos 2 caracteres.");
       return;
     }
-    if (payload.brazilName.length < 2) {
-      toast.error("Nome recebedor (Brasil) deve ter pelo menos 2 caracteres.");
-      return;
-    }
     if (!payload.userId?.trim()) {
-      toast.error("Atendente (usuário) é obrigatório.");
+      toast.error("Selecione o atendente.");
       return;
     }
     const result = await clientsCrud.create(payload);
@@ -255,8 +256,20 @@ export default function ClientesView() {
 
   const handleExport = async () => handleExportClients(clientsCrud.export);
 
-  /** Importação de clientes em desenvolvimento */
-  const handleImport = async (file: File | null) => handleImportClients(file);
+  const handleImport = async (file: File | null) =>
+    handleImportClients({
+      file,
+      importClients: clientsCrud.import,
+      reloadClientes: async () => {
+        const result = await clientsCrud.getAll();
+        if (result.success && result.data) setClientes(result.data);
+        else if (result.error) toast.error(result.error);
+      },
+      onDone: () => {
+        setIsImportDialogOpen(false);
+        setImportFile(null);
+      },
+    });
   const handleCallTelphone = (telefones: string[]) =>
     handleCallTelephone(telefones);
   const handleWhatsAppWindow = (telefones: string[]) =>
@@ -270,15 +283,15 @@ export default function ClientesView() {
       const usaAddr = cliente.usaAddress as { cidade?: string };
       const brAddr = cliente.brazilAddress as { cidade?: string };
       const matchesSearch =
-        cliente.usaName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cliente.usaCpf.includes(searchTerm) ||
-        cliente.usaPhone.includes(searchTerm) ||
+        (cliente.usaName ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (cliente.usaCpf ?? "").includes(searchTerm) ||
+        (cliente.usaPhone ?? "").includes(searchTerm) ||
         (usaAddr?.cidade ?? "")
           .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        cliente.brazilName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cliente.brazilCpf.includes(searchTerm) ||
-        cliente.brazilPhone.includes(searchTerm) ||
+        (cliente.brazilName ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (cliente.brazilCpf ?? "").includes(searchTerm) ||
+        (cliente.brazilPhone ?? "").includes(searchTerm) ||
         (brAddr?.cidade ?? "").toLowerCase().includes(searchTerm.toLowerCase());
 
       if (!matchesSearch) return false;
@@ -324,7 +337,62 @@ export default function ClientesView() {
     });
   }, [clientes, searchTerm, filters]);
 
-  const statistics = useMemo(() => {
+  /** Cidades distintas por estado (EUA e Brasil) na lista filtrada — para exibir nos cards. */
+  const { usaCityCountByState, brazilCityCountByState } = useMemo(() => {
+    const usa = new Map<string, Set<string>>();
+    const br = new Map<string, Set<string>>();
+    for (const c of filteredClientes) {
+      const usaAddr = c.usaAddress as { cidade?: string; estado?: string };
+      const estU = (usaAddr?.estado ?? "").trim().toUpperCase();
+      const cityU = (usaAddr?.cidade ?? "").trim();
+      if (estU) {
+        if (!usa.has(estU)) usa.set(estU, new Set());
+        if (cityU) usa.get(estU)!.add(cityU.toLowerCase());
+      }
+      const brAddr = c.brazilAddress as { cidade?: string; estado?: string };
+      const estB = (brAddr?.estado ?? "").trim().toUpperCase();
+      const cityB = (brAddr?.cidade ?? "").trim();
+      if (estB) {
+        if (!br.has(estB)) br.set(estB, new Set());
+        if (cityB) br.get(estB)!.add(cityB.toLowerCase());
+      }
+    }
+    const usaRecord: Record<string, number> = {};
+    const brRecord: Record<string, number> = {};
+    for (const [k, set] of usa) usaRecord[k] = set.size;
+    for (const [k, set] of br) brRecord[k] = set.size;
+    return {
+      usaCityCountByState: usaRecord,
+      brazilCityCountByState: brRecord,
+    };
+  }, [filteredClientes]);
+
+  const clientsPageSize =
+    viewMode === "grid" ? CLIENTS_GRID_PAGE_SIZE : CLIENTS_LIST_PAGE_SIZE;
+
+  const totalFilteredPages = Math.max(
+    1,
+    Math.ceil(filteredClientes.length / clientsPageSize),
+  );
+
+  const paginatedClientes = useMemo(() => {
+    const start = (clientListPage - 1) * clientsPageSize;
+    return filteredClientes.slice(start, start + clientsPageSize);
+  }, [filteredClientes, clientListPage, clientsPageSize]);
+
+  useEffect(() => {
+    setClientListPage(1);
+  }, [searchTerm, filters]);
+
+  useEffect(() => {
+    setClientListPage((p) => Math.min(p, totalFilteredPages));
+  }, [totalFilteredPages]);
+
+  useEffect(() => {
+    setClientListPage(1);
+  }, [viewMode]);
+
+  const statistics = useMemo((): ClientsStatistics => {
     const ativos = filteredClientes.filter((c) => c.status === "ACTIVE").length;
     const total = ativos;
 
@@ -336,29 +404,36 @@ export default function ClientesView() {
       return new Date(c.createdAt) >= weekAgo;
     }).length;
 
-    const estadosUnicos = new Set(
-      filteredClientes.map(
-        (c) => (c.usaAddress as { estado?: string })?.estado ?? "",
-      ),
+    const estadosUsa = new Set(
+      filteredClientes
+        .map((c) => (c.usaAddress as { estado?: string })?.estado?.trim() ?? "")
+        .filter((s) => s.length > 0),
     ).size;
-    const cidadesBrasilUnicas = new Set(
-      filteredClientes.map(
-        (c) => (c.brazilAddress as { cidade?: string })?.cidade ?? "",
-      ),
+    const cidadesUsa = new Set(
+      filteredClientes
+        .map((c) => (c.usaAddress as { cidade?: string })?.cidade?.trim() ?? "")
+        .filter((s) => s.length > 0),
+    ).size;
+    const estadosBrasil = new Set(
+      filteredClientes
+        .map((c) => (c.brazilAddress as { estado?: string })?.estado?.trim() ?? "")
+        .filter((s) => s.length > 0),
+    ).size;
+    const cidadesBrasil = new Set(
+      filteredClientes
+        .map((c) => (c.brazilAddress as { cidade?: string })?.cidade?.trim() ?? "")
+        .filter((s) => s.length > 0),
     ).size;
 
-    return { total, novosUltimaSemana, estadosUnicos, cidadesBrasilUnicas };
+    return {
+      total,
+      novosUltimaSemana,
+      estadosUsa,
+      cidadesUsa,
+      estadosBrasil,
+      cidadesBrasil,
+    };
   }, [filteredClientes]);
-
-  const clientesListRendered = useMemo(
-    () => filteredClientes.slice(0, listVisibleCount),
-    [filteredClientes, listVisibleCount],
-  );
-
-  useEffect(() => {
-    setListVisibleCount(40);
-    if (listContainerRef.current) listContainerRef.current.scrollTop = 0;
-  }, [searchTerm, filters, viewMode]);
 
   const getAtividadeIcon = (a: ClienteAtividade) => {
     if (a.origem === "appointment" || a.tipo === "agendamento") return Calendar;
@@ -487,12 +562,12 @@ export default function ClientesView() {
                       Clique ou arraste o arquivo aqui
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      Formatos aceitos: .json, .xlsx, .csv
+                      Formatos aceitos: .xlsx, .xlsm (planilha Controle de Entregas)
                     </span>
                     <Input
                       id="file-import-clientes"
                       type="file"
-                      accept=".json,.xlsx,.csv"
+                      accept=".xlsx,.xlsm,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                       className="sr-only"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
@@ -569,8 +644,6 @@ export default function ClientesView() {
             />
           </div>
         </div>
-
-        <ClientsMetricsCards statistics={statistics} />
 
         {/* Barra de Busca e View Mode */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -680,19 +753,57 @@ export default function ClientesView() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Resumo numérico da lista filtrada (busca + filtros) */}
+        <ClientsMetricsCards statistics={statistics} />
       </div>
 
       <ClientsContentView
         viewMode={viewMode}
         filteredClientes={filteredClientes}
-        clientesListRendered={clientesListRendered}
-        listVisibleCount={listVisibleCount}
-        listContainerRef={listContainerRef}
-        setListVisibleCount={setListVisibleCount}
+        displayedClientes={paginatedClientes}
+        usaCityCountByState={usaCityCountByState}
+        brazilCityCountByState={brazilCityCountByState}
         setSelectedCliente={setSelectedCliente}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
+
+      {filteredClientes.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 py-4 border-t border-border/60">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={clientListPage <= 1}
+            onClick={() => setClientListPage((p) => Math.max(1, p - 1))}
+            className="min-w-[120px]"
+          >
+            <ChevronLeft className="mr-1 h-4 w-4" />
+            Anterior
+          </Button>
+          <p className="text-sm text-muted-foreground tabular-nums text-center px-2">
+            Página {clientListPage} de {totalFilteredPages}
+            <span className="hidden sm:inline">
+              {" "}
+              · {filteredClientes.length} cliente(s) com os filtros atuais
+            </span>
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={clientListPage >= totalFilteredPages}
+            onClick={() =>
+              setClientListPage((p) => Math.min(totalFilteredPages, p + 1))
+            }
+            className="min-w-[120px]"
+          >
+            Próxima
+            <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       <ClientsSidePanel
         selectedCliente={selectedCliente}

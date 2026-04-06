@@ -27,8 +27,10 @@ import {
   WINDOW_SIZE,
   driverAppCrud,
   formatCollectionDate,
+  formatDriverColetaUsaLine,
   type TruckStockItem,
 } from "./driver-app/index";
+import { orDash } from "../clients/clients.display";
 
 const OrdemServicoForm = lazy(() => import("./service-order-form"));
 const DeliveryReceipt = lazy(async () => {
@@ -287,11 +289,11 @@ export default function MotoristaApp() {
                     <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] items-start gap-2 sm:gap-3">
                       <div className="min-w-0">
                         <CardTitle className="text-base sm:text-lg break-words leading-tight">
-                          {agendamento.client?.usaName}
+                          {orDash(agendamento.client?.usaName)}
                         </CardTitle>
                         <CardDescription className="flex items-center gap-1 mt-1 min-w-0">
                           <Phone className="w-3 h-3 flex-shrink-0" />
-                          <span className="truncate">{agendamento.client.usaPhone ?? ""}</span>
+                          <span className="truncate">{orDash(agendamento.client?.usaPhone)}</span>
                         </CardDescription>
                       </div>
                       <div className="flex flex-col items-end justify-start gap-1 w-full sm:w-[230px] sm:justify-self-end">
@@ -322,7 +324,7 @@ export default function MotoristaApp() {
                       <Home className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                       <span className="line-clamp-2">
                         <span className="font-semibold text-xs text-muted-foreground mr-1">COLETA:</span>
-                        {agendamento.client.usaAddress.rua} {agendamento.client.usaAddress.numero}, {agendamento.client.usaAddress.cidade} - {agendamento.client.usaAddress.estado}
+                        {formatDriverColetaUsaLine(agendamento.client?.usaAddress)}
                       </span>
                     </div>
 
@@ -330,7 +332,7 @@ export default function MotoristaApp() {
                       <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                       <span className="line-clamp-2">
                         <span className="font-semibold text-xs text-muted-foreground mr-1">ENTREGA:</span>
-                        {agendamento.company.address}
+                        {orDash(agendamento.company?.address)}
                       </span>
                     </div>
                   </CardContent>

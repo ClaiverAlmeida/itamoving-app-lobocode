@@ -8,4 +8,5 @@ export const clientsCrud = {
   update: (...args: Parameters<typeof clientsService.update>) => clientsService.update(...args),
   delete: (id: string) => clientsService.delete(id),
   export: () => clientsService.export(),
+  import: (file: File) => clientsService.importClients(file),
 };

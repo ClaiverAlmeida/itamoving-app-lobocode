@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Client, CreateClientsDTO } from '../../../api';
+import { buildCreateClientsPayload } from '../clients-form.utils';
 
 export type ClientFormData = {
   usaName: string;
@@ -120,36 +121,7 @@ export function useClientsForm(args: {
     setIsDialogOpen(true);
   };
 
-  const getCreatePayload = (): CreateClientsDTO => {
-    const trim = (s: string) => (s ?? '').trim();
-    return {
-      usaName: trim(formData.usaName),
-      usaCpf: trim(formData.usaCpf) || '',
-      usaPhone: trim(formData.usaPhone),
-      usaAddress: {
-        rua: trim(formData.usaAddress.rua),
-        numero: trim(formData.usaAddress.numero),
-        cidade: trim(formData.usaAddress.cidade),
-        estado: trim(formData.usaAddress.estado),
-        zipCode: trim(formData.usaAddress.zipCode),
-        complemento: trim(formData.usaAddress.complemento) || '',
-      },
-      brazilName: trim(formData.brazilName),
-      brazilCpf: trim(formData.brazilCpf) || '',
-      brazilPhone: trim(formData.brazilPhone),
-      brazilAddress: {
-        rua: trim(formData.brazilAddress.rua),
-        bairro: trim(formData.brazilAddress.bairro),
-        numero: trim(formData.brazilAddress.numero),
-        cidade: trim(formData.brazilAddress.cidade),
-        estado: trim(formData.brazilAddress.estado),
-        cep: trim(formData.brazilAddress.cep),
-        complemento: trim(formData.brazilAddress.complemento) || '',
-      },
-      userId: trim(formData.userId),
-      status: formData.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
-    };
-  };
+  const getCreatePayload = (): CreateClientsDTO => buildCreateClientsPayload(formData);
 
   return {
     formData,

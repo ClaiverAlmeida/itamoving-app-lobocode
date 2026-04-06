@@ -7,6 +7,7 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
+import { formatClienteAgendamentoLabel } from "../../clients/clients.display";
 import { Switch } from "../../ui/switch";
 import { Textarea } from "../../ui/textarea";
 import { formatDateOnlyToBR, toDateOnly } from "../../../utils";
@@ -92,8 +93,7 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
           <SelectContent>
             {clientesAtivos.map((cliente) => (
               <SelectItem key={cliente.id} value={cliente.id}>
-                {cliente.usaName} - {cliente.usaAddress.cidade as string},{" "}
-                {cliente.usaAddress.estado as string}
+                {formatClienteAgendamentoLabel(cliente)}
               </SelectItem>
             ))}
           </SelectContent>

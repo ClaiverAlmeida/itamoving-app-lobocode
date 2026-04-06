@@ -20,12 +20,13 @@ export interface Client {
   status: "ACTIVE" | "INACTIVE";
 }
 
+/** Obrigatórios: `usaName` e `userId` (atendente); os restantes campos são opcionais. */
 export interface CreateClientsDTO {
   companyId?: string;
   usaName: string;
-  usaCpf: string;
-  usaPhone: string;
-  usaAddress: {
+  usaCpf?: string;
+  usaPhone?: string;
+  usaAddress?: {
     rua: string;
     numero: string;
     cidade: string;
@@ -33,10 +34,10 @@ export interface CreateClientsDTO {
     zipCode: string;
     complemento: string;
   };
-  brazilName: string;
-  brazilCpf: string;
-  brazilPhone: string;
-  brazilAddress: {
+  brazilName?: string;
+  brazilCpf?: string;
+  brazilPhone?: string;
+  brazilAddress?: {
     rua: string;
     numero: string;
     bairro: string;
@@ -66,6 +67,15 @@ export interface HistoryPagination {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+/** Resposta de `POST /clients/import` (planilha Controle de Entregas). */
+export interface ClientsImportResult {
+  created: number;
+  skipped: number;
+  failed: number;
+  totalRows: number;
+  errors: Array<{ sheet: string; row: number; message: string }>;
 }
 
 export interface ClientBackend {

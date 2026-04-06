@@ -13,6 +13,33 @@ type Params = {
   user: { id?: string; role?: string } | null;
 };
 
+function getInitialClienteFieldsFromAgendamento(agendamento: any) {
+  const c = agendamento?.client;
+  const usa = c?.usaAddress ?? {};
+  const br = c?.brazilAddress ?? {};
+  return {
+    remetenteNome: c?.usaName ?? "",
+    remetenteTel: c?.usaPhone ?? "",
+    remetenteEndereco: usa.rua ?? "",
+    remetenteCidade: usa.cidade ?? "",
+    remetenteEstado: usa.estado ?? "",
+    remetenteZipCode: usa.zipCode ?? "",
+    remetenteNumero: usa.numero ?? "",
+    remetenteComplemento: usa.complemento ?? "",
+    remetenteCpfRg: c?.usaCpf ?? "",
+    destinatarioNome: c?.brazilName ?? "",
+    destinatarioCpfRg: c?.brazilCpf ?? "",
+    destinatarioEndereco: br.rua ?? "",
+    destinatarioBairro: br.bairro ?? "",
+    destinatarioCidade: br.cidade ?? "",
+    destinatarioEstado: br.estado ?? "",
+    destinatarioCep: br.cep ?? "",
+    destinatarioTelefone: c?.brazilPhone ?? "",
+    destinatarioNumero: br.numero ?? "",
+    destinatarioComplemento: br.complemento ?? "",
+  };
+}
+
 export function useServiceOrderFormState({
   appointmentId,
   agendamento,
@@ -44,26 +71,27 @@ export function useServiceOrderFormState({
     return porTipo.filter((p) => p.active);
   }, [precosProdutos, isEditMode]);
 
-  const [remetenteNome, setRemetenteNome] = useState(agendamento.client.usaName || "");
-  const [remetenteTel, setRemetenteTel] = useState(agendamento.client.usaPhone || "");
-  const [remetenteEndereco, setRemetenteEndereco] = useState(agendamento.client.usaAddress.rua || "");
-  const [remetenteCidade, setRemetenteCidade] = useState(agendamento.client.usaAddress.cidade || "");
-  const [remetenteEstado, setRemetenteEstado] = useState(agendamento.client.usaAddress.estado || "");
-  const [remetenteZipCode, setRemetenteZipCode] = useState(agendamento.client.usaAddress.zipCode || "");
-  const [remetenteNumero, setRemetenteNumero] = useState(agendamento.client.usaAddress.numero || "");
-  const [remetenteComplemento, setRemetenteComplemento] = useState(agendamento.client.usaAddress.complemento || "");
-  const [remetenteCpfRg, setRemetenteCpfRg] = useState(agendamento.client.usaCpf || "");
+  const [initCliente] = useState(() => getInitialClienteFieldsFromAgendamento(agendamento));
+  const [remetenteNome, setRemetenteNome] = useState(initCliente.remetenteNome);
+  const [remetenteTel, setRemetenteTel] = useState(initCliente.remetenteTel);
+  const [remetenteEndereco, setRemetenteEndereco] = useState(initCliente.remetenteEndereco);
+  const [remetenteCidade, setRemetenteCidade] = useState(initCliente.remetenteCidade);
+  const [remetenteEstado, setRemetenteEstado] = useState(initCliente.remetenteEstado);
+  const [remetenteZipCode, setRemetenteZipCode] = useState(initCliente.remetenteZipCode);
+  const [remetenteNumero, setRemetenteNumero] = useState(initCliente.remetenteNumero);
+  const [remetenteComplemento, setRemetenteComplemento] = useState(initCliente.remetenteComplemento);
+  const [remetenteCpfRg, setRemetenteCpfRg] = useState(initCliente.remetenteCpfRg);
 
-  const [destinatarioNome, setDestinatarioNome] = useState(agendamento.client.brazilName || "");
-  const [destinatarioCpfRg, setDestinatarioCpfRg] = useState(agendamento.client.brazilCpf || "");
-  const [destinatarioEndereco, setDestinatarioEndereco] = useState(agendamento.client.brazilAddress.rua || "");
-  const [destinatarioBairro, setDestinatarioBairro] = useState(agendamento.client.brazilAddress.bairro || "");
-  const [destinatarioCidade, setDestinatarioCidade] = useState(agendamento.client.brazilAddress.cidade || "");
-  const [destinatarioEstado, setDestinatarioEstado] = useState(agendamento.client.brazilAddress.estado || "");
-  const [destinatarioCep, setDestinatarioCep] = useState(agendamento.client.brazilAddress.cep || "");
-  const [destinatarioTelefone, setDestinatarioTelefone] = useState(agendamento.client.brazilPhone || "");
-  const [destinatarioNumero, setDestinatarioNumero] = useState(agendamento.client.brazilAddress.numero || "");
-  const [destinatarioComplemento, setDestinatarioComplemento] = useState(agendamento.client.brazilAddress.complemento || "");
+  const [destinatarioNome, setDestinatarioNome] = useState(initCliente.destinatarioNome);
+  const [destinatarioCpfRg, setDestinatarioCpfRg] = useState(initCliente.destinatarioCpfRg);
+  const [destinatarioEndereco, setDestinatarioEndereco] = useState(initCliente.destinatarioEndereco);
+  const [destinatarioBairro, setDestinatarioBairro] = useState(initCliente.destinatarioBairro);
+  const [destinatarioCidade, setDestinatarioCidade] = useState(initCliente.destinatarioCidade);
+  const [destinatarioEstado, setDestinatarioEstado] = useState(initCliente.destinatarioEstado);
+  const [destinatarioCep, setDestinatarioCep] = useState(initCliente.destinatarioCep);
+  const [destinatarioTelefone, setDestinatarioTelefone] = useState(initCliente.destinatarioTelefone);
+  const [destinatarioNumero, setDestinatarioNumero] = useState(initCliente.destinatarioNumero);
+  const [destinatarioComplemento, setDestinatarioComplemento] = useState(initCliente.destinatarioComplemento);
 
   const [caixas, setCaixas] = useState<Caixa[]>([]);
   const [itens, setItens] = useState<Item[]>([]);
@@ -325,25 +353,27 @@ export function useServiceOrderFormState({
         p.type === "TAPE_ADHESIVE",
     );
 
-    setRemetenteNome(existingOrdem.sender.usaName || "");
-    setRemetenteTel(existingOrdem.sender.usaPhone || "");
-    setRemetenteEndereco(existingOrdem.sender.usaAddress.rua || "");
-    setRemetenteCidade(existingOrdem.sender.usaAddress.cidade || "");
-    setRemetenteEstado(existingOrdem.sender.usaAddress.estado || "");
-    setRemetenteZipCode(existingOrdem.sender.usaAddress.zipCode || "");
-    setRemetenteNumero(existingOrdem.sender.usaAddress.numero || "");
-    setRemetenteComplemento(existingOrdem.sender.usaAddress.complemento?.trim() || "-");
-    setRemetenteCpfRg(existingOrdem.sender.usaCpf || "");
-    setDestinatarioNome(existingOrdem.recipient.brazilName || "");
-    setDestinatarioCpfRg(existingOrdem.recipient.brazilCpf || "");
-    setDestinatarioEndereco(existingOrdem.recipient.brazilAddress.rua || "");
-    setDestinatarioBairro(existingOrdem.recipient.brazilAddress.bairro || "");
-    setDestinatarioCidade(existingOrdem.recipient.brazilAddress.cidade || "");
-    setDestinatarioEstado(existingOrdem.recipient.brazilAddress.estado || "");
-    setDestinatarioCep(existingOrdem.recipient.brazilAddress.cep || "");
-    setDestinatarioTelefone(existingOrdem.recipient.brazilPhone || "");
-    setDestinatarioNumero(existingOrdem.recipient.brazilAddress.numero || "");
-    setDestinatarioComplemento(existingOrdem.recipient.brazilAddress.complemento?.trim() || "-");
+    const senderUsa = existingOrdem.sender?.usaAddress ?? {};
+    const recipientBr = existingOrdem.recipient?.brazilAddress ?? {};
+    setRemetenteNome(existingOrdem.sender?.usaName || "");
+    setRemetenteTel(existingOrdem.sender?.usaPhone || "");
+    setRemetenteEndereco(senderUsa.rua || "");
+    setRemetenteCidade(senderUsa.cidade || "");
+    setRemetenteEstado(senderUsa.estado || "");
+    setRemetenteZipCode(senderUsa.zipCode || "");
+    setRemetenteNumero(senderUsa.numero || "");
+    setRemetenteComplemento(senderUsa.complemento?.trim() || "-");
+    setRemetenteCpfRg(existingOrdem.sender?.usaCpf || "");
+    setDestinatarioNome(existingOrdem.recipient?.brazilName || "");
+    setDestinatarioCpfRg(existingOrdem.recipient?.brazilCpf || "");
+    setDestinatarioEndereco(recipientBr.rua || "");
+    setDestinatarioBairro(recipientBr.bairro || "");
+    setDestinatarioCidade(recipientBr.cidade || "");
+    setDestinatarioEstado(recipientBr.estado || "");
+    setDestinatarioCep(recipientBr.cep || "");
+    setDestinatarioTelefone(existingOrdem.recipient?.brazilPhone || "");
+    setDestinatarioNumero(recipientBr.numero || "");
+    setDestinatarioComplemento(recipientBr.complemento?.trim() || "-");
     setOrdemStatus(existingOrdem.status);
     setOrdemObservacoes(existingOrdem.observations ?? "");
     setMotoristaResponsavel(existingOrdem.driverId || (existingOrdem as { userId?: string }).userId || "");

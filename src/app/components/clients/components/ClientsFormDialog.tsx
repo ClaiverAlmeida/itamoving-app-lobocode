@@ -55,7 +55,9 @@ export function ClientsFormDialog({
       <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg grid grid-cols-1">
         <DialogHeader>
           <DialogTitle>{editingCliente ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
-          <DialogDescription>Preencha os dados do cliente e do destino no Brasil</DialogDescription>
+          <DialogDescription>
+            Nome completo (USA) e atendente são obrigatórios; telefones, endereços e demais campos são opcionais.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -70,7 +72,7 @@ export function ClientsFormDialog({
                 <Label htmlFor="usaName">Nome Completo (USA) *</Label>
                 <Input
                   id="usaName"
-                  value={formData.usaName}
+                  value={formData.usaName ?? ''}
                   onChange={(e) => setFormData({ ...formData, usaName: e.target.value })}
                   required
                 />
@@ -80,7 +82,7 @@ export function ClientsFormDialog({
                 <Label htmlFor="usaCpf">CPF (USA)</Label>
                 <Input
                   id="usaCpf"
-                  value={formData.usaCpf}
+                  value={formData.usaCpf ?? ''}
                   onChange={(e) => setFormData({ ...formData, usaCpf: formatCPF(e.target.value) })}
                   placeholder="123.456.789-00"
                   maxLength={14}
@@ -88,21 +90,20 @@ export function ClientsFormDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="usaPhone">Telefone (USA) *</Label>
+                <Label htmlFor="usaPhone">Telefone (USA)</Label>
                 <Input
                   id="usaPhone"
-                  value={formData.usaPhone}
+                  value={formData.usaPhone ?? ''}
                   onChange={(e) =>
                     setFormData({ ...formData, usaPhone: formatNumberTelephoneEUA(e.target.value) })
                   }
                   placeholder="+1 (305) 555-0123"
-                  required
                 />
               </div>
 
               <AtendenteSelect
                 user={user}
-                value={formData.userId}
+                value={formData.userId ?? ''}
                 onValueChange={(id) => setFormData({ ...formData, userId: id })}
                 label="Atendente *"
                 required
@@ -111,10 +112,10 @@ export function ClientsFormDialog({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="zipCode">ZIP Code (USA) *</Label>
+                <Label htmlFor="zipCode">ZIP Code (USA)</Label>
                 <Input
                   id="zipCode"
-                  value={formData.usaAddress.zipCode}
+                  value={formData.usaAddress.zipCode ?? ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
@@ -122,35 +123,32 @@ export function ClientsFormDialog({
                     })
                   }
                   placeholder="33101"
-                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ruaUSA">Rua (USA) *</Label>
+                <Label htmlFor="ruaUSA">Rua (USA)</Label>
                 <Input
                   id="ruaUSA"
-                  value={formData.usaAddress.rua}
+                  value={formData.usaAddress.rua ?? ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
                       usaAddress: { ...formData.usaAddress, rua: e.target.value },
                     })
                   }
-                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="numeroUSA">Número (USA) *</Label>
+                <Label htmlFor="numeroUSA">Número (USA)</Label>
                 <Input
                   id="numeroUSA"
-                  value={formData.usaAddress.numero}
+                  value={formData.usaAddress.numero ?? ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
                       usaAddress: { ...formData.usaAddress, numero: e.target.value },
                     })
                   }
-                  required
                 />
               </div>
             </div>
@@ -160,7 +158,7 @@ export function ClientsFormDialog({
                 <Label htmlFor="complementoUSA">Complemento (USA)</Label>
                 <Input
                   id="complementoUSA"
-                  value={formData.usaAddress.complemento}
+                  value={formData.usaAddress.complemento ?? ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
@@ -170,31 +168,29 @@ export function ClientsFormDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cidadeUSA">Cidade (USA) *</Label>
+                <Label htmlFor="cidadeUSA">Cidade (USA)</Label>
                 <Input
                   id="cidadeUSA"
-                  value={formData.usaAddress.cidade}
+                  value={formData.usaAddress.cidade ?? ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
                       usaAddress: { ...formData.usaAddress, cidade: e.target.value },
                     })
                   }
-                  required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="estadoUSA">Estado (USA) *</Label>
+                <Label htmlFor="estadoUSA">Estado (USA)</Label>
                 <Select
-                  value={formData.usaAddress.estado || undefined}
+                  value={(formData.usaAddress.estado ?? '') || undefined}
                   onValueChange={(value) =>
                     setFormData({
                       ...formData,
                       usaAddress: { ...formData.usaAddress, estado: value },
                     })
                   }
-                  required
                 >
                   <SelectTrigger id="estadoUSA">
                     <SelectValue placeholder="Selecione o estado dos EUA" />
@@ -219,12 +215,11 @@ export function ClientsFormDialog({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="brazilName">Nome Recebedor (Brasil) *</Label>
+                <Label htmlFor="brazilName">Nome Recebedor (Brasil)</Label>
                 <Input
                   id="brazilName"
-                  value={formData.brazilName}
+                  value={formData.brazilName ?? ''}
                   onChange={(e) => setFormData({ ...formData, brazilName: e.target.value })}
-                  required
                 />
               </div>
 
@@ -232,32 +227,31 @@ export function ClientsFormDialog({
                 <Label htmlFor="brazilCpf">CPF Recebedor (Brasil)</Label>
                 <Input
                   id="brazilCpf"
-                  value={formData.brazilCpf}
+                  value={formData.brazilCpf ?? ''}
                   onChange={(e) => setFormData({ ...formData, brazilCpf: formatCPF(e.target.value) })}
                   placeholder="987.654.321-00"
                   maxLength={14}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="brazilPhone">Telefone (Brasil) *</Label>
+                <Label htmlFor="brazilPhone">Telefone (Brasil)</Label>
                 <Input
                   id="brazilPhone"
-                  value={formData.brazilPhone}
+                  value={formData.brazilPhone ?? ''}
                   onChange={(e) =>
                     setFormData({ ...formData, brazilPhone: formatNumberTelephoneBrasil(e.target.value) })
                   }
                   placeholder="+55 11 98765-4321"
-                  required
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cep">CEP (Brasil) *</Label>
+                <Label htmlFor="cep">CEP (Brasil)</Label>
                 <Input
                   id="cep"
-                  value={formData.brazilAddress.cep}
+                  value={formData.brazilAddress.cep ?? ''}
                   onChange={(e) => {
                     const formatted = formatCepBrasil(e.target.value);
                     setFormData((prev) => ({
@@ -268,16 +262,15 @@ export function ClientsFormDialog({
                   }}
                   placeholder="01234-567"
                   maxLength={9}
-                  required
                   disabled={loadingCep}
                 />
                 {loadingCep && <p className="text-xs text-muted-foreground">Buscando endereço...</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ruaBrasil">Rua (Brasil) *</Label>
+                <Label htmlFor="ruaBrasil">Rua (Brasil)</Label>
                 <Input
                   id="ruaBrasil"
-                  value={formData.brazilAddress.rua}
+                  value={formData.brazilAddress.rua ?? ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
@@ -285,28 +278,26 @@ export function ClientsFormDialog({
                     })
                   }
                   placeholder="Rua das Flores"
-                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="numeroBrasil">Número (Brasil) *</Label>
+                <Label htmlFor="numeroBrasil">Número (Brasil)</Label>
                 <Input
                   id="numeroBrasil"
-                  value={formData.brazilAddress.numero}
+                  value={formData.brazilAddress.numero ?? ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
                       brazilAddress: { ...formData.brazilAddress, numero: e.target.value },
                     })
                   }
-                  required
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="complementoBrasil">Complemento (Brasil)</Label>
                 <Input
                   id="complementoBrasil"
-                  value={formData.brazilAddress.complemento}
+                  value={formData.brazilAddress.complemento ?? ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
@@ -319,44 +310,41 @@ export function ClientsFormDialog({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="bairroBrasil">Bairro (Brasil) *</Label>
+                <Label htmlFor="bairroBrasil">Bairro (Brasil)</Label>
                 <Input
                   id="bairroBrasil"
-                  value={formData.brazilAddress.bairro}
+                  value={formData.brazilAddress.bairro ?? ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
                       brazilAddress: { ...formData.brazilAddress, bairro: e.target.value },
                     })
                   }
-                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cidadeBrasil">Cidade (Brasil) *</Label>
+                <Label htmlFor="cidadeBrasil">Cidade (Brasil)</Label>
                 <Input
                   id="cidadeBrasil"
-                  value={formData.brazilAddress.cidade}
+                  value={formData.brazilAddress.cidade ?? ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
                       brazilAddress: { ...formData.brazilAddress, cidade: e.target.value },
                     })
                   }
-                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="estadoBrasil">Estado (Brasil) *</Label>
+                <Label htmlFor="estadoBrasil">Estado (Brasil)</Label>
                 <Select
-                  value={formData.brazilAddress.estado || undefined}
+                  value={(formData.brazilAddress.estado ?? '') || undefined}
                   onValueChange={(value) =>
                     setFormData({
                       ...formData,
                       brazilAddress: { ...formData.brazilAddress, estado: value },
                     })
                   }
-                  required
                 >
                   <SelectTrigger id="estadoBrasil">
                     <SelectValue placeholder="Selecione o estado do Brasil" />

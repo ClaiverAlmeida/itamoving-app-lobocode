@@ -7,6 +7,13 @@ import { Button } from '../../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Edit, FileText, Flag, MessageCircle, Phone, Trash2, User, X } from 'lucide-react';
 import { ClientsHistoryCard } from './ClientsHistoryCard';
+import {
+  formatBrazilStreetBlock,
+  formatBrCityStateCepFooter,
+  formatUsaLocationLine,
+  joinComma,
+  orDash,
+} from '../clients.display';
 
 type Props = {
   selectedCliente: Client | null;
@@ -52,9 +59,9 @@ export function ClientsSidePanel({
                   <User className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">{selectedCliente.usaName}</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-2">{orDash(selectedCliente.usaName)}</h2>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className="bg-blue-100 text-blue-700">{selectedCliente.user?.name ?? '—'}</Badge>
+                    <Badge className="bg-blue-100 text-blue-700">{orDash(selectedCliente.user?.name)}</Badge>
                     <Badge
                       className={
                         selectedCliente.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -76,11 +83,19 @@ export function ClientsSidePanel({
 
           <div className="p-4 sm:p-6 space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Button variant="outline" className="w-full" onClick={() => onCall(selectedCliente.brazilPhone ? [selectedCliente.brazilPhone] : [])}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => onCall(selectedCliente.brazilPhone?.trim() ? [selectedCliente.brazilPhone ?? ''] : [])}
+              >
                 <Phone className="w-4 h-4 mr-2" />
                 Ligar
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => onWhatsapp(selectedCliente.brazilPhone ? [selectedCliente.brazilPhone] : [])}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => onWhatsapp(selectedCliente.brazilPhone?.trim() ? [selectedCliente.brazilPhone ?? ''] : [])}
+              >
                 <MessageCircle className="w-4 h-4 mr-2" />
                 WhatsApp
               </Button>
@@ -104,15 +119,15 @@ export function ClientsSidePanel({
               <CardContent className="space-y-3">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">CPF (USA)</p>
-                  <p className="font-semibold">{selectedCliente.usaCpf}</p>
+                  <p className="font-semibold">{orDash(selectedCliente.usaCpf)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Telefone USA</p>
-                  <p className="font-semibold">{selectedCliente.usaPhone}</p>
+                  <p className="font-semibold">{orDash(selectedCliente.usaPhone)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Telefone Brasil</p>
-                  <p className="font-semibold">{selectedCliente.brazilPhone}</p>
+                  <p className="font-semibold">{orDash(selectedCliente.brazilPhone)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -126,15 +141,20 @@ export function ClientsSidePanel({
               </CardHeader>
               <CardContent className="space-y-2">
                 <p className="font-semibold">
-                  {(selectedCliente.usaAddress as { rua?: string; numero?: string; complemento?: string }).rua},{' '}
-                  {(selectedCliente.usaAddress as { numero?: string }).numero}
-                  {(selectedCliente.usaAddress as { complemento?: string }).complemento &&
-                    `, ${(selectedCliente.usaAddress as { complemento?: string }).complemento}`}
+                  {joinComma([
+                    (selectedCliente.usaAddress as { rua?: string }).rua,
+                    (selectedCliente.usaAddress as { numero?: string }).numero,
+                    (selectedCliente.usaAddress as { complemento?: string }).complemento,
+                  ])}
                 </p>
                 <p className="text-muted-foreground">
-                  {(selectedCliente.usaAddress as { cidade?: string }).cidade},{' '}
-                  {(selectedCliente.usaAddress as { estado?: string }).estado}{' '}
-                  {(selectedCliente.usaAddress as { zipCode?: string }).zipCode}
+                  {formatUsaLocationLine(
+                    selectedCliente.usaAddress as {
+                      cidade?: string;
+                      estado?: string;
+                      zipCode?: string;
+                    },
+                  )}
                 </p>
               </CardContent>
             </Card>
@@ -149,26 +169,32 @@ export function ClientsSidePanel({
               <CardContent className="space-y-3">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Nome do Recebedor</p>
-                  <p className="font-semibold">{selectedCliente.brazilName}</p>
+                  <p className="font-semibold">{orDash(selectedCliente.brazilName)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">CPF do Recebedor</p>
-                  <p className="font-semibold">{selectedCliente.brazilCpf}</p>
+                  <p className="font-semibold">{orDash(selectedCliente.brazilCpf)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Endereço</p>
                   <p className="font-semibold">
-                    {(selectedCliente.brazilAddress as { rua?: string }).rua},{' '}
-                    {(selectedCliente.brazilAddress as { numero?: string }).numero}
-                    {(selectedCliente.brazilAddress as { complemento?: string }).complemento &&
-                      `, ${(selectedCliente.brazilAddress as { complemento?: string }).complemento}`}
-                    {(selectedCliente.brazilAddress as { bairro?: string }).bairro &&
-                      ` - ${(selectedCliente.brazilAddress as { bairro?: string }).bairro}`}
+                    {formatBrazilStreetBlock(
+                      selectedCliente.brazilAddress as {
+                        rua?: string;
+                        numero?: string;
+                        complemento?: string;
+                        bairro?: string;
+                      },
+                    )}
                   </p>
                   <p className="text-muted-foreground">
-                    {(selectedCliente.brazilAddress as { cidade?: string }).cidade},{' '}
-                    {(selectedCliente.brazilAddress as { estado?: string }).estado} - CEP:{' '}
-                    {(selectedCliente.brazilAddress as { cep?: string }).cep}
+                    {formatBrCityStateCepFooter(
+                      selectedCliente.brazilAddress as {
+                        cidade?: string;
+                        estado?: string;
+                        cep?: string;
+                      },
+                    )}
                   </p>
                 </div>
               </CardContent>
@@ -188,7 +214,7 @@ export function ClientsSidePanel({
                 <CardTitle className="text-lg text-red-900">Zona de Perigo</CardTitle>
               </CardHeader>
               <CardContent>
-                <Button variant="destructive" className="w-full" onClick={() => onDelete(selectedCliente.id, selectedCliente.usaName)}>
+                <Button variant="destructive" className="w-full" onClick={() => onDelete(selectedCliente.id, selectedCliente.usaName ?? '')}>
                   <Trash2 className="w-4 h-4 mr-2" />
                   Excluir Cliente
                 </Button>

@@ -1,5 +1,11 @@
 export const HISTORY_PAGE_SIZE = 10;
 
+/** Itens por página na visualização em lista. */
+export const CLIENTS_LIST_PAGE_SIZE = 10;
+
+/** Itens por página na visualização em grelha. */
+export const CLIENTS_GRID_PAGE_SIZE = 12;
+
 export type ClientsViewMode = 'grid' | 'list';
 
 export type OrigemHistorico = 'client' | 'appointment' | 'container' | 'legacy';

@@ -6,26 +6,40 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import type { Client } from '../../../api';
 import { Calendar, Edit, FileText, Flag, MapPin, Phone, Trash2, User } from 'lucide-react';
 import type { ClientsViewMode } from '../clients.constants';
+import {
+  formatBrCityStateLine,
+  formatUsaLocationLine,
+  joinComma,
+  orDash,
+} from '../clients.display';
 
 type Props = {
   viewMode: ClientsViewMode;
+  /** Total após filtros (cabeçalhos e estados vazios). */
   filteredClientes: Client[];
-  clientesListRendered: Client[];
-  listVisibleCount: number;
-  listContainerRef: React.RefObject<HTMLDivElement | null>;
-  setListVisibleCount: React.Dispatch<React.SetStateAction<number>>;
+  /** Fatia da página atual (10 em 10). */
+  displayedClientes: Client[];
+  /** Cidades distintas por UF/estado USA (lista filtrada). */
+  usaCityCountByState: Record<string, number>;
+  /** Cidades distintas por UF/estado Brasil (lista filtrada). */
+  brazilCityCountByState: Record<string, number>;
   setSelectedCliente: React.Dispatch<React.SetStateAction<Client | null>>;
   onEdit: (cliente: Client) => void;
   onDelete: (id: string, nome: string) => void;
 };
 
+function normEstadoKey(estado: string | undefined): string {
+  return String(estado ?? '')
+    .trim()
+    .toUpperCase();
+}
+
 export function ClientsContentView({
   viewMode,
   filteredClientes,
-  clientesListRendered,
-  listVisibleCount,
-  listContainerRef,
-  setListVisibleCount,
+  displayedClientes,
+  usaCityCountByState,
+  brazilCityCountByState,
   setSelectedCliente,
   onEdit,
   onDelete,
@@ -35,7 +49,7 @@ export function ClientsContentView({
       {viewMode === 'grid' && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <AnimatePresence>
-            {filteredClientes.map((cliente) => (
+            {displayedClientes.map((cliente) => (
               <motion.div
                 key={cliente.id}
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -54,10 +68,10 @@ export function ClientsContentView({
                           <User className="w-6 h-6 text-blue-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <CardTitle className="text-lg mb-1 break-words">{cliente.usaName}</CardTitle>
+                          <CardTitle className="text-lg mb-1 break-words">{orDash(cliente.usaName)}</CardTitle>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-xs">
-                              {cliente.user?.name ?? '—'}
+                              {orDash(cliente.user?.name)}
                             </Badge>
                             <Badge
                               variant={cliente.status === 'ACTIVE' ? 'secondary' : 'destructive'}
@@ -73,16 +87,50 @@ export function ClientsContentView({
                   <CardContent className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Phone className="w-4 h-4 flex-shrink-0" />
-                      <span>{cliente.usaPhone}</span>
+                      <span>{orDash(cliente.usaPhone)}</span>
                     </div>
                     <div className="flex items-start gap-2 text-sm text-muted-foreground">
                       <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      <span className="line-clamp-2">
-                        {(cliente.usaAddress as { cidade?: string; estado?: string }).cidade},{' '}
-                        {(cliente.usaAddress as { estado?: string }).estado}{' -> '}
-                        {(cliente.brazilAddress as { cidade?: string; estado?: string }).cidade},{' '}
-                        {(cliente.brazilAddress as { estado?: string }).estado}
-                      </span>
+                      <div className="min-w-0 space-y-2">
+                        {(() => {
+                          const usa = cliente.usaAddress as {
+                            cidade?: string;
+                            estado?: string;
+                          };
+                          const br = cliente.brazilAddress as {
+                            cidade?: string;
+                            estado?: string;
+                          };
+                          const usaEst = normEstadoKey(usa?.estado);
+                          const brEst = normEstadoKey(br?.estado);
+                          const nUsa = usaEst ? usaCityCountByState[usaEst] ?? 0 : 0;
+                          const nBr = brEst ? brazilCityCountByState[brEst] ?? 0 : 0;
+                          return (
+                            <>
+                              <div>
+                                <p className="text-xs font-medium text-foreground/85">EUA</p>
+                                <p className="line-clamp-2 break-words">
+                                  {joinComma([usa?.cidade, usa?.estado])}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {nUsa}{' '}
+                                  {nUsa === 1 ? 'cidade neste estado' : 'cidades neste estado'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-foreground/85">Brasil</p>
+                                <p className="line-clamp-2 break-words">
+                                  {joinComma([br?.cidade, br?.estado])}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {nBr}{' '}
+                                  {nBr === 1 ? 'cidade neste estado' : 'cidades neste estado'}
+                                </p>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4 flex-shrink-0" />
@@ -109,7 +157,7 @@ export function ClientsContentView({
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDelete(cliente.id, cliente.usaName);
+                          onDelete(cliente.id, cliente.usaName ?? '');
                         }}
                         className="text-red-600 hover:text-red-700"
                       >
@@ -135,22 +183,14 @@ export function ClientsContentView({
         <Card>
           <CardHeader>
             <CardTitle>Lista de Clientes</CardTitle>
-            <CardDescription>{filteredClientes.length} cliente(s) encontrado(s)</CardDescription>
+            <CardDescription>
+              {filteredClientes.length} cliente(s) encontrado(s)
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div
-              ref={listContainerRef}
-              className="space-y-3 max-h-[70vh] overflow-y-auto pr-1"
-              onScroll={(e) => {
-                const el = e.currentTarget;
-                const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 160;
-                if (nearBottom && listVisibleCount < filteredClientes.length) {
-                  setListVisibleCount((prev) => Math.min(prev + 30, filteredClientes.length));
-                }
-              }}
-            >
+            <div className="space-y-3 pr-1">
               <AnimatePresence>
-                {clientesListRendered.map((cliente) => (
+                {displayedClientes.map((cliente) => (
                   <motion.div
                     key={cliente.id}
                     initial={{ opacity: 0, x: -20 }}
@@ -170,8 +210,8 @@ export function ClientsContentView({
                             </div>
                             <div className="flex-1 min-w-0 space-y-2">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="font-semibold text-base sm:text-lg break-words">{cliente.usaName}</h3>
-                                <Badge variant="outline">{cliente.user?.name ?? '—'}</Badge>
+                                <h3 className="font-semibold text-base sm:text-lg break-words">{orDash(cliente.usaName)}</h3>
+                                <Badge variant="outline">{orDash(cliente.user?.name)}</Badge>
                                 <Badge variant={cliente.status === 'ACTIVE' ? 'secondary' : 'destructive'}>
                                   {cliente.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
                                 </Badge>
@@ -182,11 +222,11 @@ export function ClientsContentView({
                                   <p className="text-muted-foreground mb-1">Informações</p>
                                   <p className="flex items-center gap-1 min-w-0">
                                     <FileText className="w-3 h-3 flex-shrink-0" />
-                                    <span className="break-all">{cliente.usaCpf}</span>
+                                    <span className="break-all">{orDash(cliente.usaCpf)}</span>
                                   </p>
                                   <p className="flex items-center gap-1 min-w-0">
                                     <Phone className="w-3 h-3 flex-shrink-0" />
-                                    <span className="break-all">{cliente.usaPhone}</span>
+                                    <span className="break-all">{orDash(cliente.usaPhone)}</span>
                                   </p>
                                 </div>
                                 <div className="min-w-0">
@@ -194,10 +234,27 @@ export function ClientsContentView({
                                   <p className="flex items-start gap-1">
                                     <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
                                     <span className="break-words">
-                                      {(cliente.usaAddress as { cidade?: string; estado?: string; zipCode?: string }).cidade},{' '}
-                                      {(cliente.usaAddress as { estado?: string }).estado}{' '}
-                                      {(cliente.usaAddress as { zipCode?: string }).zipCode}
+                                      {formatUsaLocationLine(
+                                        cliente.usaAddress as {
+                                          cidade?: string;
+                                          estado?: string;
+                                          zipCode?: string;
+                                        },
+                                      )}
                                     </span>
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {(() => {
+                                      const est = normEstadoKey(
+                                        (cliente.usaAddress as { estado?: string }).estado,
+                                      );
+                                      const n = est ? usaCityCountByState[est] ?? 0 : 0;
+                                      return (
+                                        <>
+                                          {n} {n === 1 ? 'cidade' : 'cidades'} neste estado (EUA)
+                                        </>
+                                      );
+                                    })()}
                                   </p>
                                 </div>
                                 <div className="min-w-0">
@@ -205,11 +262,28 @@ export function ClientsContentView({
                                   <p className="flex items-start gap-1">
                                     <Flag className="w-3 h-3 mt-0.5 flex-shrink-0" />
                                     <span className="break-words">
-                                      {(cliente.brazilAddress as { cidade?: string; estado?: string }).cidade},{' '}
-                                      {(cliente.brazilAddress as { estado?: string }).estado}
+                                      {formatBrCityStateLine(
+                                        cliente.brazilAddress as {
+                                          cidade?: string;
+                                          estado?: string;
+                                        },
+                                      )}
                                     </span>
                                   </p>
-                                  <p className="text-xs text-muted-foreground">{cliente.brazilName}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {(() => {
+                                      const est = normEstadoKey(
+                                        (cliente.brazilAddress as { estado?: string }).estado,
+                                      );
+                                      const n = est ? brazilCityCountByState[est] ?? 0 : 0;
+                                      return (
+                                        <>
+                                          {n} {n === 1 ? 'cidade' : 'cidades'} neste estado (Brasil)
+                                        </>
+                                      );
+                                    })()}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">{orDash(cliente.brazilName)}</p>
                                 </div>
                               </div>
                             </div>
@@ -231,7 +305,7 @@ export function ClientsContentView({
                               size="icon"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onDelete(cliente.id, cliente.usaName);
+                                onDelete(cliente.id, cliente.usaName ?? '');
                               }}
                               className="text-red-600 hover:text-red-700"
                             >
@@ -244,18 +318,6 @@ export function ClientsContentView({
                   </motion.div>
                 ))}
               </AnimatePresence>
-
-              {listVisibleCount < filteredClientes.length && (
-                <div className="flex justify-center py-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setListVisibleCount((prev) => Math.min(prev + 30, filteredClientes.length))}
-                  >
-                    Carregar mais
-                  </Button>
-                </div>
-              )}
 
               {filteredClientes.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">

@@ -155,10 +155,10 @@ export function useServiceOrderFormSave(params: Params) {
 
   const salvarOrdemServico = async () => {
     if (params.isEditMode && !canSave) return toast.info("Nenhum campo alterado.");
-    if (!params.remetenteNome || !params.remetenteTel || !params.remetenteEndereco || !params.remetenteNumero || !params.remetenteCidade || !params.remetenteEstado || !params.remetenteZipCode || !params.remetenteComplemento) {
+    if (!params.remetenteNome || !params.remetenteTel || !params.remetenteEndereco || !params.remetenteNumero || !params.remetenteCidade || !params.remetenteEstado || !params.remetenteZipCode) {
       return toast.error("Preencha todos os campos obrigatórios do remetente");
     }
-    if (!params.destinatarioNome || !params.destinatarioEndereco || !params.destinatarioBairro || !params.destinatarioCidade || !params.destinatarioEstado || !params.destinatarioCep || !params.destinatarioTelefone || !params.destinatarioNumero || !params.destinatarioComplemento) {
+    if (!params.destinatarioNome || !params.destinatarioEndereco || !params.destinatarioBairro || !params.destinatarioCidade || !params.destinatarioEstado || !params.destinatarioCep || !params.destinatarioTelefone || !params.destinatarioNumero) {
       return toast.error("Preencha todos os campos obrigatórios do destinatário");
     }
     if (params.caixas.length === 0) return toast.error("Adicione pelo menos um volume ou produto");

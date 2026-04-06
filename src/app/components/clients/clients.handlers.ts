@@ -1,9 +1,11 @@
-import type { Client } from '../../api';
-import type { ClientHistoryItem, CreateClientsDTO, UpdateClientsDTO } from '../../api';
+import type {
+  Client,
+  ClientHistoryItem,
+  ClientsImportResult,
+} from '../../api';
 import { toast } from 'sonner';
 import { BRASIL_STATES } from '../../utils';
 import type { ClienteAtividade, HistoricoPaginado, OrigemHistorico } from './clients.constants';
-import type { ClientFormData } from './hooks/useClientsForm';
 
 export const formatCepBrasil = (value: string): string => {
   const digits = value.replace(/\D/g, '').slice(0, 8);
@@ -145,17 +147,51 @@ export const handleExportClients = async (runExport: () => Promise<any>) => {
   toast.success('Clientes exportados com sucesso');
 };
 
-export const handleImportClients = async (file: File | null) => {
+export const handleImportClients = async (args: {
+  file: File | null;
+  importClients: (file: File) => Promise<{
+    success: boolean;
+    data?: ClientsImportResult;
+    error?: string;
+  }>;
+  reloadClientes: () => Promise<void>;
+  /** Chamado após importação bem-sucedida (ex.: fechar o diálogo). */
+  onDone?: () => void;
+}) => {
+  const { file, importClients, reloadClientes, onDone } = args;
   if (!file) return toast.error('Nenhum arquivo selecionado');
-  const fileType = file.type;
-  if (
-    fileType !== 'application/json' &&
-    fileType !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' &&
-    fileType !== 'text/csv'
-  ) {
-    return toast.error('Formato de arquivo inválido');
+  const name = file.name.toLowerCase();
+  if (!/\.(xlsx|xlsm)$/i.test(name)) {
+    return toast.error('Use um arquivo Excel (.xlsx ou .xlsm).');
   }
-  toast.info('Importação de clientes em desenvolvimento');
+  const loadingId = toast.loading('Importando clientes…');
+  try {
+    const result = await importClients(file);
+    if (result.success && result.data) {
+      const { created, failed, skipped, totalRows, errors } = result.data;
+      await reloadClientes();
+      onDone?.();
+      const base = `Processadas ${totalRows} linha(s): ${created} criado(s)`;
+      const skipPart =
+        skipped > 0 ? `, ${skipped} ignorado(s) (duplicado no arquivo ou já cadastrado)` : '';
+      const failPart = failed > 0 ? `, ${failed} com erro` : '';
+      toast.success(`${base}${skipPart}${failPart}.`, { id: loadingId });
+      if (errors?.length) {
+        const preview = errors
+          .slice(0, 5)
+          .map((e) => `${e.sheet} linha ${e.row}: ${e.message}`)
+          .join('\n');
+        toast.message('Alguns registros falharam', {
+          description: preview + (errors.length > 5 ? '\n…' : ''),
+        });
+      }
+    } else {
+      toast.error(result.error || 'Erro ao importar clientes', { id: loadingId });
+    }
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Erro ao importar clientes';
+    toast.error(msg, { id: loadingId });
+  }
 };
 
 export const handleCallTelephone = (telefones: string[]) => {
@@ -169,65 +205,5 @@ export const handleWhatsappWindow = (telefones: string[]) => {
   window.open(`https://api.whatsapp.com/send?phone=${telefone}`, '_blank');
 };
 
-export const buildUpdatePayload = (formData: ClientFormData, editingCliente: Client): UpdateClientsDTO => {
-  const current: CreateClientsDTO = {
-    usaName: formData.usaName,
-    usaCpf: formData.usaCpf,
-    usaPhone: formData.usaPhone,
-    usaAddress: formData.usaAddress,
-    brazilName: formData.brazilName,
-    brazilCpf: formData.brazilCpf,
-    brazilPhone: formData.brazilPhone,
-    brazilAddress: formData.brazilAddress,
-    userId: formData.userId,
-    status: formData.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
-  };
-
-  const origUsaAddr = editingCliente.usaAddress as {
-    rua?: string;
-    numero?: string;
-    cidade?: string;
-    estado?: string;
-    zipCode?: string;
-    complemento?: string;
-  };
-  const origBrAddr = editingCliente.brazilAddress as {
-    rua?: string;
-    bairro?: string;
-    numero?: string;
-    cidade?: string;
-    estado?: string;
-    cep?: string;
-    complemento?: string;
-  };
-  const patch: UpdateClientsDTO = {};
-
-  if (current.usaName !== editingCliente.usaName) patch.usaName = current.usaName;
-  if (current.usaCpf !== editingCliente.usaCpf) patch.usaCpf = current.usaCpf;
-  if (current.usaPhone !== editingCliente.usaPhone) patch.usaPhone = current.usaPhone;
-  if (current.brazilName !== editingCliente.brazilName) patch.brazilName = current.brazilName;
-  if (current.brazilCpf !== editingCliente.brazilCpf) patch.brazilCpf = current.brazilCpf;
-  if (current.brazilPhone !== editingCliente.brazilPhone) patch.brazilPhone = current.brazilPhone;
-  if (current.userId !== (editingCliente.user?.id ?? '')) patch.userId = current.userId;
-  if (current.status !== (editingCliente.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE')) patch.status = current.status;
-
-  const usaAddressChanged =
-    current.usaAddress.rua !== (origUsaAddr?.rua ?? '') ||
-    current.usaAddress.numero !== (origUsaAddr?.numero ?? '') ||
-    current.usaAddress.cidade !== (origUsaAddr?.cidade ?? '') ||
-    current.usaAddress.estado !== (origUsaAddr?.estado ?? '') ||
-    current.usaAddress.zipCode !== (origUsaAddr?.zipCode ?? '') ||
-    (current.usaAddress.complemento ?? '') !== (origUsaAddr?.complemento ?? '');
-  if (usaAddressChanged) patch.usaAddress = current.usaAddress;
-
-  const brazilDestChanged =
-    current.brazilAddress.rua !== (origBrAddr?.rua ?? '') ||
-    current.brazilAddress.bairro !== (origBrAddr?.bairro ?? '') ||
-    current.brazilAddress.numero !== (origBrAddr?.numero ?? '') ||
-    current.brazilAddress.cidade !== (origBrAddr?.cidade ?? '') ||
-    current.brazilAddress.estado !== (origBrAddr?.estado ?? '') ||
-    current.brazilAddress.cep !== (origBrAddr?.cep ?? '');
-  if (brazilDestChanged) patch.brazilAddress = current.brazilAddress;
-
-  return patch;
-};
+/** @deprecated use `buildClientUpdatePayload` from `clients.payload` */
+export { buildClientUpdatePayload as buildUpdatePayload } from './clients.payload';

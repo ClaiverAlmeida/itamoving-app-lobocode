@@ -20,13 +20,33 @@ type AppointmentsPeriodsPagination = {
   hasPreviousPage: boolean;
 };
 
-export function mapBackendToFrontend(appointment: AppointmentsBackend): Appointment {
-  const { rua, numero, complemento, cidade, estado, zipCode } =
-    appointment.client.usaAddress;
+const EMPTY_USA_ADDRESS = "—";
+
+function trimAddr(s: unknown): string {
+  return typeof s === "string" ? s.trim() : "";
+}
+
+type UsaAddressFields = AppointmentsBackend["client"]["usaAddress"];
+
+/** Monta uma linha de endereço EUA para exibição; seguro com `usaAddress` ausente ou campos vazios. */
+function formatUsaAddressForAppointment(usa: Partial<UsaAddressFields> | null | undefined): string {
+  const u = usa ?? {};
+  const rua = trimAddr(u.rua);
+  const numero = trimAddr(u.numero);
+  const complemento = trimAddr(u.complemento);
+  const cidade = trimAddr(u.cidade);
+  const estado = trimAddr(u.estado);
+  const zipCode = trimAddr(u.zipCode);
+
   const street = [rua, numero].filter(Boolean).join(", ");
   const addressLine = [street, complemento].filter(Boolean).join(" - ");
   const cityLine = [cidade, estado].filter(Boolean).join(" - ");
-  const usaAddress = [addressLine, cityLine, zipCode].filter(Boolean).join(", ");
+  const parts = [addressLine, cityLine, zipCode].filter(Boolean);
+  return parts.length ? parts.join(", ") : EMPTY_USA_ADDRESS;
+}
+
+export function mapBackendToFrontend(appointment: AppointmentsBackend): Appointment {
+  const usaAddress = formatUsaAddressForAppointment(appointment.client?.usaAddress);
 
   return {
     id: appointment.id,
