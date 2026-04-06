@@ -52,7 +52,7 @@ export function UnassignContainerOrderConfirmDialog({
                 ) : (
                   " deste container"
                 )}
-                . As caixas deixarão de contar neste volume até nova vinculação.
+                . Os volumes de carga deixarão de contar neste container até nova vinculação.
               </p>
               <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs space-y-1">
                 <p>

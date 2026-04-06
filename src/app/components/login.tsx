@@ -4,7 +4,6 @@ import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Badge } from './ui/badge';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'motion/react';
 import { Truck, Lock, Mail, AlertCircle, Eye, EyeOff } from 'lucide-react';
@@ -40,7 +39,7 @@ export default function Login() {
     alert(email);
   }
 
-  const yearDate = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1E3A5F] via-[#2A4A6F] to-[#1E3A5F] p-3 sm:p-4">
@@ -93,7 +92,7 @@ export default function Login() {
             transition={{ delay: 0.5 }}
           >
             <Card className="shadow-2xl border-0 w-full max-w-md mx-auto">
-              <CardHeader className="space-y-1 p-4 sm:p-5 lg:p-6">
+              <CardHeader className="space-y-1 px-4 sm:px-5 lg:px-6 pb-0">
                 <CardTitle className="text-xl lg:text-2xl flex items-center gap-2">
                   <Lock className="w-5 h-5 lg:w-6 lg:h-6 text-[#1E3A5F]" />
                   Login
@@ -102,7 +101,7 @@ export default function Login() {
                   Entre com suas credenciais para acessar o sistema
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-4 sm:p-5 lg:p-6 pt-0">
+              <CardContent className="px-4 sm:px-5 lg:px-6 pt-0">
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm">Email</Label>
@@ -204,7 +203,7 @@ export default function Login() {
           transition={{ delay: 0.8 }}
           className="text-center mt-6 lg:mt-8 text-white/60 text-xs lg:text-sm px-4"
         >
-          <p>© {yearDate} ITAMOVING - Mudanças Internacionais EUA-Brasil</p>
+          <p>© {currentYear} ITAMOVING - Mudanças Internacionais EUA-Brasil</p>
         </motion.div>
       </motion.div>
 

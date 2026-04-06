@@ -13,7 +13,7 @@ export function CaixasTabContent({
   ordem: DriverServiceOrderView;
   onOpenRecibo: (ordem: DriverServiceOrderView) => void;
 }) {
-  const nCaixas = ordem.driverServiceOrderProducts?.length ?? 0;
+  const nVolumes = ordem.driverServiceOrderProducts?.length ?? 0;
   const { summary, totalUnidades } = summarizeOrdemForRecibo(ordem);
 
   return (
@@ -22,7 +22,7 @@ export function CaixasTabContent({
         <div className="flex min-w-max items-center justify-between gap-3 sm:min-w-0">
           <div className="flex items-center gap-2 text-sm font-semibold text-[#1E3A5F]">
             <Package className="h-4 w-4" />
-            Caixas e itens ({nCaixas})
+            Volumes e itens ({nVolumes})
           </div>
           <Button type="button" variant="outline" size="sm" className="h-9 whitespace-nowrap px-3 text-xs sm:w-auto sm:text-sm" onClick={() => onOpenRecibo(ordem)}>
             <Printer className="mr-2 h-4 w-4 shrink-0" />
@@ -30,8 +30,8 @@ export function CaixasTabContent({
           </Button>
         </div>
       </div>
-      {nCaixas === 0 ? (
-        <p className="rounded-lg border border-dashed py-10 text-center text-sm text-muted-foreground">Nenhuma caixa registrada nesta ordem.</p>
+      {nVolumes === 0 ? (
+        <p className="rounded-lg border border-dashed py-10 text-center text-sm text-muted-foreground">Nenhum volume registrado nesta ordem.</p>
       ) : (
         <div className="-mx-1 overflow-x-auto rounded-xl border border-border/80 sm:mx-0">
           <Table className="min-w-[640px] sm:min-w-0">

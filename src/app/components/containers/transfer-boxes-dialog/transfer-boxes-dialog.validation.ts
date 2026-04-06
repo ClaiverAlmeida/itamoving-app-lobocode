@@ -13,7 +13,7 @@ export function validatePreviewRequest(params: {
     return { ok: false, message: "Container de origem inválido." };
   }
   if (params.selectedIds.size === 0) {
-    return { ok: false, message: "Selecione ao menos uma caixa." };
+    return { ok: false, message: "Selecione ao menos um volume." };
   }
   if (!params.targetId.trim()) {
     return { ok: false, message: "Escolha o container de destino." };

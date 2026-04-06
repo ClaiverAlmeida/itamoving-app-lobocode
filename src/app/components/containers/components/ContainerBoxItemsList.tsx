@@ -21,7 +21,7 @@ type Props = {
 export function ContainerBoxItemsList({
   items,
   compact = false,
-  emptyLabel = "Nenhum item nesta caixa.",
+  emptyLabel = "Nenhum item neste volume.",
   className,
 }: Props) {
   const list = items ?? [];

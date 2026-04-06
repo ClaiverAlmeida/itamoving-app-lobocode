@@ -18,7 +18,7 @@ export function ResumoTabContent({ ordem }: { ordem: DriverServiceOrderView }) {
         <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Valor cobrado</p>
           <p className="mt-2 text-xl font-semibold tabular-nums tracking-tight text-[#1E3A5F]">
-            {formatUsd(ordem.chargedValue ?? 0)}
+            {formatUsd((ordem.cashReceivedUsd ?? 0) + (ordem.zelleReceivedUsd ?? 0))}
           </p>
         </div>
         <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm sm:col-span-2 xl:col-span-1">

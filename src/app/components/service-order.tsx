@@ -462,7 +462,7 @@ export default function OrdemDeServicoView() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      ordensFiltradas.map((o) => (
+                      listaExibida.map((o) => (
                         <TableRow key={o.id} className="hover:bg-muted/30 text-center">
                           <TableCell className="font-mono text-sm">#{o.id}</TableCell>
                           <TableCell className="text-center">

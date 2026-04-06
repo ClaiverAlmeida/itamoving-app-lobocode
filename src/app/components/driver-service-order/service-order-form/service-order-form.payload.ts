@@ -1,4 +1,5 @@
 import type { Caixa, Item, DriverServiceOrder, ProductPrice } from "../../../api";
+import { round2 } from "./service-order-form.payment";
 
 type BuildProductsParams = {
   caixas: Caixa[];
@@ -70,7 +71,10 @@ type BuildPayloadParams = {
   /** CUID do motorista; na criação, gestão envia o escolhido; motorista logado pode omitir (API usa o token). */
   driverId: string;
   status: DriverServiceOrder["status"];
-  valorPago: string;
+  /** Subtotal agendamento + volumes — teto da repartição espécie/Zelle. */
+  paymentPoolUsd: number;
+  /** Parcela em espécie (USD); Zelle = pool − espécie. */
+  cashUsd: number;
   observations: string | undefined;
 };
 
@@ -119,9 +123,11 @@ export function buildServiceOrderPayload(params: BuildPayloadParams): DriverServ
     signatureDate: new Date().toISOString(),
     driverId: params.driverId,
     status: params.status,
-    chargedValue: (() => {
-      const n = parseFloat(String(params.valorPago).trim().replace(",", "."));
-      return Number.isFinite(n) && n >= 0 ? n : 0;
+    ...(() => {
+      const pool = round2(Math.max(0, params.paymentPoolUsd));
+      const cash = round2(Math.min(Math.max(params.cashUsd, 0), pool));
+      const zelle = round2(pool - cash);
+      return { cashReceivedUsd: cash, zelleReceivedUsd: zelle };
     })(),
     observations:
       params.observations !== undefined && params.observations !== null && String(params.observations).trim() !== ""

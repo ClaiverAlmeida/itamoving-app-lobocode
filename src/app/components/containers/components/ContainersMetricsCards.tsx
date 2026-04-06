@@ -76,7 +76,7 @@ export function ContainersMetricsCards({ statistics }: Props) {
       <Card className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs lg:text-sm font-medium text-orange-900">
-            Total Caixas
+            Total volumes
           </span>
           <Boxes className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" />
         </div>

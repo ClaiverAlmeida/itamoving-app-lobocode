@@ -210,7 +210,14 @@ export function mapDriverServiceOrderApiToView(raw: unknown): DriverServiceOrder
     driverName: String(driver?.name ?? r.driverName ?? ""),
     driverId: String(driver?.id ?? r.driverId ?? ""),
     status: normalizeStatus(r.status),
-    chargedValue: Number(r.chargedValue) || 0,
+    ...(() => {
+      let cash = Number(r.cashReceivedUsd ?? r.cash_received_usd) || 0;
+      let zelle = Number(r.zelleReceivedUsd ?? r.zelle_received_usd) || 0;
+      if (cash === 0 && zelle === 0 && r.chargedValue != null) {
+        cash = Number(r.chargedValue) || 0;
+      }
+      return { cashReceivedUsd: cash, zelleReceivedUsd: zelle };
+    })(),
     observations: r.observations != null ? String(r.observations) : undefined,
   };
 

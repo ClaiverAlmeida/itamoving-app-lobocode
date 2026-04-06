@@ -3,6 +3,7 @@ import type React from "react";
 import { toast } from "sonner";
 import type { Caixa, DriverUser, Item, DriverServiceOrder, ProductPrice } from "../../../api";
 import { buildDriverServiceOrderProducts, buildServiceOrderPayload } from "./service-order-form.payload";
+import { round2 } from "./service-order-form.payment";
 import { caixaTemTodosCamposPreenchidos, isCaixaPersonalizada, isFitaAdesiva } from "./service-order-form.verifications";
 import { serviceOrderFormCrud } from "./service-order-form.crud";
 import { resolveSignatureToMinioUrl } from "./service-order-form.signature";
@@ -23,7 +24,8 @@ type Params = {
   motoristaResponsavelNome?: string;
   ordemStatus: DriverServiceOrder["status"];
   ordemObservacoes: string;
-  valorPago: string;
+  paymentPoolUsd: number;
+  cashUsd: number;
   assinaturaCliente: string;
   assinaturaAgente: string;
   canvasClienteRef: React.RefObject<HTMLCanvasElement | null>;
@@ -96,7 +98,11 @@ export function useServiceOrderFormSave(params: Params) {
       ordem: {
         status: params.ordemStatus,
         observations: params.ordemObservacoes.trim(),
-        chargedValue: params.valorPago,
+        cashReceivedUsd: round2(Math.min(Math.max(params.cashUsd, 0), Math.max(0, params.paymentPoolUsd))),
+        zelleReceivedUsd: round2(
+          Math.max(0, params.paymentPoolUsd) -
+            round2(Math.min(Math.max(params.cashUsd, 0), Math.max(0, params.paymentPoolUsd))),
+        ),
       },
       motoristaResponsavel: params.motoristaResponsavel,
       assinaturas: {
@@ -155,13 +161,13 @@ export function useServiceOrderFormSave(params: Params) {
     if (!params.destinatarioNome || !params.destinatarioEndereco || !params.destinatarioBairro || !params.destinatarioCidade || !params.destinatarioEstado || !params.destinatarioCep || !params.destinatarioTelefone || !params.destinatarioNumero || !params.destinatarioComplemento) {
       return toast.error("Preencha todos os campos obrigatórios do destinatário");
     }
-    if (params.caixas.length === 0) return toast.error("Adicione pelo menos uma caixa ou produto");
-    if (params.caixas.some((c) => !caixaTemTodosCamposPreenchidos(c))) return toast.error("Preencha todos os campos das caixas ou produtos antes de salvar");
+    if (params.caixas.length === 0) return toast.error("Adicione pelo menos um volume ou produto");
+    if (params.caixas.some((c) => !caixaTemTodosCamposPreenchidos(c))) return toast.error("Preencha todos os campos dos volumes ou produtos antes de salvar");
     const caixaSemItensObrigatorios = params.caixas.some((c) => {
       if (isFitaAdesiva(c, params.opcoesCaixa) || isCaixaPersonalizada(c, params.opcoesCaixa)) return false;
       return params.itens.filter((i) => i.caixaId === c.id).length === 0;
     });
-    if (caixaSemItensObrigatorios) return toast.error("Cada caixa precisa ter ao menos 1 item (fita adesiva e caixa personalizada não exigem itens)");
+    if (caixaSemItensObrigatorios) return toast.error("Cada volume precisa ter ao menos 1 item (fita adesiva e item personalizado não exigem itens)");
     const itemInvalido = params.itens.some((i) => !String(i.name ?? "").trim() || Number(i.quantity) <= 0 || Number(i.weight) <= 0);
     if (itemInvalido) return toast.error("Preencha todos os campos dos itens antes de salvar");
 
@@ -244,7 +250,8 @@ export function useServiceOrderFormSave(params: Params) {
       assinaturaAgenteFinal,
       driverId: idMotoristaResponsavel,
       status: criandoComoMotorista ? "COMPLETED" : params.ordemStatus,
-      valorPago: params.valorPago,
+      paymentPoolUsd: params.paymentPoolUsd,
+      cashUsd: params.cashUsd,
       observations: !params.isEditMode
         ? params.observations?.trim() || undefined
         : params.ordemObservacoes.trim() || undefined,
@@ -300,7 +307,9 @@ export function useServiceOrderFormSave(params: Params) {
     const destinatarioChanged = JSON.stringify(currentObj?.destinatario) !== JSON.stringify(initialObj?.destinatario);
     const statusChanged = currentObj?.ordem?.status !== initialObj?.ordem?.status;
     const observationsChanged = currentObj?.ordem?.observations !== initialObj?.ordem?.observations;
-    const chargedValueChanged = currentObj?.ordem?.chargedValue !== initialObj?.ordem?.chargedValue;
+    const paymentSplitChanged =
+      round2(Number(currentObj?.ordem?.cashReceivedUsd ?? 0)) !== round2(Number(initialObj?.ordem?.cashReceivedUsd ?? 0)) ||
+      round2(Number(currentObj?.ordem?.zelleReceivedUsd ?? 0)) !== round2(Number(initialObj?.ordem?.zelleReceivedUsd ?? 0));
     const clientSignatureChanged = currentObj?.assinaturas?.clientSignature !== initialObj?.assinaturas?.clientSignature;
     const agentSignatureChanged = currentObj?.assinaturas?.agentSignature !== initialObj?.assinaturas?.agentSignature;
     const motoristaChanged = String(currentObj?.motoristaResponsavel ?? "").trim() !== String(initialObj?.motoristaResponsavel ?? "").trim();
@@ -311,7 +320,10 @@ export function useServiceOrderFormSave(params: Params) {
     if (destinatarioChanged) patch.recipient = payload.recipient;
     if (statusChanged) patch.status = payload.status;
     if (observationsChanged) patch.observations = currentObj?.ordem?.observations ?? "";
-    if (chargedValueChanged) patch.chargedValue = payload.chargedValue;
+    if (paymentSplitChanged) {
+      patch.cashReceivedUsd = payload.cashReceivedUsd;
+      patch.zelleReceivedUsd = payload.zelleReceivedUsd;
+    }
     if (motoristaChanged) {
       patch.driverId = payload.driverId;
     }

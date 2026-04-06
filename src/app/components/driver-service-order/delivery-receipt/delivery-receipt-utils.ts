@@ -166,17 +166,13 @@ type OrdemComValorAgendamento = DriverServiceOrder & {
 
 /**
  * Mesmo "Total geral" do recibo e do cartão Pagamento na OS:
- * subtotal (agendamento − antecipação) + total das caixas + valor recebido (`chargedValue` quando &gt; 0).
+ * subtotal (agendamento − antecipação) + total dos volumes (espécie + Zelle repartem esse total, não somam à parte).
  */
 export function totalGeralConsolidadoOrdem(ordem: OrdemComValorAgendamento): number {
   const valorAgendamento = Number(ordem.appointment?.value ?? 0);
   const valorAntecipacao = Number(ordem.appointment?.downPayment ?? 0);
   const subtotalAgendamento = Math.max(valorAgendamento - valorAntecipacao, 0);
   const valorTotalCaixas = sumValorTotalCaixasFromOrdem(ordem);
-  const valorRecebidoNum = (() => {
-    const n = Number(ordem.chargedValue);
-    return Number.isFinite(n) && n > 0 ? n : 0;
-  })();
-  return subtotalAgendamento + valorTotalCaixas + valorRecebidoNum;
+  return subtotalAgendamento + valorTotalCaixas;
 }
 

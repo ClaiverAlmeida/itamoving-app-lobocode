@@ -25,7 +25,7 @@ export function TransferBoxesReviewStep({ volRef, preview, submitting, onBack, o
           Confirme antes de aplicar
         </p>
         <p className="mt-1 text-xs text-emerald-800/90 dark:text-emerald-200/80">
-          As etiquetas serão atualizadas nos dois containers e a ordem de serviço seguirá o container com mais caixas.
+          As etiquetas serão atualizadas nos dois containers e a ordem de serviço seguirá o container com mais volumes.
         </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -37,7 +37,7 @@ export function TransferBoxesReviewStep({ volRef, preview, submitting, onBack, o
             <p className="mt-1 font-mono text-sm font-semibold">{preview.sourceContainer.number}</p>
             <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
               <span className="tabular-nums font-medium text-foreground">{preview.sourceContainer.boxCountAfter}</span>{" "}
-              caixas ·{" "}
+              volumes ·{" "}
               <span className="tabular-nums">
                 {preview.sourceContainer.weightKgAfter.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
               </span>{" "}
@@ -54,7 +54,7 @@ export function TransferBoxesReviewStep({ volRef, preview, submitting, onBack, o
             <p className="mt-1 font-mono text-sm font-semibold text-primary">{preview.targetContainer.number}</p>
             <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
               <span className="tabular-nums font-medium text-foreground">{preview.targetContainer.boxCountAfter}</span>{" "}
-              caixas ·{" "}
+              volumes ·{" "}
               <span className="tabular-nums">
                 {preview.targetContainer.weightKgAfter.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
               </span>{" "}
@@ -104,7 +104,7 @@ export function TransferBoxesReviewStep({ volRef, preview, submitting, onBack, o
         {warnVolume && (
           <p className="mt-4 flex gap-2 rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-2 text-xs text-amber-950 dark:bg-amber-950/40 dark:text-amber-100 dark:border-amber-900/50">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-            Após a operação, pelo menos um container ficará acima da referência de {volRef} caixas.
+            Após a operação, pelo menos um container ficará acima da referência de {volRef} volumes.
           </p>
         )}
       </div>

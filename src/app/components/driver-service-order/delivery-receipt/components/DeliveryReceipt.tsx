@@ -53,10 +53,8 @@ export function DeliveryReceipt({
   );
   const subtotalAgendamento = Math.max(valorAgendamento - valorAntecipacao, 0);
   const valorTotalCaixas = sumValorTotalCaixasFromOrdem(ordem);
-  const valorRecebidoNum = (() => {
-    const n = Number(ordem.chargedValue);
-    return Number.isFinite(n) && n > 0 ? n : 0;
-  })();
+  const cashUsd = Number(ordem.cashReceivedUsd ?? 0);
+  const zelleUsd = Number(ordem.zelleReceivedUsd ?? 0);
   const totalConsolidado = totalGeralConsolidadoOrdem(ordem);
 
   return (
@@ -134,7 +132,7 @@ export function DeliveryReceipt({
         </div>
 
         <div className="border border-border rounded-lg p-4 mb-6">
-          <h3 className="font-semibold text-[#1E3A5F] mb-3 flex items-center gap-2"><Box className="w-5 h-5" />Caixas e produtos entregues</h3>
+          <h3 className="font-semibold text-[#1E3A5F] mb-3 flex items-center gap-2"><Box className="w-5 h-5" />Volumes e produtos entregues</h3>
           <div className="overflow-x-auto -mx-1">
             <table className="w-full text-sm min-w-[280px]">
               <thead className="border-b"><tr className="text-center"><th className="pb-2 pr-2 text-center">Tipo do Produto</th><th className="pb-2 text-center whitespace-nowrap">Peso (kg)</th><th className="pb-2 text-center whitespace-nowrap">Valor ($)</th></tr></thead>
@@ -183,15 +181,17 @@ export function DeliveryReceipt({
             </div>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 pt-2 border-t border-green-200">
-            <span className="text-sm text-muted-foreground">Valor total das caixas:</span>
+            <span className="text-sm text-muted-foreground">Valor total dos volumes:</span>
             <span className="text-xl font-bold text-green-700 tabular-nums">$ {valorTotalCaixas.toFixed(2)}</span>
           </div>
           <div className="border-t border-green-200 pt-3 space-y-1">
             <div className="flex justify-between gap-4 text-sm">
-              <span className="text-muted-foreground">Valor recebido (espécie / Zelle):</span>
-              <span className="font-semibold tabular-nums">
-                $ {formatUsdValorRecebidoLivre(valorRecebidoNum)}
-              </span>
+              <span className="text-muted-foreground">Em espécie:</span>
+              <span className="font-semibold tabular-nums">$ {formatUsdValorRecebidoLivre(cashUsd)}</span>
+            </div>
+            <div className="flex justify-between gap-4 text-sm">
+              <span className="text-muted-foreground">Zelle:</span>
+              <span className="font-semibold tabular-nums">$ {formatUsdValorRecebidoLivre(zelleUsd)}</span>
             </div>
           </div>
           <div className="mt-3 pt-3 border-t-2 border-green-300 space-y-2 text-sm">
@@ -203,12 +203,14 @@ export function DeliveryReceipt({
               <span className="font-medium tabular-nums">$ {subtotalAgendamento.toFixed(2)}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">+ Total das caixas</span>
+              <span className="text-muted-foreground">+ Total dos volumes</span>
               <span className="font-medium tabular-nums">$ {valorTotalCaixas.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">+ Valor recebido</span>
-              <span className="font-medium tabular-nums">$ {formatUsdValorRecebidoLivre(valorRecebidoNum)}</span>
+            <div className="flex justify-between gap-4 text-xs text-muted-foreground">
+              <span>Espécie + Zelle = total da ordem acima (repartição)</span>
+              <span className="font-medium tabular-nums">
+                $ {formatUsdValorRecebidoLivre(cashUsd + zelleUsd)}
+              </span>
             </div>
             <div className="flex justify-between gap-4 pt-2 border-t border-green-200">
               <span className="text-base font-bold text-green-900">Total geral</span>

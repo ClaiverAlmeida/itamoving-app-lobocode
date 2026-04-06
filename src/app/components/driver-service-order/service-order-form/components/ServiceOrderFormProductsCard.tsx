@@ -50,7 +50,7 @@ export function ServiceOrderFormProductsCard(props: Props) {
           </CardTitle>
           <Button onClick={adicionarCaixa} size="sm" className="bg-[#F5A623] hover:bg-[#E59400] w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-1" />
-            Adicionar Caixa ou Produto
+            Adicionar volume ou produto
           </Button>
         </div>
       </CardHeader>
@@ -58,13 +58,13 @@ export function ServiceOrderFormProductsCard(props: Props) {
         {caixas.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>Nenhuma caixa ou produto adicionado</p>
-            <p className="text-sm">Clique em "Adicionar Caixa ou Produto" para comecar</p>
+            <p>Nenhum volume ou produto adicionado</p>
+            <p className="text-sm">Clique em &quot;Adicionar volume ou produto&quot; para começar</p>
           </div>
         ) : (
           <div className="space-y-3">
             <div className="hidden md:grid md:grid-cols-11 gap-3 text-sm font-semibold text-muted-foreground border-b pb-2">
-              <div className="col-span-5 text-center">Tipo da Caixa ou Produto</div>
+              <div className="col-span-5 text-center">Tipo do volume ou produto</div>
               <div className="col-span-2 text-center">Peso (kg)</div>
               <div className="col-span-3 text-center">Valor ($)</div>
               <div className="col-span-1 text-center" />
@@ -95,7 +95,7 @@ export function ServiceOrderFormProductsCard(props: Props) {
                         </Select>
                       </div>
                       {!fitaAdesiva && (
-                        <Button type="button" size="sm" disabled={!podeAdicionarItens} title={podeAdicionarItens ? "Adicionar itens nesta caixa" : "Preencha tipo, peso e valor da caixa antes de adicionar itens"} className="shrink-0 rounded-sm bg-[#F5A623] hover:bg-[#E59400] w-full sm:w-auto disabled:opacity-50 disabled:pointer-events-none" onClick={() => adicionarItens(caixa.id)}>
+                        <Button type="button" size="sm" disabled={!podeAdicionarItens} title={podeAdicionarItens ? "Adicionar itens neste volume" : "Preencha tipo, peso e valor do volume antes de adicionar itens"} className="shrink-0 rounded-sm bg-[#F5A623] hover:bg-[#E59400] w-full sm:w-auto disabled:opacity-50 disabled:pointer-events-none" onClick={() => adicionarItens(caixa.id)}>
                           <Plus className="w-5 h-5" />
                           Itens
                         </Button>
@@ -126,7 +126,7 @@ export function ServiceOrderFormProductsCard(props: Props) {
 
                   {itensDaCaixa.length > 0 && (
                     <div className="rounded-lg border border-dashed border-border bg-white p-3 space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground">Itens da caixa</p>
+                      <p className="text-xs font-semibold text-muted-foreground">Itens deste volume</p>
                       {itensDaCaixa.map((item, idx) => (
                         <div key={item.id} className="grid grid-cols-1 sm:grid-cols-11 gap-2 rounded-md border bg-muted/30 p-2">
                           <div className="sm:col-span-1 space-y-1">
@@ -163,7 +163,7 @@ export function ServiceOrderFormProductsCard(props: Props) {
                       ))}
                       <div className="flex flex-col justify-end gap-2 items-start sm:items-end">
                         <div className="flex gap-2">
-                          <p className="text-sm text-muted-foreground font-semibold">Total de Itens da Caixa:</p>
+                          <p className="text-sm text-muted-foreground font-semibold">Total de itens do volume:</p>
                           <p className="text-sm text-muted-foreground">{itensDaCaixa.length}</p>
                         </div>
                         <div className="flex gap-2">
@@ -179,7 +179,7 @@ export function ServiceOrderFormProductsCard(props: Props) {
 
             <div className="flex justify-end pt-3 border-t">
               <div className="text-right">
-                <p className="text-sm text-muted-foreground">Total de Caixas:</p>
+                <p className="text-sm text-muted-foreground">Total de volumes:</p>
                 <p className="text-2xl font-bold text-[#1E3A5F]">{caixas.length}</p>
                 <p className="text-sm text-muted-foreground mt-2">Valor Total:</p>
                 <p className="text-2xl font-bold text-green-600">$ {valorTotalCaixas.toFixed(2)}</p>

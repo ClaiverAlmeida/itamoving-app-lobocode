@@ -26,7 +26,7 @@ function sumItemsWeight(
 
 export function ServiceOrderBoxesPreview({ order, previewLabels }: Props) {
   const products = order.driverServiceOrderProducts ?? [];
-  const pesoCaixas = products.reduce((s, p) => s + (p.weight ?? 0), 0);
+  const pesoVolumes = products.reduce((s, p) => s + (p.weight ?? 0), 0);
   const pesoItensTotal = products.reduce(
     (s, p) => s + sumItemsWeight(p.driverServiceOrderProductsItems ?? []),
     0,
@@ -36,7 +36,7 @@ export function ServiceOrderBoxesPreview({ order, previewLabels }: Props) {
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
         <Package className="h-4 w-4 text-primary shrink-0" aria-hidden />
-        Conteúdo da ordem (caixas e itens)
+        Conteúdo da ordem (por volume)
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -47,7 +47,7 @@ export function ServiceOrderBoxesPreview({ order, previewLabels }: Props) {
                 <Boxes className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Caixas</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Volumes</p>
                 <p className="text-2xl font-semibold tabular-nums leading-tight">{products.length}</p>
               </div>
             </div>
@@ -60,9 +60,9 @@ export function ServiceOrderBoxesPreview({ order, previewLabels }: Props) {
                 <Weight className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Peso das caixas</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Peso dos volumes</p>
                 <p className="text-lg font-semibold tabular-nums leading-tight">
-                  {pesoCaixas.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
+                  {pesoVolumes.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
                 </p>
               </div>
             </div>
@@ -90,7 +90,7 @@ export function ServiceOrderBoxesPreview({ order, previewLabels }: Props) {
       <div className="rounded-xl border border-border/80 bg-card overflow-hidden">
         <div className="border-b border-border/60 bg-muted/30 px-4 py-2.5">
           <p className="text-xs font-medium text-muted-foreground">
-            Cada linha é uma caixa da OS. A coluna à esquerda mostra como ficará a etiqueta no container.
+            Cada linha é um volume da OS (caixa, embalagem, material ou item catalogado). À esquerda, a etiqueta no container.
           </p>
         </div>
         <div className="max-h-[min(40vh,320px)] overflow-auto">
@@ -101,7 +101,7 @@ export function ServiceOrderBoxesPreview({ order, previewLabels }: Props) {
                 <TableHead className="w-[72px] font-semibold text-center">Ref. OS</TableHead>
                 <TableHead className="w-[100px] font-semibold text-center">Tipo</TableHead>
                 <TableHead className="text-center w-[100px] font-semibold">Peso (kg)</TableHead>
-                <TableHead className="min-w-[220px] font-semibold text-left pl-4">Itens dentro da caixa</TableHead>
+                <TableHead className="min-w-[220px] font-semibold text-left pl-4">Itens neste volume</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

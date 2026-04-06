@@ -93,8 +93,9 @@ export default function OrdemServicoForm({
     itens,
     assinaturaCliente,
     assinaturaAgente,
-    valorPago,
-    setValorPago,
+    cashUsd,
+    setCashUsd,
+    paymentPoolUsd,
     observations,
     setObservations,
     ordemStatus,
@@ -140,7 +141,8 @@ export default function OrdemServicoForm({
     motoristaResponsavelNome,
     ordemStatus,
     ordemObservacoes,
-    valorPago,
+    paymentPoolUsd,
+    cashUsd,
     assinaturaCliente,
     assinaturaAgente,
     canvasClienteRef,
@@ -320,8 +322,9 @@ export default function OrdemServicoForm({
           valorTotalCaixas={valorTotalCaixas}
           valorAgendamento={Number(agendamento?.value ?? 0)}
           valorAntecipacao={Number(agendamento?.downPayment ?? 0)}
-          valorPago={valorPago}
-          setValorPago={setValorPago}
+          paymentPoolUsd={paymentPoolUsd}
+          cashUsd={cashUsd}
+          setCashUsd={setCashUsd}
         />
 
         {/* Observações (somente criação pelo próprio motorista; admin usa o card de gestão) */}

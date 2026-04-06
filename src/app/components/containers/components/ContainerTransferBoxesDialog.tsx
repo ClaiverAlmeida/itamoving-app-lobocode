@@ -48,12 +48,12 @@ export function ContainerTransferBoxesDialog(props: ContainerTransferBoxesDialog
                 <ArrowRightLeft className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <DialogTitle className="text-lg font-semibold tracking-tight">Transferir caixas</DialogTitle>
+                <DialogTitle className="text-lg font-semibold tracking-tight">Transferir volumes</DialogTitle>
                 <p className="text-xs text-muted-foreground mt-0.5 font-mono truncate">{sourceContainer.number}</p>
               </div>
             </div>
             <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
-              Escolha o destino e as caixas. Na etapa seguinte você confirma etiquetas e impacto em peso e ordens antes de
+              Escolha o destino e os volumes. Na etapa seguinte você confirma etiquetas e impacto em peso e ordens antes de
               aplicar.
             </DialogDescription>
             <ol className="flex gap-2 pt-1" aria-label="Etapas">

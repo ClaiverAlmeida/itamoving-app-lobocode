@@ -73,7 +73,10 @@ export interface DriverServiceOrder {
   /** CUID do motorista (`DriverServiceOrder.driverId`). Envio opcional na criação (gestão); omitido na resposta transformada se vier só `driver`. */
   driverId?: string;
   status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
-  chargedValue: number;
+  /** USD em espécie (com Zelle soma o total da OS). */
+  cashReceivedUsd: number;
+  /** USD via Zelle (com espécie soma o total da OS). */
+  zelleReceivedUsd: number;
   observations?: string;
   deletedDriverServiceOrderProductIds?: string[];
 }

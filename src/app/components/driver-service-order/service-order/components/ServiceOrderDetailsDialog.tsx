@@ -47,19 +47,19 @@ export function ServiceOrderDetailsDialog({ open, onOpenChange, viewOrdem, onOpe
                   </Badge>
                   <Badge variant="secondary" className="font-mono text-xs font-normal tabular-nums">
                     <DollarSign className="mr-1 h-3 w-3" />
-                    {formatUsd(viewOrdem.chargedValue ?? 0)}
+                    {formatUsd((viewOrdem.cashReceivedUsd ?? 0) + (viewOrdem.zelleReceivedUsd ?? 0))}
                   </Badge>
                 </div>
               </div>
               <DialogDescription className="pt-3 text-sm text-muted-foreground">
-                Consulta rápida: resumo operacional, contatos, agendamento e conteúdo das caixas.
+                Consulta rápida: resumo operacional, contatos, agendamento e conteúdo por volume.
               </DialogDescription>
             </DialogHeader>
 
             <div className={cn("min-h-0 flex-1 overflow-auto px-3 pb-4 pt-0 sm:px-6", "max-h-[calc(min(85dvh,680px)-9rem)] sm:max-h-[calc(min(72vh,600px)-10.5rem)]")}>
               {(() => {
                 const o = viewOrdem;
-                const nCaixas = o.driverServiceOrderProducts?.length ?? 0;
+                const nVolumes = o.driverServiceOrderProducts?.length ?? 0;
                 return (
                   <Tabs defaultValue="resumo" className="pb-4 pt-3 sm:pb-6 sm:pt-4">
                     <div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:overflow-visible sm:px-0">
@@ -68,7 +68,7 @@ export function ServiceOrderDetailsDialog({ open, onOpenChange, viewOrdem, onOpe
                         <TabsTrigger value="cliente" className="flex-none shrink-0 whitespace-nowrap px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm">Remetente</TabsTrigger>
                         <TabsTrigger value="destino" className="flex-none shrink-0 whitespace-nowrap px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm">Destino</TabsTrigger>
                         <TabsTrigger value="agendamento" className="flex-none shrink-0 whitespace-nowrap px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm">Agendamento</TabsTrigger>
-                        <TabsTrigger value="caixas" className="flex-none shrink-0 whitespace-nowrap px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm">Caixas ({nCaixas})</TabsTrigger>
+                        <TabsTrigger value="volumes" className="flex-none shrink-0 whitespace-nowrap px-3 py-2 text-xs sm:flex-1 sm:px-3 sm:py-1.5 sm:text-sm">Volumes ({nVolumes})</TabsTrigger>
                       </TabsList>
                     </div>
 
@@ -88,7 +88,7 @@ export function ServiceOrderDetailsDialog({ open, onOpenChange, viewOrdem, onOpe
                       <AgendamentoTabContent ordem={o} />
                     </TabsContent>
 
-                    <TabsContent value="caixas">
+                    <TabsContent value="volumes">
                       <CaixasTabContent ordem={o} onOpenRecibo={onOpenRecibo} />
                     </TabsContent>
                   </Tabs>

@@ -259,7 +259,7 @@ export function ContainersSidePanel(props: Props) {
                         (selectedContainer.boxes?.length ?? 0) > 0 && (
                         <Badge variant="secondary">Volume {selectedContainer.volumeLetter.toUpperCase()}</Badge>
                       )}
-                      <Badge variant="outline">{selectedContainer.boxes?.length || 0} caixas</Badge>
+                      <Badge variant="outline">{selectedContainer.boxes?.length || 0} volumes</Badge>
                       <Badge variant="outline">{selectedContainer.totalWeight || 0} kg</Badge>
                     </div>
                   </div>
@@ -472,7 +472,7 @@ export function ContainersSidePanel(props: Props) {
                   )}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-sm text-muted-foreground">Caixas no container</span>
+                    <span className="text-sm text-muted-foreground">Volumes no container</span>
                     {excedeVolumesReferencia && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-medium text-destructive">
                         <AlertTriangle className="h-3 w-3 shrink-0" />
@@ -502,7 +502,7 @@ export function ContainersSidePanel(props: Props) {
                       excedeVolumesReferencia ? "font-medium text-destructive" : "text-muted-foreground",
                     )}
                   >
-                    {volumesPercent.toFixed(1)}% da referência de {volRef} caixas
+                    {volumesPercent.toFixed(1)}% da referência de {volRef} volumes
                     {excedeVolumesReferencia ? " — acima da referência." : "."}
                   </p>
                 </div>
@@ -560,7 +560,7 @@ export function ContainersSidePanel(props: Props) {
                     }}
                   >
                     <ArrowRightLeft className="h-3.5 w-3.5" />
-                    Transferir caixas
+                    Transferir volumes
                   </Button>
                 </div>
               </CardHeader>
@@ -573,7 +573,7 @@ export function ContainersSidePanel(props: Props) {
                 )}
                 <div className="grid grid-cols-2 gap-2 max-w-xs">
                   <div className="rounded-lg border bg-muted/30 px-3 py-2">
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Caixas</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Volumes</p>
                     <p className="text-lg font-semibold tabular-nums leading-tight">{linkedOverview.totalBoxes}</p>
                   </div>
                   <div className="rounded-lg border bg-muted/30 px-3 py-2">
@@ -584,7 +584,7 @@ export function ContainersSidePanel(props: Props) {
                 {loosePhysicalBoxes.length > 0 && (
                   <div className="rounded-lg border border-amber-500/35 bg-amber-50/50 px-3 py-2.5 space-y-2">
                     <p className="text-xs font-semibold text-amber-900/90 uppercase tracking-wide">
-                      Caixas soltas neste volume
+                      Cargas soltas neste volume
                     </p>
                     <p className="text-[11px] text-muted-foreground leading-snug">
                       Carga física aqui, mas a ordem continua vinculada a outro container. Itens conforme o servidor.
@@ -630,7 +630,7 @@ export function ContainersSidePanel(props: Props) {
                           </div>
                           <div className="px-2.5 py-2">
                             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1">
-                              Itens na caixa
+                              Itens neste volume
                             </p>
                             <ContainerBoxItemsList
                               items={box.items ?? []}
@@ -672,7 +672,7 @@ export function ContainersSidePanel(props: Props) {
                             #{order.id}
                           </p>
                           <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-                            <span className="font-semibold text-foreground tabular-nums">{boxes.length}</span> caixas
+                            <span className="font-semibold text-foreground tabular-nums">{boxes.length}</span> volumes
                             <span className="mx-1.5 text-border">·</span>
                             <span className="font-semibold text-foreground tabular-nums">{itemCount}</span> itens
                             <span className="mx-1.5 text-border">·</span>
@@ -704,7 +704,7 @@ export function ContainersSidePanel(props: Props) {
                       </summary>
                       <div className="px-3 pb-3 pt-2 border-t bg-muted/20 space-y-2">
                         {boxes.length === 0 ? (
-                          <p className="text-xs text-muted-foreground">Sem caixas detalhadas.</p>
+                          <p className="text-xs text-muted-foreground">Sem volumes detalhados.</p>
                         ) : (
                           boxes.map((box, idx) => {
                             const boxView = mergeOrderProductWithPhysicalBox(selectedContainer, box);
@@ -746,7 +746,7 @@ export function ContainersSidePanel(props: Props) {
                               </div>
                               <div className="px-2.5 py-2">
                                 <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1">
-                                  Itens na caixa
+                                  Itens neste volume
                                 </p>
                                 <ContainerBoxItemsList
                                   items={box.driverServiceOrderProductsItems ?? []}

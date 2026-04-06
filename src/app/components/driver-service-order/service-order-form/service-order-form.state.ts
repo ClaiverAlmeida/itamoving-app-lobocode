@@ -4,6 +4,7 @@ import type { Caixa, DriverUser, Item, ProductPrice } from "../../../api";
 import { serviceOrderFormCrud } from "./service-order-form.crud";
 import { loadDataUrlOnCanvas, resolveCaixaSelectValueFromApiLine } from "./service-order-form.utils";
 import { caixaTemTodosCamposPreenchidos, novoIdItem, renumerarCaixas } from "./service-order-form.verifications";
+import { computePaymentPoolUsd, round2 } from "./service-order-form.payment";
 
 type Params = {
   appointmentId: string;
@@ -70,13 +71,30 @@ export function useServiceOrderFormState({
   const [assinaturaAgente, setAssinaturaAgente] = useState("");
   const clienteAssinaturaDirtyRef = useRef(false);
   const agenteAssinaturaDirtyRef = useRef(false);
-  const [valorPago, setValorPago] = useState("");
+  /** Parcela em espécie (USD); Zelle = pool − espécie. */
+  const [cashUsd, setCashUsd] = useState(0);
   const [observations, setObservations] = useState("");
   const [ordemStatus, setOrdemStatus] = useState<any>("COMPLETED");
   const [ordemObservacoes, setOrdemObservacoes] = useState("");
   const [motoristaResponsavel, setMotoristaResponsavel] = useState("");
   const motoristaResponsavelNome = motoristas.find((m) => m.id === motoristaResponsavel)?.name;
   const valorTotalCaixas = caixas.reduce((sum, c) => sum + c.value, 0);
+  const paymentPoolUsd = useMemo(
+    () =>
+      computePaymentPoolUsd({
+        valorAgendamento: Number(agendamento?.value ?? 0),
+        valorAntecipacao: Number(agendamento?.downPayment ?? 0),
+        valorTotalVolumes: valorTotalCaixas,
+      }),
+    [agendamento?.value, agendamento?.downPayment, valorTotalCaixas],
+  );
+
+  useEffect(() => {
+    setCashUsd((c) => {
+      if (paymentPoolUsd <= 0) return 0;
+      return Math.min(Math.max(c, 0), paymentPoolUsd);
+    });
+  }, [paymentPoolUsd]);
 
   const carregarMotoristas = async () => {
     setMotoristasLoading(true);
@@ -118,7 +136,7 @@ export function useServiceOrderFormState({
         p.active,
     );
     if (opcoesAtivas.length === 0) {
-      toast.info("Não há produtos ativos para adicionar caixas; cadastre um produto para continuar.");
+      toast.info("Não há produtos ativos para adicionar volumes; cadastre um produto para continuar.");
       return;
     }
     setCaixas((prev) =>
@@ -152,7 +170,7 @@ export function useServiceOrderFormState({
   const adicionarItens = (caixaId: string) => {
     const caixa = caixas.find((c) => c.id === caixaId);
     if (!caixa || !caixaTemTodosCamposPreenchidos(caixa)) {
-      toast.error("Preencha tipo, peso e valor da caixa antes de adicionar itens");
+      toast.error("Preencha tipo, peso e valor do volume antes de adicionar itens");
       return;
     }
     setItens((prev) => [...prev, { id: novoIdItem(), caixaId, name: "", quantity: 0, weight: 0, observations: "" }]);
@@ -364,8 +382,20 @@ export function useServiceOrderFormState({
     }
     setItens(mappedItens);
 
-    const cv = Number(existingOrdem.chargedValue ?? 0);
-    setValorPago(Number.isFinite(cv) && cv !== 0 ? String(existingOrdem.chargedValue) : "");
+    const sub = Math.max(Number(agendamento?.value ?? 0) - Number(agendamento?.downPayment ?? 0), 0);
+    const vol =
+      existingOrdem.driverServiceOrderProducts?.reduce((s: number, p: { value?: number }) => s + Number(p?.value ?? 0), 0) ?? 0;
+    const pool = round2(sub + vol);
+    let cash = Number(existingOrdem.cashReceivedUsd ?? 0);
+    const zelle = Number(existingOrdem.zelleReceivedUsd ?? 0);
+    const legacy = Number((existingOrdem as { chargedValue?: number }).chargedValue ?? 0);
+    if (!Number.isFinite(cash)) cash = 0;
+    if (cash === 0 && zelle === 0 && legacy > 0) cash = legacy;
+    cash = round2(Math.min(Math.max(cash, 0), pool));
+    if (Math.abs(cash + zelle - pool) > 0.02 && pool > 0) {
+      cash = round2(Math.min(cash, pool));
+    }
+    setCashUsd(cash);
     const sigC = existingOrdem.clientSignature || "";
     const sigA = existingOrdem.agentSignature || "";
     setAssinaturaCliente(sigC);
@@ -436,8 +466,9 @@ export function useServiceOrderFormState({
     itens,
     assinaturaCliente,
     assinaturaAgente,
-    valorPago,
-    setValorPago,
+    cashUsd,
+    setCashUsd,
+    paymentPoolUsd,
     observations,
     setObservations,
     ordemStatus,

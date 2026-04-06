@@ -71,13 +71,13 @@ export function TransferBoxesFormStep({
           Situação atual — {sourceContainer.number}
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          Referência operacional de {volRef} caixas (informativo).
+          Referência operacional de {volRef} volumes (informativo).
         </p>
         <div className="mt-3 space-y-2.5">
           <div className="flex items-center justify-between gap-2 text-xs">
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <Boxes className="h-3.5 w-3.5" />
-              {v.n} caixas
+              {v.n} volumes
             </span>
             <span className={cn("tabular-nums", v.exceeds && "font-medium text-destructive")}>
               {v.pct.toFixed(0)}% da referência
@@ -111,7 +111,7 @@ export function TransferBoxesFormStep({
               const wc = weightUse(c);
               const line = [
                 `${c.number} · ${c.seal || "sem lacre"}`,
-                `${vc.n} cx · vol. ${vc.pct.toFixed(0)}% ref.`,
+                `${vc.n} vol · uso ${vc.pct.toFixed(0)}% ref.`,
                 c.fullWeight != null ? `peso ${wc.pct.toFixed(0)}% lim.` : null,
                 c.volumeLetter ? `letra ${String(c.volumeLetter).toUpperCase()}` : "sem letra",
               ]
@@ -126,7 +126,7 @@ export function TransferBoxesFormStep({
           </SelectContent>
         </Select>
         {destOptions.length === 0 && (
-          <p className="text-xs text-muted-foreground">Nenhum outro container disponível para receber caixas.</p>
+          <p className="text-xs text-muted-foreground">Nenhum outro container disponível para receber volumes.</p>
         )}
       </section>
 
@@ -154,8 +154,8 @@ export function TransferBoxesFormStep({
       <section className="space-y-2">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <Label className="text-sm font-medium">Caixas a transferir</Label>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Marque as caixas que irão para o destino.</p>
+            <Label className="text-sm font-medium">Volumes a transferir</Label>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Marque os volumes que irão para o destino.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-muted-foreground tabular-nums">
@@ -194,7 +194,7 @@ export function TransferBoxesFormStep({
         </ScrollArea>
         {candidates.length === 0 && (
           <p className="text-sm text-muted-foreground rounded-xl border border-dashed px-3 py-3 text-center">
-            Nenhuma caixa listada. Use um container com ordens vinculadas.
+            Nenhum volume listado. Use um container com ordens vinculadas.
           </p>
         )}
       </section>

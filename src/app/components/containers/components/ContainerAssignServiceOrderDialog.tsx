@@ -340,7 +340,7 @@ export function ContainerAssignServiceOrderDialog({
       return;
     }
     if (driverServiceOrderProductIds.length === 0 || driverServiceOrderProductIds.length !== boxes.length) {
-      toast.error("Todas as caixas da ordem precisam estar carregadas com id para vincular.");
+      toast.error("Todas as linhas de produto da ordem precisam estar carregadas com id para vincular.");
       return;
     }
     setSubmitting(true);
@@ -423,7 +423,7 @@ export function ContainerAssignServiceOrderDialog({
                 >
                   <div className="flex flex-col items-center justify-center gap-1">
                     <p className="text-[11px] leading-tight font-medium text-muted-foreground uppercase tracking-wide">
-                      Caixas já no container
+                      Volumes já no container
                     </p>
                     <p
                       className={cn(
@@ -489,7 +489,7 @@ export function ContainerAssignServiceOrderDialog({
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="text-sm font-semibold text-foreground">Ordens já vinculadas</p>
                   <p className="text-xs text-muted-foreground leading-snug">
-                    O mesmo resumo está no painel lateral deste container. Abra para revisar caixas, transferir cargas ou
+                    O mesmo resumo está no painel lateral deste container. Abra para revisar volumes, transferir cargas ou
                     remover vínculos.
                   </p>
                 </div>
@@ -523,7 +523,7 @@ export function ContainerAssignServiceOrderDialog({
                           "border-destructive/45 bg-destructive/5 ring-1 ring-destructive/20",
                       )}
                     >
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caixas</p>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Volumes</p>
                       <p
                         className={cn(
                           "text-lg font-semibold tabular-nums",
@@ -560,7 +560,7 @@ export function ContainerAssignServiceOrderDialog({
                 {loosePhysicalBoxes.length > 0 && (
                   <div className="rounded-lg border border-amber-500/35 bg-amber-50/50 px-3 py-2.5 space-y-2">
                     <p className="text-xs font-semibold text-amber-900/90 uppercase tracking-wide">
-                      Caixas soltas neste volume
+                      Cargas soltas neste volume
                     </p>
                     <p className="text-[11px] text-muted-foreground leading-snug">
                       Carga física aqui, mas a ordem continua vinculada a outro container.
@@ -604,9 +604,9 @@ export function ContainerAssignServiceOrderDialog({
                           </div>
                           <div className="px-3 py-2">
                             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
-                              Itens na caixa
+                              Itens neste volume
                             </p>
-                            <ContainerBoxItemsList items={box.items ?? []} emptyLabel="Nenhum item listado nesta caixa." />
+                            <ContainerBoxItemsList items={box.items ?? []} emptyLabel="Nenhum item listado neste volume." />
                           </div>
                         </div>
                       ))}
@@ -646,7 +646,7 @@ export function ContainerAssignServiceOrderDialog({
                             #{order.id}
                           </p>
                           <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-                            <span className="font-semibold text-foreground tabular-nums">{boxes.length}</span> caixas
+                            <span className="font-semibold text-foreground tabular-nums">{boxes.length}</span> volumes
                             <span className="mx-1.5 text-border">·</span>
                             <span className="font-semibold text-foreground tabular-nums">{itemCount}</span> itens
                             <span className="mx-1.5 text-border">·</span>
@@ -680,7 +680,7 @@ export function ContainerAssignServiceOrderDialog({
                       <div className="px-3 pb-3 pt-1 border-t bg-muted/20">
                         {boxes.length === 0 ? (
                           <p className="text-xs text-muted-foreground py-2">
-                            Nenhuma caixa detalhada para esta ordem.
+                            Nenhum volume detalhado para esta ordem.
                           </p>
                         ) : (
                           <div className="space-y-2">
@@ -725,11 +725,11 @@ export function ContainerAssignServiceOrderDialog({
                                 </div>
                                 <div className="px-3 py-2">
                                   <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
-                                    Itens na caixa
+                                    Itens neste volume
                                   </p>
                                   <ContainerBoxItemsList
                                     items={box.driverServiceOrderProductsItems ?? []}
-                                    emptyLabel="Nenhum item listado nesta caixa."
+                                    emptyLabel="Nenhum item listado neste volume."
                                   />
                                 </div>
                               </div>
@@ -848,7 +848,7 @@ export function ContainerAssignServiceOrderDialog({
             {loadingDetail && selectedId && (
               <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm">Carregando caixas e itens da ordem…</p>
+                <p className="text-sm">Carregando volumes e itens da ordem…</p>
               </div>
             )}
 
@@ -865,7 +865,7 @@ export function ContainerAssignServiceOrderDialog({
                       </CardTitle>
                       <CardDescription className="text-xs leading-relaxed">
                         Volumes e peso após vincular são informativos: ficam em vermelho ao passar da referência de{" "}
-                        {volRef} caixas ou do peso cheio cadastrado (sem bloqueio no servidor).
+                        {volRef} volumes ou do peso cheio cadastrado (sem bloqueio no servidor).
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-wrap gap-4 pb-4">
@@ -878,7 +878,7 @@ export function ContainerAssignServiceOrderDialog({
                         )}
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-                          <p className="text-[11px] font-medium text-muted-foreground uppercase">Volumes (caixas)</p>
+                          <p className="text-[11px] font-medium text-muted-foreground uppercase">Volumes (carga)</p>
                           {excedeVolumesAposVinculo && (
                             <span className="inline-flex items-center gap-0.5 rounded-full bg-destructive/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
                               <AlertTriangle className="h-3 w-3" />
