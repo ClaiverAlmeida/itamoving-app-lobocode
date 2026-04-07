@@ -62,8 +62,9 @@ export default function Login() {
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
             className="flex items-center justify-center gap-3 mb-4"
           >
-            <div className="p-3 lg:p-4 bg-gradient-to-br from-[#F5A623] to-[#E59400] rounded-2xl shadow-2xl">
-              <Truck className="w-10 h-10 lg:w-12 lg:h-12 text-white" />
+            <div className="p-2 lg:p-3 bg-gradient-to-br from-[#F5A623] to-[#E59400] rounded-2xl shadow-2xl">
+              <img src="./src/assets/itamoving-logo.png" alt="Itamoving Mudanças" className='w-15 h-15 lg:w-20 lg:h-20 text-white user-select-none pointer-events-none select-none' />
+              {/* <Truck className="w-10 h-10 lg:w-12 lg:h-12 text-white" /> */}
             </div>
           </motion.div>
           <motion.h1
@@ -145,11 +146,12 @@ export default function Login() {
                           <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
                         )}
                       </button>
-                      <a href="/forget-password" onClick={(e) => handleForgetPassword(email, e)} className="text-sm text-muted-foreground hover:text-foreground w-full text-decoration-none hover:no-underline">
+                      {/* TODO: Implementar recuperação de senha */}
+                      {/* <a href="/forget-password" onClick={(e) => handleForgetPassword(email, e)} className="text-sm text-muted-foreground hover:text-foreground w-full text-decoration-none hover:no-underline">
                         <Button variant="link" className=" text-sm text-muted-foreground hover:text-foreground p-0 text-left text-[#1E3A5F] text-decoration-none hover:no-underline">
                           Esqueceu a senha?
                         </Button>
-                      </a>
+                      </a> */}
                     </div>
                   </div>
 
