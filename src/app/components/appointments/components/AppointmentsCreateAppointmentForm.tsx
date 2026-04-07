@@ -1,6 +1,6 @@
 import React from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Appointment, Client, CreateAppointmentsPeriodsDTO } from "../../../api";
+import { Appointment, Client, Container, CreateAppointmentsPeriodsDTO } from "../../../api";
 import { AtendenteSelect } from "../../forms";
 import { AppointmentBoxesPerDayAlert, AppointmentBoxesPerPeriodAlert, EmptyStateAlert } from "../../alerts";
 import { Button } from "../../ui/button";
@@ -11,6 +11,7 @@ import { formatClienteAgendamentoLabel } from "../../clients/clients.display";
 import { Switch } from "../../ui/switch";
 import { Textarea } from "../../ui/textarea";
 import { formatDateOnlyToBR, toDateOnly } from "../../../utils";
+import { getContainerStatusLabel } from "../../containers/containers.utils";
 
 type FormData = {
   clientId: string;
@@ -24,12 +25,14 @@ type FormData = {
   userId: string;
   status: string;
   appointmentPeriodId: string;
+  containerId: string;
 };
 
 type Props = {
   formData: FormData;
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
   clientesAtivos: Client[];
+  containersAtivos: Container[];
   minCollectionDateByPeriod: string | null | undefined;
   maxCollectionDateByPeriod: string | undefined;
   dataPickerBlocked: () => string;
@@ -52,10 +55,12 @@ type Props = {
 };
 
 export function AppointmentsCreateAppointmentForm(props: Props) {
+  const NONE_CONTAINER_VALUE = "__none__";
   const {
     formData,
     setFormData,
     clientesAtivos,
+    containersAtivos,
     minCollectionDateByPeriod,
     maxCollectionDateByPeriod,
     dataPickerBlocked,
@@ -285,6 +290,29 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
         label="Atendente *"
         required
       />
+
+      <div className="space-y-2">
+        <Label htmlFor="containerId">Container</Label>
+        <Select
+          value={formData.containerId || NONE_CONTAINER_VALUE}
+          disabled={!containersAtivos.length}
+          onValueChange={(value) =>
+            setFormData({ ...formData, containerId: value === NONE_CONTAINER_VALUE ? "" : value })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione o container" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NONE_CONTAINER_VALUE}>Nenhum container selecionado</SelectItem>
+            {containersAtivos.map((container) => (
+              <SelectItem key={container.id!} value={container.id!}>
+                {container.number} - {container.type} - Letra: {container.volumeLetter ?? "N/A"} - Status: {getContainerStatusLabel(container.status)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="setStatus">Status *</Label>

@@ -1,4 +1,4 @@
-import { appointmentsService, clientsService } from '../../api';
+import { appointmentsService, clientsService, containersServices } from '../../api';
 import type {
   CreateAppointmentsDTO,
   CreateAppointmentsPeriodsDTO,
@@ -22,4 +22,8 @@ export const appointmentsCrud = {
 
 export const clientsCrud = {
   getAll: () => clientsService.getAll(),
+};
+
+export const containersCrud = {
+  getAll: () => containersServices.getAll(),
 };

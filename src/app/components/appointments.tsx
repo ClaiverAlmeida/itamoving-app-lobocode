@@ -38,11 +38,13 @@ import { ptBR } from "date-fns/locale/pt-BR";
 import { useAuth } from "../context/AuthContext";
 import { connectSocket, getSocket } from "../api";
 import type {
+  Container,
   CreateAppointmentsPeriodsDTO,
   UpdateAppointmentsPeriodsDTO,
 } from "../api";
 import { toDateOnly, formatDateOnlyToBR } from "../utils";
 import {
+  containersCrud,
   getStatusConfig,
   getStatusKey,
   PERIODOS_CARD_PAGE_SIZE,
@@ -99,6 +101,8 @@ export default function AgendamentosView() {
     useState<Appointment | null>(null);
   const { user } = useAuth();
   const [clientes, setClientes] = useState<Client[]>([]);
+  const [containers, setContainers] = useState<Container[]>([]);
+
   const [qtdCaixasPorDia, setQtdCaixasPorDia] = useState<
     { collectionDate: string; qtyBoxes: number }[]
   >([]);
@@ -111,6 +115,11 @@ export default function AgendamentosView() {
   const clientesAtivos = useMemo(
     () => clientes.filter((c) => c.status === "ACTIVE"),
     [clientes]
+  );
+
+  const containersAtivos = useMemo(
+    () => containers.filter((c) => c.status !== "CANCELLED"),
+    [containers]
   );
 
   /** Períodos para selects / validações (até 200 itens). */
@@ -383,6 +392,13 @@ export default function AgendamentosView() {
     }
   };
 
+  const carregarContainers = async () => {
+    const result = await containersCrud.getAll();
+    if (result.success && result.data) {
+      setContainers(result.data);
+    }
+  };
+
   const filteredAgendamentos = useMemo(() => {
     return agendamentos.filter((agendamento) => {
       // Search
@@ -599,6 +615,7 @@ export default function AgendamentosView() {
             setIsDialogOpen={setIsDialogOpen}
             onOpenCreateAppointment={() => {
               carregarClientes();
+              carregarContainers();
               resetForm();
             }}
             onCloseCreateAppointment={() => {
@@ -614,6 +631,7 @@ export default function AgendamentosView() {
                 formData={formData}
                 setFormData={setFormData}
                 clientesAtivos={clientesAtivos}
+                containersAtivos={containersAtivos}
                 minCollectionDateByPeriod={minCollectionDateByPeriod}
                 maxCollectionDateByPeriod={maxCollectionDateByPeriod}
                 dataPickerBlocked={dataPickerBlocked}
@@ -934,6 +952,7 @@ export default function AgendamentosView() {
                   isEditDialogOpen,
                   setIsEditDialogOpen,
                   carregarClientes,
+                  carregarContainers,
                   fillEditFormFromSelected,
                   resetForm,
                   setIsPeriodic,
@@ -944,6 +963,7 @@ export default function AgendamentosView() {
                   formData,
                   setFormData,
                   clientesAtivos,
+                  containersAtivos,
                   minCollectionDateByPeriod,
                   maxCollectionDateByPeriod,
                   carregarQtdCaixasPorDia,

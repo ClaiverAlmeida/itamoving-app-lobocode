@@ -37,7 +37,6 @@ import {
   mergeOrderProductWithPhysicalBox,
   serviceOrderSenderDisplayName,
 } from "../containers.utils";
-import { isValidVolumeLetter, previewNextLabels } from "../utils/container-box-numbering.utils";
 import { ServiceOrderBoxesPreview } from "./ServiceOrderBoxesPreview";
 import { ContainerBoxItemsList } from "./ContainerBoxItemsList";
 import type { DriverServiceOrderView } from "../../../api/services/driver-service-order/service-order-form.service";
@@ -102,7 +101,6 @@ export function ContainerAssignServiceOrderDialog({
   const [selectedId, setSelectedId] = useState<string>("");
   const [detail, setDetail] = useState<DriverServiceOrderView | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [letterDraft, setLetterDraft] = useState("");
   const [selectedAtendente, setSelectedAtendente] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [linkedDetailsLoading, setLinkedDetailsLoading] = useState(false);
@@ -180,7 +178,6 @@ export function ContainerAssignServiceOrderDialog({
     void loadList();
     setSelectedId("");
     setDetail(null);
-    setLetterDraft("");
     setSelectedAtendente("");
   }, [open, loadList]);
 
@@ -224,9 +221,7 @@ export function ContainerAssignServiceOrderDialog({
     };
   }, [open, selectedId]);
 
-  const letterEfetiva = (
-    workingContainer.volumeLetter?.trim().toUpperCase() || letterDraft.trim().toUpperCase().slice(0, 1)
-  ) as string;
+  const letterEfetiva = (workingContainer.volumeLetter?.trim().toUpperCase() || "") as string;
 
   const boxNumbersExistentes = useMemo(
     () => (workingContainer.boxes ?? []).map((b) => b.boxNumber),
@@ -235,10 +230,50 @@ export function ContainerAssignServiceOrderDialog({
 
   const nCaixasOrdem = detail?.driverServiceOrderProducts?.length ?? 0;
 
-  const previewLabels = useMemo(() => {
-    if (!detail || !isValidVolumeLetter(letterEfetiva)) return [];
-    return previewNextLabels(boxNumbersExistentes, letterEfetiva, nCaixasOrdem);
-  }, [boxNumbersExistentes, letterEfetiva, nCaixasOrdem, detail]);
+  const [previewLabels, setPreviewLabels] = useState<string[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const boxNumbersKey = useMemo(
+    () => [...boxNumbersExistentes].sort().join("\u0001"),
+    [boxNumbersExistentes],
+  );
+
+  useEffect(() => {
+    if (!open || !detail || !letterEfetiva || nCaixasOrdem <= 0) {
+      setPreviewLabels([]);
+      setPreviewLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setPreviewLoading(true);
+    void containersCrud
+      .previewBoxLabels({
+        existingBoxNumbers: boxNumbersExistentes,
+        letter: letterEfetiva,
+        count: nCaixasOrdem,
+      })
+      .then((r) => {
+        if (cancelled) return;
+        if (r.success && r.data?.labels) {
+          setPreviewLabels(r.data.labels);
+        } else {
+          setPreviewLabels([]);
+          if (r.error) toast.error(r.error);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPreviewLabels([]);
+          toast.error("Erro ao calcular etiquetas.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setPreviewLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, detail?.id, letterEfetiva, nCaixasOrdem, boxNumbersKey]);
 
   const pesoNovas = useMemo(() => {
     if (!detail?.driverServiceOrderProducts) return 0;
@@ -326,8 +361,8 @@ export function ContainerAssignServiceOrderDialog({
 
   const confirmar = async () => {
     if (!workingContainer.id || !selectedId || !detail) return;
-    if (precisaLetra && !isValidVolumeLetter(letterDraft)) {
-      toast.error("Informe uma letra de volume (A–Z) para este container.");
+    if (precisaLetra) {
+      toast.error("Defina a letra do volume no cadastro/edição do container antes de vincular a ordem.");
       return;
     }
     const clientId = detail.appointment?.client?.id?.trim();
@@ -349,7 +384,6 @@ export function ContainerAssignServiceOrderDialog({
         driverServiceOrderId: selectedId,
         clientId,
         driverServiceOrderProductIds,
-        ...(precisaLetra ? { volumeLetter: letterDraft.trim().toUpperCase() } : {}),
       });
       if (result.success && result.data) {
         await onSuccess(result.data);
@@ -387,7 +421,7 @@ export function ContainerAssignServiceOrderDialog({
                   <span className="font-medium text-foreground">{workingContainer.number}</span>
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-muted-foreground">
-                  Numeração contínua (ex.: 11-A)
+                  Numeração contínua (ex.: 11-A ou 11-AA)
                 </span>
                 {(workingContainer.linkedServiceOrderCount ?? 0) > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-muted-foreground">
@@ -807,31 +841,6 @@ export function ContainerAssignServiceOrderDialog({
               </div>
             </div>
 
-            {precisaLetra && (
-              <>
-                <Separator />
-                <div>
-                  <SectionLabel step={5}>Letra do volume (primeira vez neste container)</SectionLabel>
-                  <div className="sm:pl-11 flex flex-col sm:flex-row sm:items-end gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="aso-volume-letter">Uma letra de A a Z</Label>
-                      <Input
-                        id="aso-volume-letter"
-                        maxLength={1}
-                        className="h-11 w-16 text-center text-lg font-mono uppercase tracking-wider"
-                        placeholder="A"
-                        value={letterDraft}
-                        onChange={(e) => setLetterDraft(e.target.value)}
-                      />
-                    </div>
-                    <p className="text-sm text-muted-foreground max-w-md pb-1">
-                      A letra define as etiquetas desta e das próximas ordens deste container.
-                    </p>
-                  </div>
-                </div>
-              </>
-            )}
-
             {!precisaLetra && (
               <>
                 <Separator />
@@ -841,6 +850,15 @@ export function ContainerAssignServiceOrderDialog({
                     Letra do volume deste container:{" "}
                     <strong className="font-mono text-base">{workingContainer.volumeLetter?.toUpperCase()}</strong>
                   </span>
+                </div>
+              </>
+            )}
+
+            {precisaLetra && (
+              <>
+                <Separator />
+                <div className="rounded-lg border border-amber-500/35 bg-amber-50/60 px-4 py-3 text-sm sm:pl-11">
+                  Defina a letra do volume no diálogo de edição do container para habilitar o vínculo de ordens.
                 </div>
               </>
             )}
@@ -856,7 +874,7 @@ export function ContainerAssignServiceOrderDialog({
               <>
                 <Separator />
                 <div>
-                  <SectionLabel step={precisaLetra ? 5 : 4}>Conferência e limites</SectionLabel>
+                  <SectionLabel step={4}>Conferência e limites</SectionLabel>
                   <Card className="border-primary/20 bg-primary/5 sm:ml-11">
                     <CardHeader className="pb-2 pt-4">
                       <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -928,7 +946,11 @@ export function ContainerAssignServiceOrderDialog({
                   </Card>
 
                   <div className="mt-6">
-                    <ServiceOrderBoxesPreview order={detail} previewLabels={previewLabels} />
+                    <ServiceOrderBoxesPreview
+                      order={detail}
+                      previewLabels={previewLabels}
+                      previewLoading={previewLoading}
+                    />
                   </div>
                 </div>
               </>

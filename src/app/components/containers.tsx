@@ -127,6 +127,7 @@ export default function ContainersView() {
       update: containersCrud.update,
       updateContainer,
       setSelectedContainer,
+      getById: containersCrud.getById,
       onSuccess: () => {
       resetForm();
       setIsEditDialogOpen(false);

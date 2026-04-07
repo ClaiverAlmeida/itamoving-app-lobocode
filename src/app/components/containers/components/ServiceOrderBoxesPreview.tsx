@@ -10,12 +10,14 @@ import {
   TableHeader,
   TableRow,
 } from "../../ui/table";
-import { Boxes, Package, Scale, UserRound, Weight } from "lucide-react";
+import { Boxes, Loader2, Package, Scale, UserRound, Weight } from "lucide-react";
 import { formatProductTypeForDisplay } from "../containers.utils";
 
 type Props = {
   order: DriverServiceOrder;
   previewLabels: string[];
+  /** Cálculo no servidor (POST /containers/box-labels/preview). */
+  previewLoading?: boolean;
 };
 
 function sumItemsWeight(
@@ -24,7 +26,7 @@ function sumItemsWeight(
   return items.reduce((s, it) => s + (it.weight ?? 0) * Math.max(1, it.quantity ?? 1), 0);
 }
 
-export function ServiceOrderBoxesPreview({ order, previewLabels }: Props) {
+export function ServiceOrderBoxesPreview({ order, previewLabels, previewLoading }: Props) {
   const products = order.driverServiceOrderProducts ?? [];
   const pesoVolumes = products.reduce((s, p) => s + (p.weight ?? 0), 0);
   const pesoItensTotal = products.reduce(
@@ -107,11 +109,17 @@ export function ServiceOrderBoxesPreview({ order, previewLabels }: Props) {
             <TableBody>
               {products.map((p, idx) => {
                 const items = p.driverServiceOrderProductsItems ?? [];
-                const label = previewLabels[idx] ?? "—";
                 return (
                   <TableRow key={p.id ?? idx} className="align-top">
                     <TableCell className="font-mono text-sm font-medium text-primary text-center">
-                      {label}
+                      {previewLoading ? (
+                        <span className="inline-flex items-center justify-center gap-1 text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
+                          <span className="sr-only">Calculando etiquetas…</span>
+                        </span>
+                      ) : (
+                        previewLabels[idx] ?? "—"
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm text-center">
                       {p.number?.trim() ? p.number : "—"}

@@ -43,6 +43,7 @@ export function DeliveryReceipt({
   printLabel = "Imprimir Recibo",
 }: DeliveryReceiptProps) {
   const { rows: reciboRows, summary: reciboSummary, totalUnidades } = summarizeOrdemForRecibo(ordem);
+  const showEtiquetaCol = reciboRows.some((r) => Boolean(r.etiqueta?.trim()));
   const showToolbar = Boolean(onShowOrdersScreen || onPrint);
 
   const valorAgendamento = Number(
@@ -135,10 +136,24 @@ export function DeliveryReceipt({
           <h3 className="font-semibold text-[#1E3A5F] mb-3 flex items-center gap-2"><Box className="w-5 h-5" />Volumes e produtos entregues</h3>
           <div className="overflow-x-auto -mx-1">
             <table className="w-full text-sm min-w-[280px]">
-              <thead className="border-b"><tr className="text-center"><th className="pb-2 pr-2 text-center">Tipo do Produto</th><th className="pb-2 text-center whitespace-nowrap">Peso (kg)</th><th className="pb-2 text-center whitespace-nowrap">Valor ($)</th></tr></thead>
+              <thead className="border-b">
+                <tr className="text-center">
+                  {showEtiquetaCol ? (
+                    <th className="pb-2 pr-2 text-center whitespace-nowrap font-medium">Etiqueta (container)</th>
+                  ) : null}
+                  <th className="pb-2 pr-2 text-center">Tipo do Produto</th>
+                  <th className="pb-2 text-center whitespace-nowrap">Peso (kg)</th>
+                  <th className="pb-2 text-center whitespace-nowrap">Valor ($)</th>
+                </tr>
+              </thead>
               <tbody className="divide-y">
                 {reciboRows.map((row) => (
                   <tr key={row.key}>
+                    {showEtiquetaCol ? (
+                      <td className="py-2 pr-2 align-top text-center font-mono text-xs whitespace-nowrap">
+                        {row.etiqueta?.trim() ? row.etiqueta : "—"}
+                      </td>
+                    ) : null}
                     <td className="py-2 pr-2 align-top text-center"><div className="font-medium">{row.tipoPrincipal}</div></td>
                     <td className="py-2 align-top text-center whitespace-nowrap">{row.weight != null ? Number(row.weight).toFixed(2) : "—"}</td>
                     <td><div className="text-center whitespace-nowrap">{row.value}</div></td>

@@ -20,6 +20,7 @@ type AgendamentoFormData = {
   userId: string;
   status: string;
   appointmentPeriodId: string;
+  containerId: string;
 };
 
 type PeriodFormData = {
@@ -97,6 +98,7 @@ export async function handleCreateAgendamento(args: {
     downPayment: formData?.downPayment ?? 0,
     isPeriodic,
     qtyBoxes: qty,
+    containerId: formData.containerId?.trim() || undefined,
     status: formData.status as Appointment['status'],
     ...(formData.observations?.trim() ? { observations: formData.observations.trim() } : {}),
     ...(comPeriodo ? { appointmentPeriodId: formData.appointmentPeriodId!.trim() } : {}),
@@ -287,6 +289,7 @@ export async function handleEditAgendamento(args: {
       status: formData.status as Appointment['status'],
       observations: emptyStr(formData.observations),
       appointmentPeriodId: formData.isPeriodic && formData.appointmentPeriodId?.trim() ? formData.appointmentPeriodId.trim() : '',
+      containerId: emptyStr(formData.containerId),
     };
     const original = selectedAgendamento!;
     const origObs = original.observations ?? '';
@@ -309,6 +312,9 @@ export async function handleEditAgendamento(args: {
     const currPeriod = current.appointmentPeriodId ?? '';
     const origPeriod = original.appointmentPeriodId ?? '';
     if (currPeriod !== origPeriod) patch.appointmentPeriodId = currPeriod || '';
+    const currContainer = current.containerId ?? '';
+    const origContainer = String(original.containerId ?? '').trim();
+    if (currContainer !== origContainer) patch.containerId = currContainer || '';
     return patch;
   };
 

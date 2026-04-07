@@ -120,6 +120,8 @@ export type ReciboRow = {
   tipoCadastro: string;
   weight: number | undefined;
   value: string;
+  /** Etiqueta física no container (N-LETRA), quando a linha já está vinculada. */
+  etiqueta: string | null;
 };
 
 export function summarizeOrdemForRecibo(ordem: DriverServiceOrder) {
@@ -142,6 +144,8 @@ export function summarizeOrdemForRecibo(ordem: DriverServiceOrder) {
 
     const tipoPrincipal = `${rawType}`;
     const valor = `$${Number(p.value ?? 0).toFixed(2)}`;
+    const etiqueta =
+      (p as { containerBoxNumber?: string | null }).containerBoxNumber?.trim() || null;
 
     return {
       key: String(p.id ?? `box-${idx}`),
@@ -149,6 +153,7 @@ export function summarizeOrdemForRecibo(ordem: DriverServiceOrder) {
       tipoCadastro: rawType || "-",
       weight: p.weight,
       value: valor,
+      etiqueta,
     };
   });
 

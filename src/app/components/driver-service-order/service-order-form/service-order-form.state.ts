@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { Caixa, DriverUser, Item, ProductPrice } from "../../../api";
+import type { Caixa, Container, DriverUser, Item, ProductPrice } from "../../../api";
 import { serviceOrderFormCrud } from "./service-order-form.crud";
 import { loadDataUrlOnCanvas, resolveCaixaSelectValueFromApiLine } from "./service-order-form.utils";
 import { caixaTemTodosCamposPreenchidos, novoIdItem, renumerarCaixas } from "./service-order-form.verifications";
@@ -53,8 +53,10 @@ export function useServiceOrderFormState({
   const [isDrawingAgente, setIsDrawingAgente] = useState(false);
   const [precosProdutos, setPrecosProdutos] = useState<ProductPrice[]>([]);
   const [motoristas, setMotoristas] = useState<DriverUser[]>([]);
+  const [containers, setContainers] = useState<Container[]>([]);
   const [produtosLoading, setProdutosLoading] = useState(false);
   const [motoristasLoading, setMotoristasLoading] = useState(false);
+  const [containersLoading, setContainersLoading] = useState(false);
   const [hydrationReady, setHydrationReady] = useState(false);
   const existingProductIdsRef = useRef<Set<string>>(new Set());
 
@@ -105,7 +107,39 @@ export function useServiceOrderFormState({
   const [ordemStatus, setOrdemStatus] = useState<any>("COMPLETED");
   const [ordemObservacoes, setOrdemObservacoes] = useState("");
   const [motoristaResponsavel, setMotoristaResponsavel] = useState("");
+  const [containerId, setContainerId] = useState(() => {
+    const fromOrdem = existingOrdem?.container?.id ?? (existingOrdem as { containerId?: string })?.containerId;
+    const initial = String(fromOrdem ?? agendamento?.containerId ?? "").trim();
+    return initial;
+  });
   const motoristaResponsavelNome = motoristas.find((m) => m.id === motoristaResponsavel)?.name;
+
+  /** Com ID no agendamento não precisamos de GET /containers — o payload usa este CUID. */
+  const containerIdDoAgendamento = useMemo(
+    () => String(agendamento?.containerId ?? "").trim(),
+    [agendamento?.containerId],
+  );
+
+  /**
+   * Com container no agendamento: exibe rótulo fixo em vez do select (evita lista GET /containers).
+   * Administrador pode alterar o vínculo da OS — não força leitura só pelo agendamento.
+   */
+  const containerDoAgendamentoSomenteLeitura = useMemo((): { id: string; label: string } | null => {
+    if (user?.role === "admin") return null;
+    if (!containerIdDoAgendamento) return null;
+    const c = agendamento?.container;
+    if (c?.number != null && String(c.number).trim() !== "") {
+      const num = String(c.number).trim();
+      const typ = c.type != null && String(c.type).trim() !== "" ? String(c.type).trim() : "";
+      return { id: containerIdDoAgendamento, label: typ ? `${num} (${typ})` : num };
+    }
+    return { id: containerIdDoAgendamento, label: containerIdDoAgendamento };
+  }, [containerIdDoAgendamento, agendamento?.container, user?.role]);
+
+  const containersAtivos = useMemo(
+    () => containers.filter((c) => c.status !== "CANCELLED"),
+    [containers],
+  );
   const valorTotalCaixas = caixas.reduce((sum, c) => sum + c.value, 0);
   const paymentPoolUsd = useMemo(
     () =>
@@ -132,6 +166,17 @@ export function useServiceOrderFormState({
       else if (result.error) toast.error(result.error ?? "Não foi possível carregar os motoristas.");
     } finally {
       setMotoristasLoading(false);
+    }
+  };
+
+  const carregarContainers = async () => {
+    setContainersLoading(true);
+    try {
+      const result = await serviceOrderFormCrud.getContainers();
+      if (result.success && result.data) setContainers(result.data);
+      else if (result.error) toast.error(result.error ?? "Não foi possível carregar os containers.");
+    } finally {
+      setContainersLoading(false);
     }
   };
 
@@ -310,6 +355,13 @@ export function useServiceOrderFormState({
     void carregarMotoristas();
   }, []);
 
+  /** Lista de containers para back-office; motorista não tem GET /containers. Com container no agendamento, só admin precisa da lista para trocar o vínculo da OS. */
+  useEffect(() => {
+    if (user?.role === "motorista") return;
+    if (containerIdDoAgendamento && user?.role !== "admin") return;
+    void carregarContainers();
+  }, [containerIdDoAgendamento, user?.role]);
+
   useEffect(() => {
     void carregarProdutos();
   }, [carregarProdutos]);
@@ -318,6 +370,12 @@ export function useServiceOrderFormState({
     if (existingOrdem?.id) return;
     if (user?.role === "motorista" && user?.id) setMotoristaResponsavel(user.id);
   }, [appointmentId, existingOrdem?.id, user?.role, user?.id]);
+
+  useEffect(() => {
+    if (existingOrdem?.id) return;
+    const fromApt = String(agendamento?.containerId ?? "").trim();
+    if (fromApt) setContainerId(fromApt);
+  }, [agendamento?.containerId, existingOrdem?.id]);
 
   const hydratedKeyRef = useRef<string>("");
   useEffect(() => {
@@ -377,6 +435,13 @@ export function useServiceOrderFormState({
     setOrdemStatus(existingOrdem.status);
     setOrdemObservacoes(existingOrdem.observations ?? "");
     setMotoristaResponsavel(existingOrdem.driverId || (existingOrdem as { userId?: string }).userId || "");
+    setContainerId(
+      String(
+        existingOrdem.container?.id ??
+          (existingOrdem as { containerId?: string }).containerId ??
+          "",
+      ).trim(),
+    );
 
     existingProductIdsRef.current = new Set(
       (existingOrdem.driverServiceOrderProducts ?? [])
@@ -450,6 +515,11 @@ export function useServiceOrderFormState({
     canvasClienteRef,
     canvasAgenteRef,
     motoristas,
+    containersAtivos,
+    containersLoading,
+    containerDoAgendamentoSomenteLeitura,
+    containerId,
+    setContainerId,
     produtosLoading,
     motoristasLoading,
     hydrationReady,

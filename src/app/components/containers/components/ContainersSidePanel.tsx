@@ -255,9 +255,10 @@ export function ContainersSidePanel(props: Props) {
                       <Badge className={getStatusColor(selectedContainer.status).badge}>
                         {getStatusLabel(selectedContainer.status)}
                       </Badge>
-                      {selectedContainer.volumeLetter &&
-                        (selectedContainer.boxes?.length ?? 0) > 0 && (
-                        <Badge variant="secondary">Volume {selectedContainer.volumeLetter.toUpperCase()}</Badge>
+                      {String(selectedContainer.volumeLetter ?? "").trim() !== "" && (
+                        <Badge variant="secondary">
+                          Volume {String(selectedContainer.volumeLetter).trim().toUpperCase()}
+                        </Badge>
                       )}
                       <Badge variant="outline">{selectedContainer.boxes?.length || 0} volumes</Badge>
                       <Badge variant="outline">{selectedContainer.totalWeight || 0} kg</Badge>

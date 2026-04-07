@@ -42,5 +42,5 @@ export function sumSelectedWeight(
 export function needsVolumeLetterForTarget(target: Container | null): boolean {
   if (!target) return false;
   const v = target.volumeLetter;
-  return !(v && /^[A-Za-z]$/.test(String(v).trim()));
+  return !(v && /^[A-Za-z]{1,2}$/.test(String(v).trim()));
 }

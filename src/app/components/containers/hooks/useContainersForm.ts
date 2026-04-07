@@ -15,6 +15,7 @@ const initialFormData: ContainerFormData = {
   emptyWeight: "",
   fullWeight: "",
   trackingLink: "",
+  volumeLetter: "",
 };
 
 export function useContainersForm() {
@@ -42,6 +43,7 @@ export function useContainersForm() {
           ? String(container.fullWeight)
           : "",
       trackingLink: container.trackingLink || "",
+      volumeLetter: container.volumeLetter || "",
     });
   };
 

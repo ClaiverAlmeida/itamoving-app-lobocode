@@ -2,15 +2,26 @@ import { useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { toast } from "sonner";
 import type { Caixa, DriverUser, Item, DriverServiceOrder, ProductPrice } from "../../../api";
+import { serviceOrderFormService } from "../../../api";
 import { buildDriverServiceOrderProducts, buildServiceOrderPayload } from "./service-order-form.payload";
 import { round2 } from "./service-order-form.payment";
 import { caixaTemTodosCamposPreenchidos, isCaixaPersonalizada, isFitaAdesiva } from "./service-order-form.verifications";
 import { serviceOrderFormCrud } from "./service-order-form.crud";
 import { resolveSignatureToMinioUrl } from "./service-order-form.signature";
 
+/** PATCH/POST podem não devolver produtos com `containerBoxNumber`; o GET por id sim (recibo, etiquetas). */
+async function ordemCompletaParaCallback<T extends { id?: string | null }>(fallback: T): Promise<T> {
+  const id = typeof fallback.id === "string" ? fallback.id.trim() : "";
+  if (!id) return fallback;
+  const res = await serviceOrderFormService.getById(id);
+  return (res.success && res.data ? (res.data as unknown as T) : fallback);
+}
+
 type Params = {
   isEditMode: boolean;
   appointmentId: string;
+  agendamento: { containerId?: string | null } | null | undefined;
+  containerId: string;
   existingOrdem: any;
   user: { id?: string; nome?: string; role?: string } | null;
   onClose: () => void;
@@ -105,6 +116,7 @@ export function useServiceOrderFormSave(params: Params) {
         ),
       },
       motoristaResponsavel: params.motoristaResponsavel,
+      containerId: String(params.containerId ?? "").trim(),
       assinaturas: {
         clientSignature: params.assinaturaCliente.trim(),
         agentSignature: params.assinaturaAgente.trim(),
@@ -150,6 +162,12 @@ export function useServiceOrderFormSave(params: Params) {
       if (matchByName) expectedMotoristaId = matchByName.id;
     }
     if (params.motoristaResponsavel !== expectedMotoristaId) return;
+    const expectedContainerId = String(
+      params.existingOrdem?.container?.id ??
+        (params.existingOrdem as { containerId?: string }).containerId ??
+        "",
+    ).trim();
+    if (String(params.containerId ?? "").trim() !== expectedContainerId) return;
     setInitialSnapshot(editSnapshot);
   }, [params, initialSnapshot, editSnapshot]);
 
@@ -161,6 +179,15 @@ export function useServiceOrderFormSave(params: Params) {
     if (!params.destinatarioNome || !params.destinatarioEndereco || !params.destinatarioBairro || !params.destinatarioCidade || !params.destinatarioEstado || !params.destinatarioCep || !params.destinatarioTelefone || !params.destinatarioNumero) {
       return toast.error("Preencha todos os campos obrigatórios do destinatário");
     }
+    const agendamentoTemContainer = Boolean(String(params.agendamento?.containerId ?? "").trim());
+
+    const containerIdGestao =
+      String(params.containerId ?? "").trim() || String(params.agendamento?.containerId ?? "").trim();
+    /** Com container no agendamento, o back-office precisa manter o vínculo (estado hidratado do agendamento). */
+    if (params.user?.role !== "motorista" && agendamentoTemContainer && !containerIdGestao) {
+      return toast.error("Selecione o container da ordem de serviço.");
+    }
+
     if (params.caixas.length === 0) return toast.error("Adicione pelo menos um volume ou produto");
     if (params.caixas.some((c) => !caixaTemTodosCamposPreenchidos(c))) return toast.error("Preencha todos os campos dos volumes ou produtos antes de salvar");
     const caixaSemItensObrigatorios = params.caixas.some((c) => {
@@ -256,6 +283,8 @@ export function useServiceOrderFormSave(params: Params) {
         ? params.observations?.trim() || undefined
         : params.ordemObservacoes.trim() || undefined,
       omitSignatures: !params.isEditMode,
+      containerId:
+        params.user?.role === "motorista" ? undefined : containerIdGestao || undefined,
     });
 
     if (!params.isEditMode || !params.existingOrdem?.id) {
@@ -271,7 +300,7 @@ export function useServiceOrderFormSave(params: Params) {
           toast.error("Ordem criada, mas falhou o envio das assinaturas. Abra a ordem e salve novamente.");
           params.onClose();
           void Promise.resolve(params.onAgendamentosAtualizados?.()).catch(() => {});
-          params.onSave?.(created.data);
+          params.onSave?.(await ordemCompletaParaCallback(created.data));
           return;
         }
         const patched = await serviceOrderFormCrud.update(newId, {
@@ -285,7 +314,7 @@ export function useServiceOrderFormSave(params: Params) {
         }
         params.onClose();
         void Promise.resolve(params.onAgendamentosAtualizados?.()).catch(() => {});
-        params.onSave?.(patched.data);
+        params.onSave?.(await ordemCompletaParaCallback(patched.data));
         toast.success("Ordem de serviço salva com sucesso!");
       }
       return;
@@ -313,6 +342,8 @@ export function useServiceOrderFormSave(params: Params) {
     const clientSignatureChanged = currentObj?.assinaturas?.clientSignature !== initialObj?.assinaturas?.clientSignature;
     const agentSignatureChanged = currentObj?.assinaturas?.agentSignature !== initialObj?.assinaturas?.agentSignature;
     const motoristaChanged = String(currentObj?.motoristaResponsavel ?? "").trim() !== String(initialObj?.motoristaResponsavel ?? "").trim();
+    const containerChanged =
+      String(currentObj?.containerId ?? "").trim() !== String(initialObj?.containerId ?? "").trim();
     const caixasChanged = JSON.stringify(currentObj?.caixas) !== JSON.stringify(initialObj?.caixas);
     const itensChanged = JSON.stringify(currentObj?.itens) !== JSON.stringify(initialObj?.itens);
 
@@ -326,6 +357,10 @@ export function useServiceOrderFormSave(params: Params) {
     }
     if (motoristaChanged) {
       patch.driverId = payload.driverId;
+    }
+    if (containerChanged && params.user?.role === "admin") {
+      const cur = String(currentObj?.containerId ?? "").trim();
+      (patch as { containerId?: string | null }).containerId = cur === "" ? null : cur;
     }
     if (clientSignatureChanged) patch.clientSignature = payload.clientSignature;
     if (agentSignatureChanged) patch.agentSignature = payload.agentSignature;
@@ -387,7 +422,7 @@ export function useServiceOrderFormSave(params: Params) {
 
     const result = await serviceOrderFormCrud.update(params.existingOrdem.id, patch);
     if (result.success && result.data) {
-      params.onSave?.(result.data);
+      params.onSave?.(await ordemCompletaParaCallback(result.data));
       void Promise.resolve(params.onAgendamentosAtualizados?.()).catch(() => { });
       toast.success("Ordem de serviço atualizada com sucesso!");
       params.onClose();

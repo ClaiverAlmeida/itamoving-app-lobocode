@@ -79,6 +79,8 @@ export interface DriverServiceOrder {
   zelleReceivedUsd: number;
   observations?: string;
   deletedDriverServiceOrderProductIds?: string[];
+  /** CUID do container (criação/PATCH — backoffice). */
+  containerId?: string;
 }
 
 export interface DriverServiceOrderFormProps {
@@ -150,4 +152,7 @@ export interface AgendamentoConfirmedBackend {
   company: { address: string; contactPhone: string };
   serviceOrder: { status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' };
   status: 'PENDING' | 'CONFIRMED' | 'COLLECTED' | 'CANCELLED';
+  /** Definido no agendamento (ou escolhido no backoffice na OS). */
+  containerId?: string | null;
+  container?: { id: string; number?: string | null; type?: string | null } | null;
 }

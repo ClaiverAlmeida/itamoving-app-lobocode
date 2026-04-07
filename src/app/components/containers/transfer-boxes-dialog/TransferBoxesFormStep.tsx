@@ -134,18 +134,21 @@ export function TransferBoxesFormStep({
         <section className="space-y-3 rounded-xl border border-amber-200/90 bg-gradient-to-br from-amber-50 to-amber-50/30 p-4 dark:from-amber-950/40 dark:to-transparent dark:border-amber-900/50">
           <p className="text-xs font-medium text-amber-950 dark:text-amber-100 flex items-start gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-            O destino ainda não tem letra de volume. Informe uma letra (A–Z) para gerar etiquetas (ex.: 1-B).
+            O destino ainda não tem letra de volume. Informe uma ou duas letras (ex.: A ou AA) para gerar etiquetas (ex.: 1-A ou 1-AA).
           </p>
           <div>
             <Label htmlFor="xfer-letter" className="text-xs">
-              Letra do volume
+              Letra(s) do volume
             </Label>
             <Input
               id="xfer-letter"
-              maxLength={1}
-              className="mt-1.5 h-11 w-16 text-center font-mono text-lg uppercase tracking-widest rounded-lg"
+              maxLength={2}
+              className="mt-1.5 h-11 w-20 text-center font-mono text-lg uppercase tracking-widest rounded-lg"
               value={letterDraft}
-              onChange={(e) => onLetterDraft(e.target.value)}
+              onChange={(e) => {
+                const t = e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
+                onLetterDraft(t);
+              }}
             />
           </div>
         </section>

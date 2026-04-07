@@ -6,7 +6,7 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import type { Container } from "../../../api";
-import type { ContainerFormData } from "../containers.payload";
+import { sanitizeVolumeLetterInput, type ContainerFormData } from "../containers.payload";
 
 type Props = {
   isOpen: boolean;
@@ -62,6 +62,29 @@ export function ContainersCreateDialog({
               <Input id="create-type" placeholder="Ex: C20FT" value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} required />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="create-volumeLetter">Letra(s) do volume *</Label>
+              <Input
+                id="create-volumeLetter"
+                className="max-w-[5rem] uppercase font-mono"
+                maxLength={2}
+                placeholder="A ou AA"
+                inputMode="text"
+                autoCapitalize="characters"
+                autoComplete="off"
+                spellCheck={false}
+                pattern="[A-Za-z]{1,2}"
+                title="Uma ou duas letras de A a Z"
+                value={formData.volumeLetter}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    volumeLetter: sanitizeVolumeLetterInput(e.target.value),
+                  })
+                }
+                required
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="create-origin">Porto de Origem *</Label>
               <Input id="create-origin" placeholder="Ex: Miami, FL - USA" value={formData.origin} onChange={(e) => setFormData({ ...formData, origin: e.target.value })} required />
             </div>
@@ -93,41 +116,37 @@ export function ContainersCreateDialog({
                 onChange={(e) => setFormData({ ...formData, emptyWeight: e.target.value })}
               />
             </div>
-            <div className="col-span-1 md:col-span-3 lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5 w-full">
-              <div className="space-y-2">
-                <Label htmlFor="create-fullWeight">Peso do container cheio (kg) *</Label>
-                <Input
-                  id="create-fullWeight"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="Define o limite de peso da carga"
-                  value={formData.fullWeight}
-                  onChange={(e) => setFormData({ ...formData, fullWeight: e.target.value })}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">Peso bruto máximo; usado como limite de capacidade da carga.</p>
-              </div>
-              <div className="space-y-2 min-w-0">
-                <Label htmlFor="create-trackingLink">Link de Rastreamento</Label>
-                <Input id="create-trackingLink" type="url" placeholder="Ex: https://tracking.example.com/CNT123456" className="w-full max-w-full" value={formData.trackingLink} onChange={(e) => setFormData({ ...formData, trackingLink: e.target.value })} />
-                <p className="text-xs text-muted-foreground">URL completa do sistema de rastreamento do container</p>
-              </div>
-              <div className="space-y-2 min-w-0">
-                <Label htmlFor="create-status">Status Inicial *</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as Container["status"] })} required>
-                  <SelectTrigger className="w-full max-w-full">
-                    <SelectValue placeholder="Selecione o status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PREPARATION">Em Preparação</SelectItem>
-                    <SelectItem value="IN_TRANSIT">Em Trânsito</SelectItem>
-                    <SelectItem value="DELIVERED">Entregue</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelado</SelectItem>
-                    <SelectItem value="SHIPPED">Enviado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-fullWeight">Peso do container cheio (kg) *</Label>
+              <Input
+                id="create-fullWeight"
+                type="number"
+                step="0.01"
+                min="0.01"
+                placeholder="Define o limite de peso da carga"
+                value={formData.fullWeight}
+                onChange={(e) => setFormData({ ...formData, fullWeight: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2 min-w-0">
+              <Label htmlFor="create-trackingLink">Link de Rastreamento</Label>
+              <Input id="create-trackingLink" type="url" placeholder="Ex: https://tracking.example.com/CNT123456" className="w-full max-w-full" value={formData.trackingLink} onChange={(e) => setFormData({ ...formData, trackingLink: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-status">Status Inicial *</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as Container["status"] })} required>
+                <SelectTrigger className="w-full max-w-full">
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PREPARATION">Em Preparação</SelectItem>
+                  <SelectItem value="IN_TRANSIT">Em Trânsito</SelectItem>
+                  <SelectItem value="DELIVERED">Entregue</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                  <SelectItem value="SHIPPED">Enviado</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

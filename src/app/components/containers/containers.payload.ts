@@ -13,7 +13,33 @@ export type ContainerFormData = {
   emptyWeight: string;
   fullWeight: string;
   trackingLink: string;
+  volumeLetter: string;
 };
+
+/** Uma ou duas letras A–Z (mesma regra da API). */
+function normalizeVolumeLetter(value: string): string | undefined {
+  const t = value.trim().toUpperCase();
+  return /^[A-Z]{1,2}$/.test(t) ? t : undefined;
+}
+
+/**
+ * Input controlado: até duas letras A–Z (permite uma letra só).
+ */
+export function sanitizeVolumeLetterInput(raw: string): string {
+  return raw.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
+}
+
+/** Validação antes de montar payload de criar/editar container. */
+export function validateVolumeLetterForPayload(formData: ContainerFormData): string | null {
+  const trimmed = formData.volumeLetter.trim();
+  if (!trimmed) {
+    return "Informe a letra do volume.";
+  }
+  if (!normalizeVolumeLetter(formData.volumeLetter)) {
+    return "Informe uma ou duas letras de A a Z (ex.: A ou AA).";
+  }
+  return null;
+}
 
 function optionalKg(value: string): number | undefined {
   const t = value.trim();
@@ -32,6 +58,10 @@ function optionalKgForUpdate(value: string): number | null | undefined {
 }
 
 export const buildCreateContainerPayload = (formData: ContainerFormData) => {
+  const letter = normalizeVolumeLetter(formData.volumeLetter);
+  if (!letter) {
+    throw new Error("Letra do volume inválida. Use uma ou duas letras de A a Z (ex.: A ou AA).");
+  }
   const ew = optionalKg(formData.emptyWeight);
   const fwRaw = parseFloat(formData.fullWeight.replace(",", "."));
   const fullWeight = Number.isFinite(fwRaw) && fwRaw >= 0.01 ? fwRaw : 0;
@@ -45,6 +75,7 @@ export const buildCreateContainerPayload = (formData: ContainerFormData) => {
     estimatedArrival: formData.estimatedArrival,
     volume: parseFloat(formData.volume) || 0,
     trackingLink: formData.trackingLink,
+    volumeLetter: letter,
     ...(ew !== undefined ? { emptyWeight: ew } : {}),
     fullWeight,
     status: formData.status as "PREPARATION" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED",
@@ -68,6 +99,9 @@ export const buildUpdateContainerPayload = (
   if (current.volume !== original.volume) patch.volume = current.volume;
   if (current.trackingLink !== original.trackingLink) patch.trackingLink = current.trackingLink;
   if (current.status !== original.status) patch.status = current.status;
+  const currVolumeLetter = normalizeVolumeLetter(formData.volumeLetter) ?? null;
+  const origVolumeLetter = (original.volumeLetter ?? "").trim().toUpperCase() || null;
+  if (currVolumeLetter !== origVolumeLetter) patch.volumeLetter = currVolumeLetter ?? "";
 
   const ew = optionalKgForUpdate(formData.emptyWeight);
   if (ew !== undefined) {

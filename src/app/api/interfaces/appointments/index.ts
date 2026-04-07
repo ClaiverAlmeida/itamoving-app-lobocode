@@ -15,6 +15,7 @@ export interface Appointment {
   /** ISO — para atividades recentes (criação vs edição). */
   createdAt?: string;
   updatedAt?: string;
+  containerId?: string;
 }
 
 export interface CreateAppointmentsPeriodsDTO {
@@ -39,6 +40,7 @@ export interface AppointmentsPeriodsBackend {
 
 export interface CreateAppointmentsDTO {
   clientId: string;
+  containerId?: string;
   appointmentPeriodId?: string;
   collectionDate?: string;
   collectionTime: string;
@@ -53,6 +55,7 @@ export interface CreateAppointmentsDTO {
 
 export interface AppointmentsBackend {
   id: string;
+  containerId?: string;
   appointmentPeriodId?: string;
   collectionDate?: string;
   collectionTime: string;

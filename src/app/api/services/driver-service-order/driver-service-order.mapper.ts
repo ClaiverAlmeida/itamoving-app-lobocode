@@ -195,13 +195,18 @@ export function mapDriverServiceOrderApiToView(raw: unknown): DriverServiceOrder
 
   const driver = asRecord(r.driver);
 
+  const containerNorm = normalizeContainer(r.container);
   const ordem: DriverServiceOrderView = {
     id,
     createdAt: toIso(r.createdAt),
     updatedAt: toIso(r.updatedAt),
     appointmentId,
     sender: normalizeSender(r.sender),
-    container: normalizeContainer(r.container),
+    container: containerNorm,
+    containerId:
+      r.containerId != null && String(r.containerId).trim() !== ""
+        ? String(r.containerId)
+        : containerNorm?.id ?? undefined,
     recipient: normalizeRecipient(r.recipient),
     driverServiceOrderProducts: mapProducts(pickProductsArray(r)),
     clientSignature: String(r.clientSignature ?? ""),

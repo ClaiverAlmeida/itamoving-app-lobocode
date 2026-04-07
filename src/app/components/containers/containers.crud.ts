@@ -25,5 +25,7 @@ export const containersCrud = {
     id: string,
     payload: Parameters<typeof containersServices.transferBoxes>[1],
   ) => containersServices.transferBoxes(id, payload),
+  previewBoxLabels: (payload: Parameters<typeof containersServices.previewBoxLabels>[0]) =>
+    containersServices.previewBoxLabels(payload),
 };
 

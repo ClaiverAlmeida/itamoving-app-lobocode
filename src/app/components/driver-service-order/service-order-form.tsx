@@ -7,6 +7,7 @@ import {
   Save,
   X,
   ArrowLeft,
+  Info,
 } from 'lucide-react';
 
 import { format } from 'date-fns';
@@ -27,6 +28,7 @@ import {
   useServiceOrderFormSave,
   yearsCompanyInfo,
 } from './service-order-form/index';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import {
   caixaTemTodosCamposPreenchidos,
   isFitaAdesiva,
@@ -47,6 +49,11 @@ export default function OrdemServicoForm({
     canvasClienteRef,
     canvasAgenteRef,
     motoristas,
+    containersAtivos,
+    containersLoading,
+    containerDoAgendamentoSomenteLeitura,
+    containerId,
+    setContainerId,
     produtosLoading,
     motoristasLoading,
     hydrationReady,
@@ -125,6 +132,14 @@ export default function OrdemServicoForm({
     agenteAssinaturaDirtyRef,
   } = useServiceOrderFormState({ appointmentId, agendamento, existingOrdem, user });
 
+  const agendamentoTemContainer = Boolean(String(agendamento?.containerId ?? '').trim());
+  const ordemTemContainer = Boolean(
+    String(
+      existingOrdem?.container?.id ?? (existingOrdem as { containerId?: string })?.containerId ?? '',
+    ).trim(),
+  );
+  const semContainerParaNumeracao = !agendamentoTemContainer && !ordemTemContainer;
+
   const { canSave, salvarOrdemServico } = useServiceOrderFormSave({
     isEditMode,
     appointmentId,
@@ -137,6 +152,8 @@ export default function OrdemServicoForm({
     motoristasLoading,
     produtosLoading,
     motoristas,
+    agendamento,
+    containerId,
     motoristaResponsavel,
     motoristaResponsavelNome,
     ordemStatus,
@@ -226,6 +243,18 @@ export default function OrdemServicoForm({
         {/* Informações da Empresa */}
         <ServiceOrderFormCompanyInfoCard contactPhone={agendamento?.company?.contactPhone} years={yearsCompanyInfo()} />
 
+        {semContainerParaNumeracao ? (
+          <Alert className="border-sky-200 bg-sky-50 text-sky-950 dark:bg-sky-950/25 dark:text-sky-100 [&>svg]:text-sky-700 dark:[&>svg]:text-sky-300">
+            <Info className="h-4 w-4 shrink-0" />
+            <AlertTitle>Ordem sem container no agendamento</AlertTitle>
+            <AlertDescription>
+              Você pode salvar e concluir a ordem normalmente. Não haverá vínculo a volume nem numeração de etiquetas
+              (N–L / N–LL, ex.: 12-A ou 12-AA) enquanto não existir container no agendamento ou associado na gestão da ordem — mesmo fluxo de
+              antes, sem bloqueio.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
         {isEditMode || user?.role !== 'motorista' ? (
           <ServiceOrderFormBackOfficeCard
             isEditMode={isEditMode}
@@ -240,6 +269,13 @@ export default function OrdemServicoForm({
             setOrdemObservacoes={setOrdemObservacoes}
             observations={observations}
             setObservations={setObservations}
+            containersAtivos={containersAtivos}
+            containersLoading={containersLoading}
+            containerAgendamentoReadOnly={containerDoAgendamentoSomenteLeitura}
+            containerOpcional={!agendamentoTemContainer}
+            isContainerLockedInEdit={isEditMode && user?.role !== "admin"}
+            containerId={containerId}
+            setContainerId={setContainerId}
           />
         ) : null}
 

@@ -15,6 +15,7 @@ export type AppointmentFormData = {
   userId: string;
   status: string;
   appointmentPeriodId: string;
+  containerId: string;
 };
 
 export type AppointmentPeriodFormData = {
@@ -39,6 +40,7 @@ const INITIAL_FORM_DATA: AppointmentFormData = {
   userId: '',
   status: '',
   appointmentPeriodId: '',
+  containerId: '',
 };
 
 const INITIAL_PERIOD_FORM_DATA: AppointmentPeriodFormData = {
@@ -99,6 +101,7 @@ export function useAppointmentsForms(args: {
       userId: selectedAgendamento?.user.id ?? '',
       status: selectedAgendamento?.status ?? '',
       appointmentPeriodId: selectedAgendamento?.appointmentPeriodId ?? '',
+      containerId: selectedAgendamento?.containerId ?? '',
     });
   };
 
@@ -148,6 +151,7 @@ export function useAppointmentsForms(args: {
       userId: selectedAgendamento.user?.id ?? '',
       status: selectedAgendamento.status ?? '',
       appointmentPeriodId: selectedAgendamento?.appointmentPeriodId ?? '',
+      containerId: selectedAgendamento?.containerId ?? '',
     });
     void carregarQtdCaixasPorDia(
       collectionDate || format(new Date(), 'yyyy-MM-dd'),

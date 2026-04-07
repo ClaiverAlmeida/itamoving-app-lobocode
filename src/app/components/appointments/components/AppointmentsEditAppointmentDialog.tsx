@@ -1,6 +1,6 @@
 import React from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Appointment, Client, CreateAppointmentsPeriodsDTO } from "../../../api";
+import { Appointment, Client, Container, CreateAppointmentsPeriodsDTO } from "../../../api";
 import { AtendenteSelect } from "../../forms";
 import { AppointmentBoxesPerDayAlert, AppointmentBoxesPerPeriodAlert, EmptyStateAlert } from "../../alerts";
 import { Button } from "../../ui/button";
@@ -13,6 +13,7 @@ import { formatClienteAgendamentoLabel } from "../../clients/clients.display";
 import { Switch } from "../../ui/switch";
 import { Textarea } from "../../ui/textarea";
 import { formatDateOnlyToBR, toDateOnly } from "../../../utils";
+import { getContainerStatusLabel } from "../../containers/containers.utils";
 
 type FormData = {
   clientId: string;
@@ -26,6 +27,7 @@ type FormData = {
   userId: string;
   status: string;
   appointmentPeriodId: string;
+  containerId: string;
 };
 
 type Props = {
@@ -33,6 +35,7 @@ type Props = {
   isEditDialogOpen: boolean;
   setIsEditDialogOpen: (open: boolean) => void;
   carregarClientes: () => Promise<void>;
+  carregarContainers: () => Promise<void>;
   fillEditFormFromSelected: () => void;
   resetForm: () => void;
   setIsPeriodic: (value: boolean) => void;
@@ -43,6 +46,7 @@ type Props = {
   formData: FormData;
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
   clientesAtivos: Client[];
+  containersAtivos: Container[];
   minCollectionDateByPeriod: string | null | undefined;
   maxCollectionDateByPeriod: string | undefined;
   carregarQtdCaixasPorDia: (collectionDate: string, isPeriodic: boolean, appointmentPeriodId: string) => Promise<void>;
@@ -56,11 +60,13 @@ type Props = {
 };
 
 export function AppointmentsEditAppointmentDialog(props: Props) {
+  const NONE_CONTAINER_VALUE = "__none__";
   const {
     ag,
     isEditDialogOpen,
     setIsEditDialogOpen,
     carregarClientes,
+    carregarContainers,
     fillEditFormFromSelected,
     resetForm,
     setIsPeriodic,
@@ -71,6 +77,7 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
     formData,
     setFormData,
     clientesAtivos,
+    containersAtivos,
     minCollectionDateByPeriod,
     maxCollectionDateByPeriod,
     carregarQtdCaixasPorDia,
@@ -89,6 +96,7 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
       onOpenChange={(open) => {
         setIsEditDialogOpen(open);
         void carregarClientes();
+        void carregarContainers();
         if (open && ag) fillEditFormFromSelected();
         if (!open) {
           resetForm();
@@ -322,6 +330,29 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
             label="Atendente *"
             required
           />
+
+          <div className="space-y-2">
+            <Label htmlFor="editFormContainerId">Container</Label>
+            <Select
+              value={formData.containerId || NONE_CONTAINER_VALUE}
+              disabled={!containersAtivos.length}
+              onValueChange={(value) =>
+                setFormData({ ...formData, containerId: value === NONE_CONTAINER_VALUE ? "" : value })
+              }
+            >
+              <SelectTrigger id="editFormContainerId">
+                <SelectValue placeholder="Selecione o container" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_CONTAINER_VALUE}>Nenhum container selecionado</SelectItem>
+                {containersAtivos.map((container) => (
+                  <SelectItem key={container.id!} value={container.id!}>
+                    {container.number} - {container.type} - Letra: {container.volumeLetter ?? "N/A"} - Status: {getContainerStatusLabel(container.status)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="editFormSetStatus">Status *</Label>

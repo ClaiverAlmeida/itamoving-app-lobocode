@@ -67,6 +67,7 @@ export function mapBackendToFrontend(appointment: AppointmentsBackend): Appointm
     downPayment: Number(appointment.downPayment),
     isPeriodic: Boolean(appointment.isPeriodic),
     qtyBoxes: Number(appointment.qtyBoxes),
+    containerId: appointment.containerId ?? "",
     appointmentPeriodId: appointment.appointmentPeriodId ?? "",
     createdAt: appointment.createdAt,
     updatedAt: appointment.updatedAt,

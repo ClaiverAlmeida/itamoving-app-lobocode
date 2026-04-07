@@ -20,8 +20,8 @@ export function validatePreviewRequest(params: {
   }
   if (params.needsTargetLetter) {
     const L = params.letterDraft.trim().toUpperCase();
-    if (!/^[A-Z]$/.test(L)) {
-      return { ok: false, message: "Informe uma letra de A a Z para o volume no destino." };
+    if (!/^[A-Z]{1,2}$/.test(L)) {
+      return { ok: false, message: "Informe uma ou duas letras (A–Z) para o volume no destino, ex.: A ou AA." };
     }
   }
   return { ok: true };

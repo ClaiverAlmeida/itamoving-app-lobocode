@@ -69,6 +69,7 @@ export interface CreateContainersDTO {
   emptyWeight?: number | null;
   fullWeight: number;
   trackingLink: string;
+  volumeLetter?: string;
   status: Container["status"];
 }
 

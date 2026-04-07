@@ -93,7 +93,7 @@ export function ContainerAssignServiceOrderCard({
             </span>
             <span className="inline-flex items-center gap-1 rounded border bg-background px-2 py-1">
               <Hash className="h-3 w-3" />
-              Numeração contínua (11-A, 12-A...)
+              Numeração contínua (11-A, 12-AA…)
             </span>
             <span className="inline-flex items-center gap-1 rounded border bg-background px-2 py-1">
               <Link2 className="h-3 w-3" />

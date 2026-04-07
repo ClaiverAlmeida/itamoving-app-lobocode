@@ -76,6 +76,8 @@ type BuildPayloadParams = {
   /** Parcela em espécie (USD); Zelle = pool − espécie. */
   cashUsd: number;
   observations: string | undefined;
+  /** Backoffice: incluído quando há vínculo; omitido se não houver container. Motorista não envia (API usa o agendamento). */
+  containerId?: string;
 };
 
 export function buildServiceOrderPayload(params: BuildPayloadParams): DriverServiceOrder {
@@ -133,6 +135,9 @@ export function buildServiceOrderPayload(params: BuildPayloadParams): DriverServ
       params.observations !== undefined && params.observations !== null && String(params.observations).trim() !== ""
         ? String(params.observations).trim()
         : undefined,
+    ...(params.containerId != null && String(params.containerId).trim() !== ""
+      ? { containerId: String(params.containerId).trim() }
+      : {}),
   };
 }
 

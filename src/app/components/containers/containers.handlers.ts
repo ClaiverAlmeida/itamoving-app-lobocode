@@ -1,6 +1,11 @@
 import { toast } from "sonner";
 import type { Container } from "../../api";
-import { buildCreateContainerPayload, buildUpdateContainerPayload, type ContainerFormData } from "./containers.payload";
+import {
+  buildCreateContainerPayload,
+  buildUpdateContainerPayload,
+  validateVolumeLetterForPayload,
+  type ContainerFormData,
+} from "./containers.payload";
 
 type CreateArgs = {
   formData: ContainerFormData;
@@ -16,6 +21,8 @@ type UpdateArgs = {
   updateContainer: (id: string, container: Partial<Container>) => void;
   setSelectedContainer: (container: Container | null) => void;
   onSuccess: () => void;
+  /** GET completo após PATCH — letra/etiquetas e includes batem com o servidor (PATCH pode vir parcial ou antes do pós-processamento). */
+  getById?: (id: string) => Promise<{ success: boolean; data?: Container; error?: string }>;
 };
 
 type DeleteArgs = {
@@ -40,6 +47,12 @@ export const handleCreateContainer = async (args: CreateArgs) => {
   const { formData, create, addContainer, onSuccess } = args;
   if (!validateBoardingDate(formData.boardingDate, formData.estimatedArrival)) return;
 
+  const letterErr = validateVolumeLetterForPayload(formData);
+  if (letterErr) {
+    toast.error(letterErr);
+    return;
+  }
+
   const result = await create(buildCreateContainerPayload(formData));
   if (result.success && result.data) {
     addContainer(result.data);
@@ -51,8 +64,14 @@ export const handleCreateContainer = async (args: CreateArgs) => {
 };
 
 export const handleUpdateContainer = async (args: UpdateArgs) => {
-  const { selectedContainer, formData, update, updateContainer, setSelectedContainer, onSuccess } = args;
+  const { selectedContainer, formData, update, updateContainer, setSelectedContainer, onSuccess, getById } = args;
   if (!validateBoardingDate(formData.boardingDate, formData.estimatedArrival)) return;
+
+  const letterErr = validateVolumeLetterForPayload(formData);
+  if (letterErr) {
+    toast.error(letterErr);
+    return;
+  }
 
   const patchPayload = buildUpdateContainerPayload(formData, selectedContainer);
   if (Object.keys(patchPayload).length === 0) {
@@ -60,10 +79,16 @@ export const handleUpdateContainer = async (args: UpdateArgs) => {
     return;
   }
 
-  const result = await update(selectedContainer.id!, patchPayload);
+  const id = selectedContainer.id!;
+  const result = await update(id, patchPayload);
   if (result.success && result.data) {
-    updateContainer(selectedContainer.id!, result.data);
-    setSelectedContainer(result.data);
+    let next: Container = result.data;
+    if (getById) {
+      const fresh = await getById(id);
+      if (fresh.success && fresh.data) next = fresh.data;
+    }
+    updateContainer(id, next);
+    setSelectedContainer(next);
     toast.success("Container atualizado com sucesso!");
     onSuccess();
     return;

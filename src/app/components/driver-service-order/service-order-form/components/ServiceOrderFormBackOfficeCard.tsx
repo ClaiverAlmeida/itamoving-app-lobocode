@@ -1,12 +1,13 @@
 import React from "react";
 import { ClipboardList } from "lucide-react";
-import type { DriverUser, DriverServiceOrder, DriverServiceOrderView } from "../../../../api";
+import type { Container, DriverUser, DriverServiceOrder, DriverServiceOrderView } from "../../../../api";
 import { ResponsavelSelect } from "../../../forms";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../ui/card";
 import { Input } from "../../../ui/input";
 import { Label } from "../../../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select";
 import { Textarea } from "../../../ui/textarea";
+import { getContainerStatusLabel } from "../../../containers/containers.utils";
 
 type Props = {
   isEditMode: boolean;
@@ -21,6 +22,16 @@ type Props = {
   setOrdemObservacoes: (v: string) => void;
   observations: string;
   setObservations: (v: string) => void;
+  containersAtivos: Container[];
+  containersLoading: boolean;
+  containerId: string;
+  setContainerId: (v: string) => void;
+  /** Quando o CUID veio do agendamento: não carregamos a lista; só exibimos o rótulo. */
+  containerAgendamentoReadOnly?: { id: string; label: string } | null;
+  /** Sem `containerId` no agendamento: seleção opcional; sem vínculo não há numeração física. */
+  containerOpcional?: boolean;
+  /** Em edição da OS, só administrador pode mudar o container (demais papéis mantêm o valor atual). */
+  isContainerLockedInEdit?: boolean;
 };
 
 export function ServiceOrderFormBackOfficeCard(props: Props) {
@@ -37,6 +48,13 @@ export function ServiceOrderFormBackOfficeCard(props: Props) {
     setOrdemObservacoes,
     observations,
     setObservations,
+    containersAtivos,
+    containersLoading,
+    containerId,
+    setContainerId,
+    containerAgendamentoReadOnly,
+    containerOpcional = false,
+    isContainerLockedInEdit = false,
   } = props;
 
   return (
@@ -48,13 +66,72 @@ export function ServiceOrderFormBackOfficeCard(props: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-6 space-y-4">
-        <div className={`grid grid-cols-1 gap-4 ${isEditMode ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+        <div className={`grid grid-cols-1 gap-4 ${isEditMode ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-2 lg:grid-cols-3"}`}>
           {isEditMode ? (
             <div className="space-y-2">
               <Label htmlFor="osIdInterno">Nº da ordem</Label>
               <Input id="osIdInterno" value={existingOrdem?.id ?? ""} readOnly className="bg-muted font-mono" />
             </div>
           ) : null}
+          <div className="space-y-2">
+            <Label>{containerOpcional ? "Container (opcional)" : "Container *"}</Label>
+            {containerAgendamentoReadOnly ? (
+              <Input
+                readOnly
+                value={containerAgendamentoReadOnly.label}
+                title={containerAgendamentoReadOnly.id}
+                className="bg-muted font-medium"
+              />
+            ) : (
+              <>
+                <Select
+                  required={!containerOpcional}
+                  value={containerId || "__none__"}
+                  onValueChange={(v) => setContainerId(v === "__none__" ? "" : v)}
+                  disabled={
+                    isContainerLockedInEdit ||
+                    containersLoading ||
+                    (!containerOpcional && !containersAtivos.length)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        containersLoading
+                          ? "Carregando containers…"
+                          : containersAtivos.length
+                            ? containerOpcional
+                              ? "Nenhum ou escolha um container"
+                              : "Selecione o container"
+                            : containerOpcional
+                              ? "Nenhum container na lista — siga sem vínculo"
+                              : "Nenhum container disponível"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">
+                      {containerOpcional ? "Sem container (sem numeração física)" : "Selecione o container..."}
+                    </SelectItem>
+                    {containersAtivos.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.number} - {c.type} - Letra: {c.volumeLetter ?? "N/A"} - Status: {getContainerStatusLabel(c.status)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isContainerLockedInEdit ? (
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    Apenas administrador pode alterar o container após a ordem criada. Demais perfis veem o vínculo atual.
+                  </p>
+                ) : containerOpcional ? (
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    Sem seleção, a ordem segue sem associação a volume; etiquetas N–L ou N–LL (ex.: 12-A ou 12-AA) só após vínculo com container.
+                  </p>
+                ) : null}
+              </>
+            )}
+          </div>
           <div className="space-y-2">
             <Label>Status *</Label>
             <Select required value={ordemStatus} onValueChange={(v: DriverServiceOrder["status"]) => setOrdemStatus(v)}>

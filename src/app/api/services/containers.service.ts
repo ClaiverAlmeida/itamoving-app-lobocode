@@ -115,13 +115,19 @@ export type AssignContainerServiceOrderPayload = {
   driverServiceOrderId: string;
   clientId: string;
   driverServiceOrderProductIds: string[];
-  volumeLetter?: string;
 };
 
 export type TransferContainerBoxesPayload = {
   targetContainerId: string;
   driverServiceOrderProductIds: string[];
   volumeLetterForTarget?: string;
+};
+
+/** Mesmo cálculo da API de vinculação OS → container (sequência N-LETRA). */
+export type PreviewBoxLabelsPayload = {
+  existingBoxNumbers: string[];
+  letter: string;
+  count: number;
 };
 
 /** Resposta da API (prévia ou resultado interno da transferência). */
@@ -279,6 +285,23 @@ export class ContainersService extends BaseCrudService<
         targetContainer: mapBackendToFrontend(raw.targetContainer),
       },
     };
+  }
+
+  async previewBoxLabels(
+    payload: PreviewBoxLabelsPayload,
+  ): Promise<{ success: boolean; data?: { labels: string[] }; error?: string }> {
+    const result = await api.post<
+      { labels: string[] } | { data: { labels: string[] } }
+    >(`${this.resource}/box-labels/preview`, payload);
+    if (!result.success) {
+      return { success: false, error: result.error ?? "Erro ao calcular etiquetas" };
+    }
+    const raw = result.data as { labels?: string[]; data?: { labels: string[] } } | undefined;
+    const labels = raw?.data?.labels ?? raw?.labels;
+    if (!Array.isArray(labels)) {
+      return { success: false, error: "Resposta inválida ao calcular etiquetas" };
+    }
+    return { success: true, data: { labels } };
   }
 }
 

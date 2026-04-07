@@ -76,6 +76,14 @@ export function agendamentoFromOrdem(ordem: DriverServiceOrderView) {
       address: comp?.address ?? comp?.name ?? "—",
       contactPhone: comp?.contactPhone ?? "—",
     },
+    containerId: ordem.containerId ?? ordem.container?.id ?? undefined,
+    container: ordem.container
+      ? {
+          id: String(ordem.container.id ?? ""),
+          number: ordem.container.number,
+          type: ordem.container.type,
+        }
+      : undefined,
   };
 }
 
