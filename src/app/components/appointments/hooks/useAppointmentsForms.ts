@@ -38,7 +38,7 @@ const INITIAL_FORM_DATA: AppointmentFormData = {
   qtyBoxes: 0,
   observations: '',
   userId: '',
-  status: '',
+  status: 'CONFIRMED',
   appointmentPeriodId: '',
   containerId: '',
 };

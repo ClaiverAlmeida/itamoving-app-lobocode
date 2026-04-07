@@ -203,6 +203,15 @@ function MainApp() {
     setMobileNotificationsAlignOffset(viewportCenterX - triggerCenterX);
   }, [notificationsOpen, isMobileViewport]);
 
+  /** Depois de todos os hooks: sessão pode oscilar após operação/sync sem quebrar ordem de hooks. */
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-2 bg-background p-6 text-center">
+        <p className="text-sm text-muted-foreground">Carregando sessão…</p>
+      </div>
+    );
+  }
+
   const setActiveView = (view: View) => {
     navigate(`/${VIEW_TO_PATH[view]}`);
     setMobileMenuOpen(false);
@@ -210,8 +219,6 @@ function MainApp() {
 
   // Definir menu baseado no papel do usuário
   const getMenuItems = () => {
-    if (!user) return [];
-
     const allMenuItems = [
       { id: 'dashboard' as View, label: 'Dashboard', icon: LayoutDashboard },
       { id: 'clientes' as View, label: 'Clientes', icon: Users },
@@ -242,8 +249,6 @@ function MainApp() {
   const menuItems = getMenuItems();
 
   const renderView = () => {
-    if (!user) return null;
-
     // Motorista pode acessar Minhas Entregas e Ordem de Serviço
     if (user.role === 'motorista') {
       if (activeView === 'ordem-de-servico') {
@@ -348,7 +353,7 @@ function MainApp() {
                 <img src={user.avatar} alt={user.nome} className="w-10 h-10 rounded-full" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1E3A5F] to-[#5DADE2] flex items-center justify-center text-white font-bold">
-                  {user.nome.substring(0, 2).toUpperCase()}
+                  {(user.nome ?? '').slice(0, 2).toUpperCase() || 'U'}
                 </div>
               )}
               <div className="flex-1 min-w-0">
@@ -571,7 +576,7 @@ function MainApp() {
               </Popover>
 
               {/* Configurações */}
-              {user!.role.includes('admin') && (
+              {user.role === 'admin' && (
                 <div>
                   <Button variant="ghost" size="icon" className="relative" onClick={() => setActiveView('configuracoes')}>
                     <Settings className="w-5 h-5 stroke-2 fill-none outline-none" />
@@ -583,7 +588,7 @@ function MainApp() {
                 <img src={user.avatar} alt={user.nome} className="w-8 h-8 lg:w-10 lg:h-10 rounded-full shadow-lg" />
               ) : (
                 <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-white font-bold shadow-lg text-xs lg:text-sm">
-                  {user?.nome.substring(0, 2).toUpperCase()}
+                  {(user.nome ?? '').slice(0, 2).toUpperCase() || 'U'}
                 </div>
               )}
             </div>

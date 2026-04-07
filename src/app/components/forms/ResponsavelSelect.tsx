@@ -1,23 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { ChevronsUpDown, User } from "lucide-react";
-import { Button } from "../ui/button";
-import { Label } from "../ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "../ui/command";
-import { cn } from "../ui/utils";
+import React from "react";
+import { User } from "lucide-react";
+import { SearchableSelect } from "./SearchableSelect";
 
 /** Item mínimo para exibição no select (id + name; role opcional para rótulo) */
 export interface ResponsavelSelectItem {
@@ -66,64 +51,28 @@ export function ResponsavelSelect({
   className,
   getRoleLabel = defaultGetRoleLabel,
 }: ResponsavelSelectProps) {
-  const [open, setOpen] = useState(false);
-  const selected = items.find((item) => item.id === value);
-  const displayText = selected
-    ? [selected.name, getRoleLabel(selected.role)].filter(Boolean).join(" - ")
-    : placeholder;
+  const options = items.map((item) => {
+    const roleLabel = getRoleLabel(item.role);
+    const itemLabel = roleLabel ? `${item.name} - ${roleLabel}` : item.name;
+    return {
+      value: item.id,
+      label: itemLabel,
+      searchValue: `${item.name} ${roleLabel}`,
+    };
+  });
 
   return (
-    <div className={cn("space-y-2", className)}>
-      {label ? <Label>{label}</Label> : null}
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            disabled={disabled}
-            className={cn(
-              "w-full justify-between font-normal",
-              !value && "text-muted-foreground",
-            )}
-          >
-            {displayText}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          className="w-[var(--radix-popover-trigger-width)] p-0"
-          align="start"
-        >
-          <Command>
-            <CommandInput placeholder={searchPlaceholder} />
-            <CommandList>
-              <CommandEmpty>{emptyMessage}</CommandEmpty>
-              <CommandGroup>
-                {items.map((item) => {
-                  const roleLabel = getRoleLabel(item.role);
-                  const itemLabel = roleLabel
-                    ? `${item.name} - ${roleLabel}`
-                    : item.name;
-                  return (
-                    <CommandItem
-                      key={item.id}
-                      value={itemLabel}
-                      onSelect={() => {
-                        onValueChange(item.id);
-                        setOpen(false);
-                      }}
-                    >
-                      <User className="mr-2 h-4 w-4" />
-                      {itemLabel}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-    </div>
+    <SearchableSelect
+      className={className}
+      label={label}
+      items={options}
+      value={value}
+      onValueChange={onValueChange}
+      placeholder={placeholder}
+      searchPlaceholder={searchPlaceholder}
+      emptyMessage={emptyMessage}
+      disabled={disabled}
+      itemIcon={User}
+    />
   );
 }

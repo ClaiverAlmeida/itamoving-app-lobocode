@@ -16,13 +16,6 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Separator } from "../../ui/separator";
 import { cn } from "../../ui/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../ui/select";
 import { VOLUME_REFERENCIA_INFORMATIVO } from "../containers.constants";
 import { containersCrud } from "../containers.crud";
 import {
@@ -44,6 +37,7 @@ import {
   AlertTriangle,
   ArrowRightLeft,
   ChevronDown,
+  ClipboardList,
   Container as ContainerIcon,
   Hash,
   Loader2,
@@ -55,7 +49,7 @@ import {
   ContainerTransferBoxesDialog,
   type TransferBoxCandidate,
 } from "./ContainerTransferBoxesDialog";
-import { AtendenteSelect } from "../../forms";
+import { AtendenteSelect, SearchableSelect } from "../../forms";
 import { useAuth } from "../../../context/AuthContext";
 import { UnassignContainerOrderConfirmDialog } from "./UnassignContainerOrderConfirmDialog";
 
@@ -788,27 +782,27 @@ export function ContainerAssignServiceOrderDialog({
                   <Label htmlFor="aso-order" className="text-muted-foreground">
                     Ordens disponíveis (concluídas e sem container)
                   </Label>
-                  <Select
+                  <SearchableSelect
+                    id="aso-order"
+                    className="space-y-0"
+                    items={orders
+                      .filter((o): o is DriverServiceOrderView & { id: string } => Boolean(o.id))
+                      .map((o) => ({
+                        value: o.id,
+                        label: labelOrdem(o),
+                        searchValue: [o.id, o.sender?.usaName].filter(Boolean).join(" "),
+                      }))}
+                    emptyOption={{ value: "__none__", label: "Nenhuma selecionada" }}
                     value={selectedId || "__none__"}
                     onValueChange={(v) => setSelectedId(v === "__none__" ? "" : v)}
                     disabled={loadingList}
-                  >
-                    <SelectTrigger id="aso-order" className="h-11 w-full rounded-lg border-border/80 bg-background">
-                      <SelectValue
-                        placeholder={loadingList ? "Carregando ordens…" : "Selecione uma ordem"}
-                      />
-                    </SelectTrigger>
-                    <SelectContent className="max-w-[min(100vw-1.5rem,28rem)]">
-                      <SelectItem value="__none__">Nenhuma selecionada</SelectItem>
-                      {orders.map((o) =>
-                        o.id ? (
-                          <SelectItem key={o.id} value={o.id}>
-                            {labelOrdem(o)}
-                          </SelectItem>
-                        ) : null,
-                      )}
-                    </SelectContent>
-                  </Select>
+                    placeholder={loadingList ? "Carregando ordens…" : "Selecione uma ordem"}
+                    searchPlaceholder="Buscar ordem..."
+                    emptyMessage="Nenhuma ordem encontrada."
+                    triggerClassName="h-11 w-full rounded-lg border-border/80 bg-background"
+                    popoverContentClassName="max-w-[min(100vw-1.5rem,28rem)]"
+                    itemIcon={ClipboardList}
+                  />
                   {orders.length === 0 && !loadingList && (
                     <p className="text-sm text-muted-foreground rounded-lg border border-dashed px-3 py-2.5 bg-muted/30">
                       Nenhuma ordem disponível agora.

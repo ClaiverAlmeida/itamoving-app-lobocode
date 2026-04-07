@@ -1,7 +1,7 @@
 import React from "react";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Package } from "lucide-react";
 import type { Container, DriverUser, DriverServiceOrder, DriverServiceOrderView } from "../../../../api";
-import { ResponsavelSelect } from "../../../forms";
+import { ResponsavelSelect, SearchableSelect } from "../../../forms";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../ui/card";
 import { Input } from "../../../ui/input";
 import { Label } from "../../../ui/label";
@@ -84,8 +84,19 @@ export function ServiceOrderFormBackOfficeCard(props: Props) {
               />
             ) : (
               <>
-                <Select
+                <SearchableSelect
                   required={!containerOpcional}
+                  items={containersAtivos.map((c) => ({
+                    value: String(c.id),
+                    label: `${c.number} - ${c.type} - Letra: ${c.volumeLetter ?? "N/A"} - Status: ${getContainerStatusLabel(c.status)}`,
+                    searchValue: [c.number, c.type, c.volumeLetter, c.id].filter(Boolean).join(" "),
+                  }))}
+                  emptyOption={{
+                    value: "__none__",
+                    label: containerOpcional
+                      ? "Sem container (sem numeração física)"
+                      : "Selecione o container...",
+                  }}
                   value={containerId || "__none__"}
                   onValueChange={(v) => setContainerId(v === "__none__" ? "" : v)}
                   disabled={
@@ -93,33 +104,21 @@ export function ServiceOrderFormBackOfficeCard(props: Props) {
                     containersLoading ||
                     (!containerOpcional && !containersAtivos.length)
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        containersLoading
-                          ? "Carregando containers…"
-                          : containersAtivos.length
-                            ? containerOpcional
-                              ? "Nenhum ou escolha um container"
-                              : "Selecione o container"
-                            : containerOpcional
-                              ? "Nenhum container na lista — siga sem vínculo"
-                              : "Nenhum container disponível"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">
-                      {containerOpcional ? "Sem container (sem numeração física)" : "Selecione o container..."}
-                    </SelectItem>
-                    {containersAtivos.map((c) => (
-                      <SelectItem key={c.id} value={String(c.id)}>
-                        {c.number} - {c.type} - Letra: {c.volumeLetter ?? "N/A"} - Status: {getContainerStatusLabel(c.status)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder={
+                    containersLoading
+                      ? "Carregando containers…"
+                      : containersAtivos.length
+                        ? containerOpcional
+                          ? "Nenhum ou escolha um container"
+                          : "Selecione o container"
+                        : containerOpcional
+                          ? "Nenhum container na lista — siga sem vínculo"
+                          : "Nenhum container disponível"
+                  }
+                  searchPlaceholder="Buscar container..."
+                  emptyMessage="Nenhum container encontrado."
+                  itemIcon={Package}
+                />
                 {isContainerLockedInEdit ? (
                   <p className="text-xs text-muted-foreground leading-snug">
                     Apenas administrador pode alterar o container após a ordem criada. Demais perfis veem o vínculo atual.

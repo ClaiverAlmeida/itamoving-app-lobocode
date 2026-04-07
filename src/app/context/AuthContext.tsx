@@ -100,7 +100,13 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission> = {
 
 function authUserToUser(a: AuthUser | null): User | null {
   if (!a) return null;
-  return { id: a.id, nome: a.nome, email: a.email, role: a.role, avatar: a.avatar };
+  return {
+    id: a.id,
+    nome: a.nome ?? '',
+    email: a.email ?? '',
+    role: a.role,
+    avatar: a.avatar,
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -151,11 +157,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void authService.logout();
   };
 
-  const permissions = user ? ROLE_PERMISSIONS[user.role] : ROLE_PERMISSIONS.motorista;
+  const permissions = user
+    ? (ROLE_PERMISSIONS[user.role] ?? ROLE_PERMISSIONS.comercial)
+    : ROLE_PERMISSIONS.motorista;
 
   const hasPermission = (module: keyof Permission, action: 'read' | 'write'): boolean => {
     if (!user) return false;
-    return permissions[module][action];
+    const mod = permissions[module];
+    if (!mod) return false;
+    return Boolean(mod[action]);
   };
 
   return (

@@ -240,6 +240,10 @@ export function useServiceOrderFormState({
     setCaixas((prev) => renumerarCaixas(prev.filter((c) => c.id !== id)));
   };
 
+  const adicionarPrecoEntrega = () => {
+    toast.info("Adicionar preço de entrega");
+  }
+
   const adicionarItens = (caixaId: string) => {
     const caixa = caixas.find((c) => c.id === caixaId);
     if (!caixa || !caixaTemTodosCamposPreenchidos(caixa)) {
@@ -438,8 +442,8 @@ export function useServiceOrderFormState({
     setContainerId(
       String(
         existingOrdem.container?.id ??
-          (existingOrdem as { containerId?: string }).containerId ??
-          "",
+        (existingOrdem as { containerId?: string }).containerId ??
+        "",
       ).trim(),
     );
 
@@ -582,6 +586,7 @@ export function useServiceOrderFormState({
     adicionarCaixa,
     atualizarCaixa,
     removerCaixa,
+    adicionarPrecoEntrega,
     adicionarItens,
     atualizarItem,
     removerItens,

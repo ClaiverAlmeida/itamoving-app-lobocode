@@ -8,13 +8,7 @@ import { Label } from "../../ui/label";
 import { Progress } from "../../ui/progress";
 import { ScrollArea } from "../../ui/scroll-area";
 import { cn } from "../../ui/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../ui/select";
+import { SearchableSelect } from "../../forms";
 import { AlertTriangle, Boxes, Loader2, Package, Weight } from "lucide-react";
 import { volumeUseLabel, weightUse } from "./transfer-boxes-dialog.utils";
 import type { TransferBoxCandidate } from "./transfer-boxes-dialog.types";
@@ -99,32 +93,35 @@ export function TransferBoxesFormStep({
       </section>
 
       <section className="space-y-2.5">
-        <Label className="text-sm font-medium">Container de destino</Label>
-        <Select value={targetId || "__none__"} onValueChange={(x) => onTargetId(x === "__none__" ? "" : x)}>
-          <SelectTrigger className="h-11 w-full rounded-lg border-border/80 bg-background px-3 py-2">
-            <SelectValue placeholder="Selecione o container…" />
-          </SelectTrigger>
-          <SelectContent className="max-w-[min(100vw-1.5rem,26rem)]">
-            <SelectItem value="__none__">—</SelectItem>
-            {destOptions.map((c) => {
-              const vc = volumeUseLabel(c, volRef);
-              const wc = weightUse(c);
-              const line = [
-                `${c.number} · ${c.seal || "sem lacre"}`,
-                `${vc.n} vol · uso ${vc.pct.toFixed(0)}% ref.`,
-                c.fullWeight != null ? `peso ${wc.pct.toFixed(0)}% lim.` : null,
-                c.volumeLetter ? `letra ${String(c.volumeLetter).toUpperCase()}` : "sem letra",
-              ]
-                .filter(Boolean)
-                .join(" · ");
-              return (
-                <SelectItem key={c.id} value={c.id!} title={line}>
-                  {line}
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          label="Container de destino"
+          items={destOptions.map((c) => {
+            const vc = volumeUseLabel(c, volRef);
+            const wc = weightUse(c);
+            const line = [
+              `${c.number} · ${c.seal || "sem lacre"}`,
+              `${vc.n} vol · uso ${vc.pct.toFixed(0)}% ref.`,
+              c.fullWeight != null ? `peso ${wc.pct.toFixed(0)}% lim.` : null,
+              c.volumeLetter ? `letra ${String(c.volumeLetter).toUpperCase()}` : "sem letra",
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            return {
+              value: c.id!,
+              label: line,
+              searchValue: [c.number, c.seal, c.volumeLetter, c.id].filter(Boolean).join(" "),
+            };
+          })}
+          emptyOption={{ value: "__none__", label: "—" }}
+          value={targetId || "__none__"}
+          onValueChange={(x) => onTargetId(x === "__none__" ? "" : x)}
+          placeholder="Selecione o container…"
+          searchPlaceholder="Buscar container..."
+          emptyMessage="Nenhum destino encontrado."
+          triggerClassName="h-11 w-full rounded-lg border-border/80 bg-background px-3 py-2"
+          popoverContentClassName="max-w-[min(100vw-1.5rem,26rem)]"
+          itemIcon={Package}
+        />
         {destOptions.length === 0 && (
           <p className="text-xs text-muted-foreground">Nenhum outro container disponível para receber volumes.</p>
         )}

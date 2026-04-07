@@ -1,11 +1,12 @@
 import React from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Appointment, Client, Container, CreateAppointmentsPeriodsDTO } from "../../../api";
-import { AtendenteSelect } from "../../forms";
+import { AtendenteSelect, SearchableSelect } from "../../forms";
 import { AppointmentBoxesPerDayAlert, AppointmentBoxesPerPeriodAlert, EmptyStateAlert } from "../../alerts";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
+import { CalendarRange, Package, Users } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { formatClienteAgendamentoLabel } from "../../clients/clients.display";
 import { Switch } from "../../ui/switch";
@@ -84,26 +85,23 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="clientId">Cliente *</Label>
-        <Select
-          value={formData.clientId}
-          disabled={!clientesAtivos.length}
-          onValueChange={(value) => setFormData({ ...formData, clientId: value })}
-          required
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            {clientesAtivos.map((cliente) => (
-              <SelectItem key={cliente.id} value={cliente.id}>
-                {formatClienteAgendamentoLabel(cliente)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <SearchableSelect
+        id="clientId"
+        required
+        label="Cliente *"
+        items={clientesAtivos.map((cliente) => ({
+          value: cliente.id,
+          label: formatClienteAgendamentoLabel(cliente),
+          searchValue: [cliente.id, cliente.usaName, cliente.usaPhone].filter(Boolean).join(" "),
+        }))}
+        value={formData.clientId}
+        onValueChange={(v) => setFormData({ ...formData, clientId: v })}
+        disabled={!clientesAtivos.length}
+        placeholder="Selecione o cliente"
+        searchPlaceholder="Buscar cliente..."
+        emptyMessage="Nenhum cliente encontrado."
+        itemIcon={Users}
+      />
 
       {!clientesAtivos.length && (
         <EmptyStateAlert
@@ -189,8 +187,14 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
               >
                 <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="appointmentPeriodId">Selecione o período de coleta *</Label>
-                    <Select
+                    <SearchableSelect
+                      id="appointmentPeriodId"
+                      label="Selecione o período de coleta *"
+                      items={periodos.map((period) => ({
+                        value: String(period.id ?? ""),
+                        label: `${period.title} - (${period.collectionArea}) : ${formatDateOnlyToBR(toDateOnly(String(period.startDate)))} - ${formatDateOnlyToBR(toDateOnly(String(period.endDate)))}`,
+                        searchValue: [period.title, period.collectionArea, String(period.id ?? "")].join(" "),
+                      }))}
                       value={formData.appointmentPeriodId}
                       onValueChange={(value) => {
                         setFormData((prev) => {
@@ -213,18 +217,12 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
                           return { ...prev, appointmentPeriodId: value };
                         });
                       }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione o período de coleta" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {periodos.map((period) => (
-                          <SelectItem key={period.id ?? ""} value={period.id ?? ""}>
-                            {period.title} - ({period.collectionArea}) : {formatDateOnlyToBR(toDateOnly(String(period.startDate)))} - {formatDateOnlyToBR(toDateOnly(String(period.endDate)))}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Selecione o período de coleta"
+                      searchPlaceholder="Buscar período..."
+                      emptyMessage="Nenhum período encontrado."
+                      triggerClassName="w-full"
+                      itemIcon={CalendarRange}
+                    />
                   </div>
                 </div>
               </motion.div>
@@ -261,7 +259,7 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="value">Valor Total *</Label>
+          <Label htmlFor="value">Valor Total Previsto *</Label>
           <Input
             id="value"
             type="number"
@@ -291,28 +289,28 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
         required
       />
 
-      <div className="space-y-2">
-        <Label htmlFor="containerId">Container</Label>
-        <Select
-          value={formData.containerId || NONE_CONTAINER_VALUE}
-          disabled={!containersAtivos.length}
-          onValueChange={(value) =>
-            setFormData({ ...formData, containerId: value === NONE_CONTAINER_VALUE ? "" : value })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o container" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NONE_CONTAINER_VALUE}>Nenhum container selecionado</SelectItem>
-            {containersAtivos.map((container) => (
-              <SelectItem key={container.id!} value={container.id!}>
-                {container.number} - {container.type} - Letra: {container.volumeLetter ?? "N/A"} - Status: {getContainerStatusLabel(container.status)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <SearchableSelect
+        id="containerId"
+        label="Container"
+        items={containersAtivos.map((container) => ({
+          value: container.id!,
+          label: `${container.number} - ${container.type} - Letra: ${container.volumeLetter ?? "N/A"} - Status: ${getContainerStatusLabel(container.status)}`,
+          searchValue: [container.number, container.type, container.volumeLetter, container.id].filter(Boolean).join(" "),
+        }))}
+        emptyOption={{
+          value: NONE_CONTAINER_VALUE,
+          label: "Nenhum container selecionado",
+        }}
+        value={formData.containerId || NONE_CONTAINER_VALUE}
+        onValueChange={(value) =>
+          setFormData({ ...formData, containerId: value === NONE_CONTAINER_VALUE ? "" : value })
+        }
+        disabled={!containersAtivos.length}
+        placeholder="Selecione o container"
+        searchPlaceholder="Buscar container..."
+        emptyMessage="Nenhum container encontrado."
+        itemIcon={Package}
+      />
 
       <div className="space-y-2">
         <Label htmlFor="setStatus">Status *</Label>

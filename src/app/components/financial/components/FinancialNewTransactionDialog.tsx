@@ -3,9 +3,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Button } from "../../ui/button";
+import { SearchableSelect } from "../../forms";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import type { Client, FinancialTransaction } from "../../../api";
-import { Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import type { TransactionFormData } from "../index";
 import { CATEGORIAS_DESPESA, CATEGORIAS_RECEITA, METODOS_PAGAMENTO } from "../index";
 import { handleNewTransactionSubmit } from "../index";
@@ -116,22 +117,22 @@ export function FinancialNewTransactionDialog(props: {
                   Nenhum cliente ativo. Cadastre ou ative um cliente.
                 </p>
               )}
-              <Select
-                value={formData.clientId || undefined}
+              <SearchableSelect
+                id="clienteId"
+                items={clientes.map((cliente) => ({
+                  value: cliente.id,
+                  label: formatFinancialClientOptionLabel(cliente),
+                  searchValue: [cliente.id, cliente.usaName, cliente.usaPhone].filter(Boolean).join(" "),
+                }))}
+                value={formData.clientId}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, clientId: value }))}
                 disabled={clientesLoading || clientes.length === 0}
-              >
-                <SelectTrigger id="clienteId">
-                  <SelectValue placeholder={clientesLoading ? "Carregando…" : "Selecione o cliente"} />
-                </SelectTrigger>
-                <SelectContent className="z-[300] max-h-72">
-                  {clientes.map((cliente) => (
-                    <SelectItem key={cliente.id} value={cliente.id}>
-                      {formatFinancialClientOptionLabel(cliente)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder={clientesLoading ? "Carregando…" : "Selecione o cliente"}
+                searchPlaceholder="Buscar cliente..."
+                emptyMessage="Nenhum cliente encontrado."
+                popoverContentClassName="z-[300]"
+                itemIcon={Users}
+              />
             </div>
           )}
 

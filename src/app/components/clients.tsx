@@ -334,7 +334,14 @@ export default function ClientesView() {
       }
 
       return true;
-    });
+    })
+      .sort((a, b) =>
+        (a.usaName ?? "")
+          .trim()
+          .localeCompare((b.usaName ?? "").trim(), "pt-BR", {
+            sensitivity: "base",
+          }),
+      );
   }, [clientes, searchTerm, filters]);
 
   /** Cidades distintas por estado (EUA e Brasil) na lista filtrada — para exibir nos cards. */

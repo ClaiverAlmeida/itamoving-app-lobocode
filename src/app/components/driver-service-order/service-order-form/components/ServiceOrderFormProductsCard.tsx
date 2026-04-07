@@ -7,7 +7,7 @@ import { Button } from "../../../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../ui/card";
 import { Input } from "../../../ui/input";
 import { Label } from "../../../ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select";
+import { SearchableSelect } from "../../../forms";
 
 type Props = {
   caixas: Caixa[];
@@ -15,6 +15,7 @@ type Props = {
   opcoesCaixa: ProductPrice[];
   valorTotalCaixas: number;
   adicionarCaixa: () => void;
+  adicionarPrecoEntrega: () => void;
   atualizarCaixa: (id: string, campo: keyof Caixa, valor: string | number) => void;
   removerCaixa: (id: string) => void;
   adicionarItens: (caixaId: string) => void;
@@ -31,6 +32,7 @@ export function ServiceOrderFormProductsCard(props: Props) {
     opcoesCaixa,
     valorTotalCaixas,
     adicionarCaixa,
+    adicionarPrecoEntrega,
     atualizarCaixa,
     removerCaixa,
     adicionarItens,
@@ -48,10 +50,16 @@ export function ServiceOrderFormProductsCard(props: Props) {
             <Package className="w-5 h-5" />
             Produtos e Valores
           </CardTitle>
-          <Button onClick={adicionarCaixa} size="sm" className="bg-[#F5A623] hover:bg-[#E59400] w-full sm:w-auto">
-            <Plus className="w-4 h-4 mr-1" />
-            Adicionar volume ou produto
-          </Button>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <Button onClick={adicionarCaixa} size="sm" className="bg-[#F5A623] hover:bg-[#E59400] w-full sm:w-auto">
+              <Plus className="w-4 h-4 mr-1" />
+              Adicionar volume ou produto
+            </Button>
+            <Button onClick={adicionarPrecoEntrega} size="sm" className="bg-[#2A4A6F] hover:bg-[#1E3A5F] w-full sm:w-auto">
+              <Plus className="w-4 h-4 mr-1" />
+              Adicionar preço de entrega
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-6">
@@ -81,18 +89,21 @@ export function ServiceOrderFormProductsCard(props: Props) {
                   <div className="grid grid-cols-1 md:grid-cols-11 gap-3 items-end">
                     <div className="md:col-span-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-2 min-w-0">
                       <div className="flex-1 min-w-0 space-y-1">
-                        <Select value={caixa.type} onValueChange={(valor) => atualizarCaixa(caixa.id, "type", valor)}>
-                          <SelectTrigger className="bg-white w-full">
-                            <SelectValue placeholder="Selecione o tipo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {opcoesCaixa.map((opcao) => (
-                              <SelectItem key={opcao.id} value={opcao.size || opcao.name}>
-                                {`${opcao.name} - ${ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[opcao.type]]}`}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          className="space-y-0"
+                          items={opcoesCaixa.map((opcao) => ({
+                            value: opcao.size || opcao.name,
+                            label: `${opcao.name} - ${ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[opcao.type]]}`,
+                            searchValue: [opcao.name, opcao.size, opcao.type, opcao.id].filter(Boolean).join(" "),
+                          }))}
+                          value={caixa.type}
+                          onValueChange={(valor) => atualizarCaixa(caixa.id, "type", valor)}
+                          placeholder="Selecione o tipo"
+                          searchPlaceholder="Buscar tipo de volume..."
+                          emptyMessage="Nenhum tipo encontrado."
+                          triggerClassName="bg-white w-full"
+                          itemIcon={Package}
+                        />
                       </div>
                       {!fitaAdesiva && (
                         <Button type="button" size="sm" disabled={!podeAdicionarItens} title={podeAdicionarItens ? "Adicionar itens neste volume" : "Preencha tipo, peso e valor do volume antes de adicionar itens"} className="shrink-0 rounded-sm bg-[#F5A623] hover:bg-[#E59400] w-full sm:w-auto disabled:opacity-50 disabled:pointer-events-none" onClick={() => adicionarItens(caixa.id)}>

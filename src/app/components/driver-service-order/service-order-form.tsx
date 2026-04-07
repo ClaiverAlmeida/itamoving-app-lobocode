@@ -114,6 +114,7 @@ export default function OrdemServicoForm({
     motoristaResponsavelNome,
     valorTotalCaixas,
     adicionarCaixa,
+    adicionarPrecoEntrega,
     atualizarCaixa,
     removerCaixa,
     adicionarItens,
@@ -330,6 +331,7 @@ export default function OrdemServicoForm({
           opcoesCaixa={opcoesCaixa}
           valorTotalCaixas={valorTotalCaixas}
           adicionarCaixa={adicionarCaixa}
+          adicionarPrecoEntrega={adicionarPrecoEntrega}
           atualizarCaixa={atualizarCaixa}
           removerCaixa={removerCaixa}
           adicionarItens={adicionarItens}

@@ -1,11 +1,11 @@
 import React from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Appointment, Client, Container, CreateAppointmentsPeriodsDTO } from "../../../api";
-import { AtendenteSelect } from "../../forms";
+import { AtendenteSelect, SearchableSelect } from "../../forms";
 import { AppointmentBoxesPerDayAlert, AppointmentBoxesPerPeriodAlert, EmptyStateAlert } from "../../alerts";
 import { Button } from "../../ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "../../ui/dialog";
-import { Edit } from "lucide-react";
+import { CalendarRange, Edit, Package, Users } from "lucide-react";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
@@ -122,26 +122,23 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
         </DialogHeader>
 
         <form onSubmit={(e) => void handleEditAgendamento(e, ag)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="editFormClientId">Cliente *</Label>
-            <Select
-              value={formData.clientId}
-              disabled={!clientesAtivos.length}
-              onValueChange={(value) => setFormData({ ...formData, clientId: value })}
-              required
-            >
-              <SelectTrigger id="editFormClientId">
-                <SelectValue placeholder="Selecione o cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {clientesAtivos.map((cliente) => (
-                  <SelectItem key={cliente.id} value={cliente.id}>
-                    {formatClienteAgendamentoLabel(cliente)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <SearchableSelect
+            id="editFormClientId"
+            required
+            label="Cliente *"
+            items={clientesAtivos.map((cliente) => ({
+              value: cliente.id,
+              label: formatClienteAgendamentoLabel(cliente),
+              searchValue: [cliente.id, cliente.usaName, cliente.usaPhone].filter(Boolean).join(" "),
+            }))}
+            value={formData.clientId}
+            onValueChange={(v) => setFormData({ ...formData, clientId: v })}
+            disabled={!clientesAtivos.length}
+            placeholder="Selecione o cliente"
+            searchPlaceholder="Buscar cliente..."
+            emptyMessage="Nenhum cliente encontrado."
+            itemIcon={Users}
+          />
 
           {!clientesAtivos.length && (
             <EmptyStateAlert
@@ -229,8 +226,14 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
                   >
                     <div className="grid grid-cols-1 gap-3">
                       <div className="space-y-2">
-                        <Label htmlFor="editFormAppointmentPeriodId">Selecione o período de coleta *</Label>
-                        <Select
+                        <SearchableSelect
+                          id="editFormAppointmentPeriodId"
+                          label="Selecione o período de coleta *"
+                          items={periodos.map((period) => ({
+                            value: String(period.id ?? ""),
+                            label: `${period.title} - (${period.collectionArea}) : ${formatDateOnlyToBR(toDateOnly(String(period.startDate)))} - ${formatDateOnlyToBR(toDateOnly(String(period.endDate)))}`,
+                            searchValue: [period.title, period.collectionArea, String(period.id ?? "")].join(" "),
+                          }))}
                           value={formData.appointmentPeriodId}
                           onValueChange={(value) => {
                             setFormData((prev) => {
@@ -253,18 +256,12 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
                               return { ...prev, appointmentPeriodId: value };
                             });
                           }}
-                        >
-                          <SelectTrigger id="editFormAppointmentPeriodId" className="w-full">
-                            <SelectValue placeholder="Selecione o período de coleta" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {periodos.map((period) => (
-                              <SelectItem key={period.id ?? ""} value={period.id ?? ""}>
-                                {period.title} - ({period.collectionArea}) : {formatDateOnlyToBR(toDateOnly(String(period.startDate)))} - {formatDateOnlyToBR(toDateOnly(String(period.endDate)))}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Selecione o período de coleta"
+                          searchPlaceholder="Buscar período..."
+                          emptyMessage="Nenhum período encontrado."
+                          triggerClassName="w-full"
+                          itemIcon={CalendarRange}
+                        />
                       </div>
                     </div>
                   </motion.div>
@@ -301,7 +298,7 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="editFormValue">Valor Total *</Label>
+              <Label htmlFor="editFormValue">Valor Total Previsto *</Label>
               <Input
                 id="editFormValue"
                 type="number"
@@ -331,28 +328,28 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
             required
           />
 
-          <div className="space-y-2">
-            <Label htmlFor="editFormContainerId">Container</Label>
-            <Select
-              value={formData.containerId || NONE_CONTAINER_VALUE}
-              disabled={!containersAtivos.length}
-              onValueChange={(value) =>
-                setFormData({ ...formData, containerId: value === NONE_CONTAINER_VALUE ? "" : value })
-              }
-            >
-              <SelectTrigger id="editFormContainerId">
-                <SelectValue placeholder="Selecione o container" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE_CONTAINER_VALUE}>Nenhum container selecionado</SelectItem>
-                {containersAtivos.map((container) => (
-                  <SelectItem key={container.id!} value={container.id!}>
-                    {container.number} - {container.type} - Letra: {container.volumeLetter ?? "N/A"} - Status: {getContainerStatusLabel(container.status)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <SearchableSelect
+            id="editFormContainerId"
+            label="Container"
+            items={containersAtivos.map((container) => ({
+              value: container.id!,
+              label: `${container.number} - ${container.type} - Letra: ${container.volumeLetter ?? "N/A"} - Status: ${getContainerStatusLabel(container.status)}`,
+              searchValue: [container.number, container.type, container.volumeLetter, container.id].filter(Boolean).join(" "),
+            }))}
+            emptyOption={{
+              value: NONE_CONTAINER_VALUE,
+              label: "Nenhum container selecionado",
+            }}
+            value={formData.containerId || NONE_CONTAINER_VALUE}
+            onValueChange={(value) =>
+              setFormData({ ...formData, containerId: value === NONE_CONTAINER_VALUE ? "" : value })
+            }
+            disabled={!containersAtivos.length}
+            placeholder="Selecione o container"
+            searchPlaceholder="Buscar container..."
+            emptyMessage="Nenhum container encontrado."
+            itemIcon={Package}
+          />
 
           <div className="space-y-2">
             <Label htmlFor="editFormSetStatus">Status *</Label>

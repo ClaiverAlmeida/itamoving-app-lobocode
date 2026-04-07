@@ -108,7 +108,7 @@ export function HrEditUserDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="salaryEdit">Salário (USD) *</Label>
-              <Input id="salaryEdit" type="number" step="0.01" min={0.01} value={formUsuario.salary} onChange={(e) => setFormUsuario({ ...formUsuario, salary: Number(e.target.value) || 0 })} required />
+              <Input id="salaryEdit" type="number" step="0.01" min={0.00} value={formUsuario.salary} onChange={(e) => setFormUsuario({ ...formUsuario, salary: Number(e.target.value) || 0 })} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="statusEdit">Status *</Label>
