@@ -11,6 +11,8 @@ type Props = {
   valorAgendamento?: number;
   valorAntecipacao?: number;
   paymentPoolUsd: number;
+  totalReceivedUsd: number;
+  setTotalReceivedUsd: (v: number) => void;
   cashUsd: number;
   setCashUsd: (v: number) => void;
 };
@@ -20,20 +22,31 @@ export function ServiceOrderFormPaymentCard({
   valorAgendamento = 0,
   valorAntecipacao = 0,
   paymentPoolUsd,
+  totalReceivedUsd,
+  setTotalReceivedUsd,
   cashUsd,
   setCashUsd,
 }: Props) {
   const subtotalAgendamento = Math.max(valorAgendamento - valorAntecipacao, 0);
   const pool = round2(Math.max(0, paymentPoolUsd));
-  const cash = round2(Math.min(Math.max(cashUsd, 0), pool));
-  const zelle = round2(pool - cash);
+  const totalReceived = round2(Math.min(Math.max(totalReceivedUsd, 0), pool));
+  const cash = round2(Math.min(Math.max(cashUsd, 0), totalReceived));
+  const zelle = round2(totalReceived - cash);
+  const pendente = round2(Math.max(0, pool - totalReceived));
 
-  const maxCents = useMemo(() => Math.max(0, Math.round(pool * 100)), [pool]);
+  const poolCents = useMemo(() => Math.max(0, Math.round(pool * 100)), [pool]);
+  const totalReceivedCents = Math.round(totalReceived * 100);
   const cashCents = Math.round(cash * 100);
-  const zelleCents = Math.max(0, maxCents - cashCents);
+  const zelleCents = Math.max(0, totalReceivedCents - cashCents);
+
+  const setTotalFromCents = (cents: number) => {
+    const c = Math.max(0, Math.min(cents, poolCents));
+    setTotalReceivedUsd(round2(c / 100));
+  };
 
   const setCashFromCents = (cents: number) => {
-    const c = Math.max(0, Math.min(cents, maxCents));
+    const maxCash = totalReceivedCents;
+    const c = Math.max(0, Math.min(cents, maxCash));
     setCashUsd(round2(c / 100));
   };
 
@@ -74,7 +87,8 @@ export function ServiceOrderFormPaymentCard({
                 Total da ordem (base do repasse): <span className="tabular-nums">$ {pool.toFixed(2)}</span>
               </p>
               <p className="text-xs text-muted-foreground">
-                Indique quanto foi recebido em espécie e via Zelle. Os valores são complementares sobre o total da ordem (não se somam um ao outro).
+                Ajuste quanto está sendo registrado nesta entrega (pode ser menor que o total, se já houve antecipação ou
+                pagamento parcial). Depois reparta só esse valor entre espécie e Zelle.
               </p>
 
               {pool <= 0 ? (
@@ -82,9 +96,38 @@ export function ServiceOrderFormPaymentCard({
               ) : (
                 <>
                   <div className="space-y-2">
+                    <div className="flex justify-between text-sm gap-2 flex-wrap">
+                      <Label htmlFor="range-total-received" className="text-foreground font-medium">
+                        Total nesta Ordem de Serviço (espécie + Zelle)
+                      </Label>
+                      <span className="font-semibold tabular-nums text-green-800">$ {totalReceived.toFixed(2)}</span>
+                    </div>
+                    <input
+                      id="range-total-received"
+                      type="range"
+                      className="w-full h-2 accent-green-700 rounded-lg appearance-none cursor-pointer bg-green-200/80"
+                      min={0}
+                      max={poolCents}
+                      step={1}
+                      value={totalReceivedCents}
+                      onChange={(e) => setTotalFromCents(Number(e.target.value))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Teto: $ {pool.toFixed(2)}. Abaixo do teto, o restante fica como saldo pendente no recibo.
+                    </p>
+                  </div>
+
+                  {pendente > 0.005 && (
+                    <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                      <span className="font-semibold">Saldo pendente: </span>
+                      <span className="tabular-nums">$ {pendente.toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
                     <div className="flex justify-between text-sm gap-2">
                       <Label htmlFor="range-cash" className="text-foreground font-medium">
-                        Em espécie
+                        Em espécie (deste total)
                       </Label>
                       <span className="font-semibold tabular-nums text-green-800">$ {cash.toFixed(2)}</span>
                     </div>
@@ -93,17 +136,18 @@ export function ServiceOrderFormPaymentCard({
                       type="range"
                       className="w-full h-2 accent-green-600 rounded-lg appearance-none cursor-pointer bg-green-200/80"
                       min={0}
-                      max={maxCents}
+                      max={Math.max(0, totalReceivedCents)}
                       step={1}
                       value={cashCents}
                       onChange={(e) => setCashFromCents(Number(e.target.value))}
+                      disabled={totalReceivedCents <= 0}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm gap-2">
                       <Label htmlFor="range-zelle" className="text-foreground font-medium">
-                        Zelle
+                        Zelle (deste total)
                       </Label>
                       <span className="font-semibold tabular-nums text-green-800">$ {zelle.toFixed(2)}</span>
                     </div>
@@ -112,10 +156,11 @@ export function ServiceOrderFormPaymentCard({
                       type="range"
                       className="w-full h-2 accent-emerald-600 rounded-lg appearance-none cursor-pointer bg-emerald-200/80"
                       min={0}
-                      max={maxCents}
+                      max={Math.max(0, totalReceivedCents)}
                       step={1}
                       value={zelleCents}
-                      onChange={(e) => setCashFromCents(maxCents - Number(e.target.value))}
+                      onChange={(e) => setCashFromCents(totalReceivedCents - Number(e.target.value))}
+                      disabled={totalReceivedCents <= 0}
                     />
                   </div>
                 </>
@@ -139,13 +184,15 @@ export function ServiceOrderFormPaymentCard({
             </div>
           </div>
 
-          {pool > 0 && (cash > 0 || zelle > 0) && (
+          {pool > 0 && (cash > 0 || zelle > 0 || totalReceived > 0) && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
               <CheckCircle className="w-5 h-5 text-blue-600 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-blue-900">Repartição registrada</p>
+                <p className="text-sm font-semibold text-blue-900">Registro de pagamento</p>
                 <p className="text-xs text-blue-700">
-                  Espécie: $ {formatUsdValorRecebidoLivre(cash)} · Zelle: $ {formatUsdValorRecebidoLivre(zelle)}
+                  Nesta Ordem de Serviço: $ {formatUsdValorRecebidoLivre(totalReceived)} · Espécie: $ {formatUsdValorRecebidoLivre(cash)} ·
+                  Zelle: $ {formatUsdValorRecebidoLivre(zelle)}
+                  {pendente > 0.005 ? ` · Pendente: $ ${formatUsdValorRecebidoLivre(pendente)}` : ""}
                 </p>
               </div>
             </motion.div>

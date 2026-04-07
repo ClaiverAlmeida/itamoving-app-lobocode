@@ -102,6 +102,8 @@ export default function OrdemServicoForm({
     assinaturaAgente,
     cashUsd,
     setCashUsd,
+    totalReceivedUsd,
+    setTotalReceivedUsd,
     paymentPoolUsd,
     observations,
     setObservations,
@@ -160,6 +162,7 @@ export default function OrdemServicoForm({
     ordemStatus,
     ordemObservacoes,
     paymentPoolUsd,
+    totalReceivedUsd,
     cashUsd,
     assinaturaCliente,
     assinaturaAgente,
@@ -361,6 +364,8 @@ export default function OrdemServicoForm({
           valorAgendamento={Number(agendamento?.value ?? 0)}
           valorAntecipacao={Number(agendamento?.downPayment ?? 0)}
           paymentPoolUsd={paymentPoolUsd}
+          totalReceivedUsd={totalReceivedUsd}
+          setTotalReceivedUsd={setTotalReceivedUsd}
           cashUsd={cashUsd}
           setCashUsd={setCashUsd}
         />

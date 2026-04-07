@@ -11,7 +11,7 @@ export type UploadedFileRecord = {
 };
 
 /**
- * Upload de assinatura da ordem de serviço (MinIO: `companies/{companyId}/service-orders/{orderId}/{uuid}.jpg`).
+ * Upload de assinatura da ordem de serviço (MinIO: `.../service-orders/{orderId}/signature-client.png` ou `signature-agent.png`; substitui na reedição).
  */
 export async function uploadServiceOrderSignature(params: {
   file: File;

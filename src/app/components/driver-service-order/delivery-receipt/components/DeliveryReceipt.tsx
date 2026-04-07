@@ -8,9 +8,11 @@ import type { DriverServiceOrderView } from "../../../../api";
 import {
   RECIBO_CATEGORY_LABEL,
   formatUsdValorRecebidoLivre,
+  saldoPendentePagamentoOrdem,
   summarizeOrdemForRecibo,
   sumValorTotalCaixasFromOrdem,
   totalGeralConsolidadoOrdem,
+  totalRecebidoPagamentoOrdem,
   type ReciboBoxCategory,
 } from "../delivery-receipt-utils";
 
@@ -57,6 +59,8 @@ export function DeliveryReceipt({
   const cashUsd = Number(ordem.cashReceivedUsd ?? 0);
   const zelleUsd = Number(ordem.zelleReceivedUsd ?? 0);
   const totalConsolidado = totalGeralConsolidadoOrdem(ordem);
+  const totalRecebidoRegistrado = totalRecebidoPagamentoOrdem(ordem);
+  const saldoPendente = saldoPendentePagamentoOrdem(ordem);
 
   return (
     <div className={`space-y-4 sm:space-y-6 print:bg-white min-w-0 ${className ?? ""}`}>
@@ -201,13 +205,25 @@ export function DeliveryReceipt({
           </div>
           <div className="border-t border-green-200 pt-3 space-y-1">
             <div className="flex justify-between gap-4 text-sm">
-              <span className="text-muted-foreground">Em espécie:</span>
+              <span className="text-muted-foreground">Em espécie (nesta entrega):</span>
               <span className="font-semibold tabular-nums">$ {formatUsdValorRecebidoLivre(cashUsd)}</span>
             </div>
             <div className="flex justify-between gap-4 text-sm">
-              <span className="text-muted-foreground">Zelle:</span>
+              <span className="text-muted-foreground">Zelle (nesta entrega):</span>
               <span className="font-semibold tabular-nums">$ {formatUsdValorRecebidoLivre(zelleUsd)}</span>
             </div>
+            <div className="flex justify-between gap-4 text-sm pt-2 border-t border-green-200 font-medium">
+              <span className="text-muted-foreground">Total recebido (espécie + Zelle):</span>
+              <span className="font-semibold tabular-nums text-green-900">$ {formatUsdValorRecebidoLivre(totalRecebidoRegistrado)}</span>
+            </div>
+            {saldoPendente > 0.005 ? (
+              <div className="flex justify-between gap-4 text-sm rounded-md border border-amber-400 bg-amber-50 px-2 py-2 mt-2">
+                <span className="font-semibold text-amber-950">Saldo pendente a pagar:</span>
+                <span className="font-bold tabular-nums text-amber-950">$ {formatUsdValorRecebidoLivre(saldoPendente)}</span>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground pt-1">Nesta Ordem de Serviço foi registrado o valor integral da base da ordem acima.</p>
+            )}
           </div>
           <div className="mt-3 pt-3 border-t-2 border-green-300 space-y-2 text-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -221,14 +237,8 @@ export function DeliveryReceipt({
               <span className="text-muted-foreground">+ Total dos volumes</span>
               <span className="font-medium tabular-nums">$ {valorTotalCaixas.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between gap-4 text-xs text-muted-foreground">
-              <span>Espécie + Zelle = total da ordem acima (repartição)</span>
-              <span className="font-medium tabular-nums">
-                $ {formatUsdValorRecebidoLivre(cashUsd + zelleUsd)}
-              </span>
-            </div>
             <div className="flex justify-between gap-4 pt-2 border-t border-green-200">
-              <span className="text-base font-bold text-green-900">Total geral</span>
+              <span className="text-base font-bold text-green-900">Total geral (base da ordem)</span>
               <span className="text-xl font-bold text-green-800 tabular-nums">
                 $ {totalConsolidado.toFixed(2)}
               </span>

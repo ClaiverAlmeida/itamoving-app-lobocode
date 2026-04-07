@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import type { Caixa, DriverUser, Item, DriverServiceOrder, ProductPrice } from "../../../api";
 import { serviceOrderFormService } from "../../../api";
 import { buildDriverServiceOrderProducts, buildServiceOrderPayload } from "./service-order-form.payload";
-import { round2 } from "./service-order-form.payment";
+import { computePaymentSplitUsd, round2 } from "./service-order-form.payment";
 import { caixaTemTodosCamposPreenchidos, isCaixaPersonalizada, isFitaAdesiva } from "./service-order-form.verifications";
 import { serviceOrderFormCrud } from "./service-order-form.crud";
 import { resolveSignatureToMinioUrl } from "./service-order-form.signature";
@@ -36,6 +36,7 @@ type Params = {
   ordemStatus: DriverServiceOrder["status"];
   ordemObservacoes: string;
   paymentPoolUsd: number;
+  totalReceivedUsd: number;
   cashUsd: number;
   assinaturaCliente: string;
   assinaturaAgente: string;
@@ -109,11 +110,11 @@ export function useServiceOrderFormSave(params: Params) {
       ordem: {
         status: params.ordemStatus,
         observations: params.ordemObservacoes.trim(),
-        cashReceivedUsd: round2(Math.min(Math.max(params.cashUsd, 0), Math.max(0, params.paymentPoolUsd))),
-        zelleReceivedUsd: round2(
-          Math.max(0, params.paymentPoolUsd) -
-            round2(Math.min(Math.max(params.cashUsd, 0), Math.max(0, params.paymentPoolUsd))),
-        ),
+        ...computePaymentSplitUsd({
+          paymentPoolUsd: params.paymentPoolUsd,
+          totalReceivedUsd: params.totalReceivedUsd,
+          cashUsd: params.cashUsd,
+        }),
       },
       motoristaResponsavel: params.motoristaResponsavel,
       containerId: String(params.containerId ?? "").trim(),
@@ -278,6 +279,7 @@ export function useServiceOrderFormSave(params: Params) {
       driverId: idMotoristaResponsavel,
       status: criandoComoMotorista ? "COMPLETED" : params.ordemStatus,
       paymentPoolUsd: params.paymentPoolUsd,
+      totalReceivedUsd: params.totalReceivedUsd,
       cashUsd: params.cashUsd,
       observations: !params.isEditMode
         ? params.observations?.trim() || undefined

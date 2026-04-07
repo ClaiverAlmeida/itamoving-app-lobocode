@@ -4,7 +4,7 @@ import type { Caixa, Container, DriverUser, Item, ProductPrice } from "../../../
 import { serviceOrderFormCrud } from "./service-order-form.crud";
 import { loadDataUrlOnCanvas, resolveCaixaSelectValueFromApiLine } from "./service-order-form.utils";
 import { caixaTemTodosCamposPreenchidos, novoIdItem, renumerarCaixas } from "./service-order-form.verifications";
-import { computePaymentPoolUsd, round2 } from "./service-order-form.payment";
+import { computePaymentPoolUsd, computePaymentSplitUsd, round2 } from "./service-order-form.payment";
 
 type Params = {
   appointmentId: string;
@@ -101,7 +101,9 @@ export function useServiceOrderFormState({
   const [assinaturaAgente, setAssinaturaAgente] = useState("");
   const clienteAssinaturaDirtyRef = useRef(false);
   const agenteAssinaturaDirtyRef = useRef(false);
-  /** Parcela em espécie (USD); Zelle = pool − espécie. */
+  /** Total registrado espécie + Zelle (≤ pool); na criação, preenche com o pool quando este fica disponível. */
+  const [totalReceivedUsd, setTotalReceivedUsd] = useState(0);
+  /** Parcela em espécie dentro do total registrado. */
   const [cashUsd, setCashUsd] = useState(0);
   const [observations, setObservations] = useState("");
   const [ordemStatus, setOrdemStatus] = useState<any>("COMPLETED");
@@ -152,11 +154,25 @@ export function useServiceOrderFormState({
   );
 
   useEffect(() => {
-    setCashUsd((c) => {
-      if (paymentPoolUsd <= 0) return 0;
-      return Math.min(Math.max(c, 0), paymentPoolUsd);
-    });
-  }, [paymentPoolUsd]);
+    const pool = paymentPoolUsd;
+    if (pool <= 0) {
+      setTotalReceivedUsd(0);
+      setCashUsd(0);
+      return;
+    }
+    if (!existingOrdem?.id) {
+      setTotalReceivedUsd((prev) => {
+        if (prev === 0) return pool;
+        return Math.min(prev, pool);
+      });
+    } else {
+      setTotalReceivedUsd((t) => Math.min(Math.max(t, 0), pool));
+    }
+  }, [paymentPoolUsd, existingOrdem?.id]);
+
+  useEffect(() => {
+    setCashUsd((c) => Math.min(Math.max(c, 0), totalReceivedUsd));
+  }, [totalReceivedUsd]);
 
   const carregarMotoristas = async () => {
     setMotoristasLoading(true);
@@ -486,15 +502,18 @@ export function useServiceOrderFormState({
       existingOrdem.driverServiceOrderProducts?.reduce((s: number, p: { value?: number }) => s + Number(p?.value ?? 0), 0) ?? 0;
     const pool = round2(sub + vol);
     let cash = Number(existingOrdem.cashReceivedUsd ?? 0);
-    const zelle = Number(existingOrdem.zelleReceivedUsd ?? 0);
+    let zelle = Number(existingOrdem.zelleReceivedUsd ?? 0);
     const legacy = Number((existingOrdem as { chargedValue?: number }).chargedValue ?? 0);
     if (!Number.isFinite(cash)) cash = 0;
+    if (!Number.isFinite(zelle)) zelle = 0;
     if (cash === 0 && zelle === 0 && legacy > 0) cash = legacy;
-    cash = round2(Math.min(Math.max(cash, 0), pool));
-    if (Math.abs(cash + zelle - pool) > 0.02 && pool > 0) {
-      cash = round2(Math.min(cash, pool));
-    }
-    setCashUsd(cash);
+    const split = computePaymentSplitUsd({
+      paymentPoolUsd: pool,
+      totalReceivedUsd: cash + zelle,
+      cashUsd: cash,
+    });
+    setTotalReceivedUsd(round2(split.cashReceivedUsd + split.zelleReceivedUsd));
+    setCashUsd(split.cashReceivedUsd);
     const sigC = existingOrdem.clientSignature || "";
     const sigA = existingOrdem.agentSignature || "";
     setAssinaturaCliente(sigC);
@@ -572,6 +591,8 @@ export function useServiceOrderFormState({
     assinaturaAgente,
     cashUsd,
     setCashUsd,
+    totalReceivedUsd,
+    setTotalReceivedUsd,
     paymentPoolUsd,
     observations,
     setObservations,
