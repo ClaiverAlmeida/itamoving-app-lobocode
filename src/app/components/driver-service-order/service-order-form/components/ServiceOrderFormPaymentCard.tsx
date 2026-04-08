@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { CheckCircle, DollarSign } from "lucide-react";
 import { motion } from "motion/react";
 import { formatUsdValorRecebidoLivre } from "../../delivery-receipt/delivery-receipt-utils";
@@ -27,27 +27,28 @@ export function ServiceOrderFormPaymentCard({
   cashUsd,
   setCashUsd,
 }: Props) {
+  const clampMoney = (n: number, min: number, max: number) => round2(Math.min(Math.max(n, min), max));
   const subtotalAgendamento = Math.max(valorAgendamento - valorAntecipacao, 0);
   const pool = round2(Math.max(0, paymentPoolUsd));
   const totalReceived = round2(Math.min(Math.max(totalReceivedUsd, 0), pool));
   const cash = round2(Math.min(Math.max(cashUsd, 0), totalReceived));
   const zelle = round2(totalReceived - cash);
   const pendente = round2(Math.max(0, pool - totalReceived));
-
-  const poolCents = useMemo(() => Math.max(0, Math.round(pool * 100)), [pool]);
-  const totalReceivedCents = Math.round(totalReceived * 100);
-  const cashCents = Math.round(cash * 100);
-  const zelleCents = Math.max(0, totalReceivedCents - cashCents);
-
-  const setTotalFromCents = (cents: number) => {
-    const c = Math.max(0, Math.min(cents, poolCents));
-    setTotalReceivedUsd(round2(c / 100));
+  const onCashChange = (raw: string) => {
+    const input = Number(raw);
+    const parsed = Number.isFinite(input) ? input : 0;
+    const nextCash = clampMoney(parsed, 0, pool);
+    const allowedCash = clampMoney(nextCash, 0, pool - zelle);
+    setCashUsd(allowedCash);
+    setTotalReceivedUsd(round2(allowedCash + zelle));
   };
 
-  const setCashFromCents = (cents: number) => {
-    const maxCash = totalReceivedCents;
-    const c = Math.max(0, Math.min(cents, maxCash));
-    setCashUsd(round2(c / 100));
+  const onZelleChange = (raw: string) => {
+    const input = Number(raw);
+    const parsed = Number.isFinite(input) ? input : 0;
+    const nextZelle = clampMoney(parsed, 0, pool);
+    const allowedZelle = clampMoney(nextZelle, 0, pool - cash);
+    setTotalReceivedUsd(round2(cash + allowedZelle));
   };
 
   const totalConsolidado = subtotalAgendamento + valorTotalCaixas;
@@ -87,34 +88,50 @@ export function ServiceOrderFormPaymentCard({
                 Total da ordem (base do repasse): <span className="tabular-nums">$ {pool.toFixed(2)}</span>
               </p>
               <p className="text-xs text-muted-foreground">
-                Ajuste quanto está sendo registrado nesta entrega (pode ser menor que o total, se já houve antecipação ou
-                pagamento parcial). Depois reparta só esse valor entre espécie e Zelle.
+                Informe os valores pagos agora em espécie e Zelle. A soma não pode ultrapassar o total da ordem.
               </p>
 
               {pool <= 0 ? (
                 <p className="text-sm text-muted-foreground">Sem valor de ordem para repartir (ajuste agendamento e volumes).</p>
               ) : (
                 <>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm gap-2 flex-wrap">
-                      <Label htmlFor="range-total-received" className="text-foreground font-medium">
-                        Total nesta Ordem de Serviço (espécie + Zelle)
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="input-cash" className="text-foreground font-medium">
+                        Em espécie
                       </Label>
-                      <span className="font-semibold tabular-nums text-green-800">$ {totalReceived.toFixed(2)}</span>
+                      <input
+                        id="input-cash"
+                        type="number"
+                        inputMode="decimal"
+                        className="w-full rounded-md border-2 border-green-500 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                        min={0}
+                        max={pool}
+                        step="0.01"
+                        value={cash}
+                        onChange={(e) => onCashChange(e.target.value)}
+                      />
                     </div>
-                    <input
-                      id="range-total-received"
-                      type="range"
-                      className="w-full h-2 accent-green-700 rounded-lg appearance-none cursor-pointer bg-green-200/80"
-                      min={0}
-                      max={poolCents}
-                      step={1}
-                      value={totalReceivedCents}
-                      onChange={(e) => setTotalFromCents(Number(e.target.value))}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Teto: $ {pool.toFixed(2)}. Abaixo do teto, o restante fica como saldo pendente no recibo.
-                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="input-zelle" className="text-foreground font-medium">
+                        Zelle
+                      </Label>
+                      <input
+                        id="input-zelle"
+                        type="number"
+                        inputMode="decimal"
+                        className="w-full rounded-md border-2 border-green-500 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                        min={0}
+                        max={pool}
+                        step="0.01"
+                        value={zelle}
+                        onChange={(e) => onZelleChange(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-muted-foreground">
+                    Total pago agora: <span className="font-semibold">$ {totalReceived.toFixed(2)}</span> de $ {pool.toFixed(2)}
                   </div>
 
                   {pendente > 0.005 && (
@@ -124,45 +141,6 @@ export function ServiceOrderFormPaymentCard({
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm gap-2">
-                      <Label htmlFor="range-cash" className="text-foreground font-medium">
-                        Em espécie (deste total)
-                      </Label>
-                      <span className="font-semibold tabular-nums text-green-800">$ {cash.toFixed(2)}</span>
-                    </div>
-                    <input
-                      id="range-cash"
-                      type="range"
-                      className="w-full h-2 accent-green-600 rounded-lg appearance-none cursor-pointer bg-green-200/80"
-                      min={0}
-                      max={Math.max(0, totalReceivedCents)}
-                      step={1}
-                      value={cashCents}
-                      onChange={(e) => setCashFromCents(Number(e.target.value))}
-                      disabled={totalReceivedCents <= 0}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm gap-2">
-                      <Label htmlFor="range-zelle" className="text-foreground font-medium">
-                        Zelle (deste total)
-                      </Label>
-                      <span className="font-semibold tabular-nums text-green-800">$ {zelle.toFixed(2)}</span>
-                    </div>
-                    <input
-                      id="range-zelle"
-                      type="range"
-                      className="w-full h-2 accent-emerald-600 rounded-lg appearance-none cursor-pointer bg-emerald-200/80"
-                      min={0}
-                      max={Math.max(0, totalReceivedCents)}
-                      step={1}
-                      value={zelleCents}
-                      onChange={(e) => setCashFromCents(totalReceivedCents - Number(e.target.value))}
-                      disabled={totalReceivedCents <= 0}
-                    />
-                  </div>
                 </>
               )}
             </div>

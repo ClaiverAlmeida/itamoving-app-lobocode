@@ -44,6 +44,7 @@ export function DeliveryReceipt({
   backLabel = "← Ver Minhas Ordens",
   printLabel = "Imprimir Recibo",
 }: DeliveryReceiptProps) {
+  const itamovingLogo = new URL("../../../../../assets/itamoving-logo.png", import.meta.url).href;
   const { rows: reciboRows, summary: reciboSummary, totalUnidades } = summarizeOrdemForRecibo(ordem);
   const showEtiquetaCol = reciboRows.some((r) => Boolean(r.etiqueta?.trim()));
   const showToolbar = Boolean(onShowOrdersScreen || onPrint);
@@ -97,6 +98,13 @@ export function DeliveryReceipt({
 
       <div id={printElementId} className="bg-white border-2 border-[#1E3A5F] rounded-lg p-4 sm:p-8 max-w-3xl mx-auto min-w-0">
         <div className="text-center border-b-2 border-[#1E3A5F] pb-6 mb-6">
+          <div className="flex justify-start mb-3">
+            <img
+              src={itamovingLogo}
+              alt="Logo Itamoving"
+              className="h-20 w-auto object-contain pointer-events-none select-none"
+            />
+          </div>
           <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2">
             <div className="p-3 bg-gradient-to-br from-[#F5A623] to-[#E59400] rounded-xl">
               <Truck className="w-8 h-8 text-white" />

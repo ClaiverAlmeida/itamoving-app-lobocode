@@ -65,9 +65,9 @@ export function ContainersCreateDialog({
               <Label htmlFor="create-volumeLetter">Letra(s) do volume *</Label>
               <Input
                 id="create-volumeLetter"
-                className="max-w-[5rem] uppercase font-mono"
+                className="uppercase font-mono"
                 maxLength={2}
-                placeholder="A ou AA"
+                placeholder="A, B, AA, BB, etc."
                 inputMode="text"
                 autoCapitalize="characters"
                 autoComplete="off"

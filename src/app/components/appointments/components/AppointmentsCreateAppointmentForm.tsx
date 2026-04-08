@@ -291,7 +291,7 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
 
       <SearchableSelect
         id="containerId"
-        label="Container"
+        label="Associação ao Container"
         items={containersAtivos.map((container) => ({
           value: container.id!,
           label: `${container.number} - ${container.type} - Letra: ${container.volumeLetter ?? "N/A"} - Status: ${getContainerStatusLabel(container.status)}`,

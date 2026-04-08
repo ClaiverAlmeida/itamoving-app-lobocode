@@ -8,7 +8,7 @@ import { ProductsPricesTab } from "./prices/products-prices";
 
 export default function PrecosView() {
   const { setPrecosEntrega, deleteDeliveryPrice, setPrecosProdutos, deleteProductPrice } = useData();
-  const [activeTab, setActiveTab] = useState("entregas");
+  const [activeTab, setActiveTab] = useState("produtos");
 
   return (
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
@@ -38,27 +38,25 @@ export default function PrecosView() {
         className="space-y-4"
       >
         <TabsList className="grid w-full sm:w-auto sm:min-w-[360px] grid-cols-2">
-          <TabsTrigger value="entregas">
-            <MapPin className="w-4 h-4 mr-2" />
-            <span className="text-xs sm:text-sm">Preços de Entrega</span>
-          </TabsTrigger>
           <TabsTrigger value="produtos">
             <Package className="w-4 h-4 mr-2" />
             <span className="text-xs sm:text-sm">Produtos</span>
           </TabsTrigger>
+          <TabsTrigger value="entregas">
+            <MapPin className="w-4 h-4 mr-2" />
+            <span className="text-xs sm:text-sm">Preços de Entrega</span>
+          </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="entregas" className="space-y-4">
-          <DeliveryPricesTab
-            setPrecosEntrega={setPrecosEntrega}
-            deleteDeliveryPrice={deleteDeliveryPrice}
-          />
-        </TabsContent>
-
         <TabsContent value="produtos" className="space-y-4">
           <ProductsPricesTab
             setPrecosProdutos={setPrecosProdutos}
             deleteProductPrice={deleteProductPrice}
+          />
+        </TabsContent>
+        <TabsContent value="entregas" className="space-y-4">
+          <DeliveryPricesTab
+            setPrecosEntrega={setPrecosEntrega}
+            deleteDeliveryPrice={deleteDeliveryPrice}
           />
         </TabsContent>
       </Tabs>
