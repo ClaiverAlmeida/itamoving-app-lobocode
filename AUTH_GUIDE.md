@@ -162,6 +162,8 @@ interface Permission {
   rh: { read: boolean; write: boolean };
   rotas: { read: boolean; write: boolean };
   motorista: { read: boolean; write: boolean };
+  configuracoes: { read: boolean; write: boolean };
+  'ordem-de-servico': { read: boolean; write: boolean };
 }
 ```
 
@@ -179,11 +181,17 @@ interface Permission {
 | RH            | ✏️ R/W | ❌         | ❌         | ❌         |
 | Rotas         | ✏️ R/W | 👁️ R      | ✏️ R/W     | 👁️ R      |
 | Motorista     | ✏️ R/W | ❌         | ❌         | ✏️ R/W     |
+| Ordem de Serviço | ✏️ R/W | ❌      | ✏️ R/W     | ✏️ R/W     |
+| Configurações | ✏️ R/W | ❌         | ❌         | ❌         |
 
 **Legenda:**
 - ✏️ R/W = Leitura e Escrita (Full Access)
 - 👁️ R = Somente Leitura (Read Only)
 - ❌ = Sem Acesso
+
+**Observação de dependência entre módulos (leitura):**
+- O módulo **Precificação** utiliza a permissão de leitura/escrita de **Financeiro**.
+- A navegação e proteção de telas usam uma matriz centralizada de dependências para evitar divergência quando um módulo depender de outro no futuro.
 
 ---
 

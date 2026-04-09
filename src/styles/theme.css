@@ -179,3 +179,310 @@
     line-height: 1.5;
   }
 }
+
+/* Descrição do toast (Sonner) mais visível, menos apagada */
+[data-sonner-toast] [data-description] {
+  color: var(--foreground) !important;
+  opacity: 0.9 !important;
+}
+
+/* Calendário: fundos com alpha 0.6 em todos os estados (claro e escuro); texto escuro em fundo claro (#0f172a), texto claro em fundo escuro; font-weight 600; borda branca. */
+
+/* Dia dividido 50% roxo | 50% verde */
+button.calendar-day-half-half,
+.rdp-day.calendar-day-half-half,
+.rdp .rdp-day.calendar-day-half-half,
+[data-rdp-day].calendar-day-half-half {
+  position: relative !important;
+  color: #0f172a !important;
+  font-weight: 600 !important;
+  border-radius: 6px;
+  border: 1px solid rgb(255, 255, 255) !important;
+  width: 100% !important;
+  min-width: 2rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.dark button.calendar-day-half-half,
+.dark .rdp-day.calendar-day-half-half,
+.dark .rdp .rdp-day.calendar-day-half-half,
+.dark [data-rdp-day].calendar-day-half-half {
+  color: #f1f5f9 !important;
+}
+
+/* Intervalo do período: verde – texto escuro */
+button.calendar-day-period-interval,
+.rdp-day.calendar-day-period-interval,
+.rdp .rdp-day.calendar-day-period-interval,
+[data-rdp-day].calendar-day-period-interval {
+  background: rgba(187, 247, 208, 0.6) !important;
+  color: #0f172a !important;
+  border: 1px solid rgb(255, 255, 255) !important;
+  border-radius: 6px;
+  font-weight: 600 !important;
+}
+.dark button.calendar-day-period-interval,
+.dark .rdp-day.calendar-day-period-interval,
+.dark .rdp .rdp-day.calendar-day-period-interval,
+.dark [data-rdp-day].calendar-day-period-interval {
+  background: rgba(134, 239, 172, 0.6) !important;
+  color: #bbf7d0 !important;
+}
+
+/* Agendamento único (roxo) – texto branco, borda branca */
+button.calendar-day-agendado,
+.rdp-day.calendar-day-agendado,
+.rdp .rdp-day.calendar-day-agendado,
+[data-rdp-day].calendar-day-agendado {
+  background: rgba(139, 92, 246, 0.6) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  border: 1px solid rgb(255, 255, 255) !important;
+  border-radius: 6px;
+}
+.dark button.calendar-day-agendado,
+.dark .rdp-day.calendar-day-agendado,
+.dark .rdp .rdp-day.calendar-day-agendado,
+.dark [data-rdp-day].calendar-day-agendado {
+  background: rgba(139, 92, 246, 0.6) !important;
+  color: #fff !important;
+}
+
+/* Período com agendamento: meio a meio — roxo (esq.) + verde (dir.) */
+button.calendar-day-period-appointment,
+.rdp-day.calendar-day-period-appointment,
+.rdp .rdp-day.calendar-day-period-appointment,
+[data-rdp-day].calendar-day-period-appointment {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%) !important;
+  color: #0f172a !important;
+  border: 1px solid rgb(255, 255, 255) !important;
+  border-radius: 6px;
+  font-weight: 600 !important;
+}
+.dark button.calendar-day-period-appointment,
+.dark .rdp-day.calendar-day-period-appointment,
+.dark .rdp .rdp-day.calendar-day-period-appointment,
+.dark [data-rdp-day].calendar-day-period-appointment {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(134, 239, 172, 0.6) 50%, rgba(134, 239, 172, 0.6) 100%) !important;
+  color: #f1f5f9 !important;
+}
+
+/* Dia de hoje: sem intervalo e sem agendamento → laranja */
+.calendar-appointments button.rdp-day.calendar-day-today,
+.calendar-appointments .rdp-day.calendar-day-today {
+  background: rgba(249, 115, 22, 0.6) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+/* Dia de hoje com agendamento (fora do intervalo) → roxo */
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-agendado:not(.calendar-day-today-unico-half),
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-agendado:not(.calendar-day-today-unico-half) {
+  background: rgba(139, 92, 246, 0.6) !important;
+  color: #fff !important;
+}
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-agendado:not(.calendar-day-today-unico-half):hover,
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-agendado:not(.calendar-day-today-unico-half):hover {
+  background: rgba(139, 92, 246, 0.6) !important;
+  background-image: none !important;
+}
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-agendado:not(.calendar-day-today-unico-half)[aria-selected="true"],
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-agendado:not(.calendar-day-today-unico-half)[aria-selected="true"] {
+  background: rgba(139, 92, 246, 0.6) !important;
+}
+/* Hoje no intervalo do período sem coleta periódica → laranja (esq.) + verde (dir.) — não confundir com roxo+laranja do dia com agendamento */
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-period-interval:not(.calendar-day-period-appointment):not(.calendar-day-half-half):not(.calendar-day-today-unico-half),
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-period-interval:not(.calendar-day-period-appointment):not(.calendar-day-half-half):not(.calendar-day-today-unico-half) {
+  background: linear-gradient(90deg, rgba(249, 115, 22, 0.6) 0%, rgba(249, 115, 22, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%) !important;
+  color: #0f172a !important;
+}
+/* Dia de hoje com agendamento do período (periódico) → meio a meio (roxo + verde) */
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-period-appointment:not(.calendar-day-today-unico-half),
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-period-appointment:not(.calendar-day-today-unico-half),
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-half-half:not(.calendar-day-today-unico-half),
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-half-half:not(.calendar-day-today-unico-half) {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%) !important;
+  color: #0f172a !important;
+}
+/* Hover do dia de hoje: só aplica quando NÃO tem cores divididas (senão as regras abaixo mantêm o gradiente) */
+.calendar-appointments button.rdp-day.calendar-day-today:hover:not(.calendar-day-half-half):not(.calendar-day-period-appointment):not(.calendar-day-period-interval):not(.calendar-day-today-unico-half),
+.calendar-appointments .rdp-day.calendar-day-today:hover:not(.calendar-day-half-half):not(.calendar-day-period-appointment):not(.calendar-day-period-interval):not(.calendar-day-today-unico-half) {
+  background: rgba(249, 115, 22, 0.6) !important;
+  background-image: none !important;
+}
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-period-interval:not(.calendar-day-period-appointment):not(.calendar-day-half-half):not(.calendar-day-today-unico-half):hover,
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-period-interval:not(.calendar-day-period-appointment):not(.calendar-day-half-half):not(.calendar-day-today-unico-half):hover {
+  background: linear-gradient(90deg, rgba(249, 115, 22, 0.6) 0%, rgba(249, 115, 22, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%) !important;
+  background-color: transparent !important;
+  background-image: linear-gradient(90deg, rgba(249, 115, 22, 0.6) 0%, rgba(249, 115, 22, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%) !important;
+}
+/* Dia de hoje com cores divididas (meio a meio): manter gradiente no hover — máxima especificidade para vencer Tailwind/rdp */
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-period-appointment:not(.calendar-day-today-unico-half):hover,
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-period-appointment:not(.calendar-day-today-unico-half):hover,
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-half-half:not(.calendar-day-today-unico-half):hover,
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-half-half:not(.calendar-day-today-unico-half):hover,
+.calendar-appointments button.rdp-day.calendar-day-half-half.calendar-day-today:not(.calendar-day-today-unico-half):hover,
+.calendar-appointments .rdp-day.calendar-day-half-half.calendar-day-today:not(.calendar-day-today-unico-half):hover {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%) !important;
+  background-color: transparent !important;
+  background-image: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%) !important;
+}
+.calendar-appointments button.rdp-day.calendar-day-today:not(.calendar-day-today-unico-half)[aria-selected="true"],
+.calendar-appointments .rdp-day.calendar-day-today:not(.calendar-day-today-unico-half)[aria-selected="true"] {
+  background: rgba(249, 115, 22, 0.6) !important;
+}
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-period-interval:not(.calendar-day-period-appointment):not(.calendar-day-half-half):not(.calendar-day-today-unico-half)[aria-selected="true"],
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-period-interval:not(.calendar-day-period-appointment):not(.calendar-day-half-half):not(.calendar-day-today-unico-half)[aria-selected="true"] {
+  background: linear-gradient(90deg, rgba(249, 115, 22, 0.6) 0%, rgba(249, 115, 22, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%) !important;
+}
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-period-appointment:not(.calendar-day-today-unico-half)[aria-selected="true"],
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-period-appointment:not(.calendar-day-today-unico-half)[aria-selected="true"],
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-half-half:not(.calendar-day-today-unico-half)[aria-selected="true"],
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-half-half:not(.calendar-day-today-unico-half)[aria-selected="true"] {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(187, 247, 208, 0.6) 50%, rgba(187, 247, 208, 0.6) 100%) !important;
+}
+/* Dark: dia de hoje base → laranja */
+.dark .calendar-appointments button.rdp-day.calendar-day-today,
+.dark .calendar-appointments .rdp-day.calendar-day-today {
+  background: rgba(251, 146, 60, 0.6) !important;
+  color: #fff !important;
+  border-color: #fff !important;
+}
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-agendado:not(.calendar-day-today-unico-half),
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-agendado:not(.calendar-day-today-unico-half) {
+  background: rgba(139, 92, 246, 0.6) !important;
+  color: #fff !important;
+}
+/* Dark: hoje no intervalo sem coleta periódica → laranja + verde */
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-period-interval:not(.calendar-day-period-appointment):not(.calendar-day-half-half):not(.calendar-day-today-unico-half),
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-period-interval:not(.calendar-day-period-appointment):not(.calendar-day-half-half):not(.calendar-day-today-unico-half) {
+  background: linear-gradient(90deg, rgba(251, 146, 60, 0.6) 0%, rgba(251, 146, 60, 0.6) 50%, rgba(134, 239, 172, 0.6) 50%, rgba(134, 239, 172, 0.6) 100%) !important;
+  color: #f1f5f9 !important;
+}
+/* Dark: hoje com agendamento do período (periódico) → meio a meio (roxo + verde) */
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-period-appointment:not(.calendar-day-today-unico-half),
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-period-appointment:not(.calendar-day-today-unico-half),
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-half-half:not(.calendar-day-today-unico-half),
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-half-half:not(.calendar-day-today-unico-half) {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(134, 239, 172, 0.6) 50%, rgba(134, 239, 172, 0.6) 100%) !important;
+  color: #f1f5f9 !important;
+}
+/* Dark: hover do dia de hoje só quando NÃO tem cores divididas */
+.dark .calendar-appointments button.rdp-day.calendar-day-today:hover:not(.calendar-day-half-half):not(.calendar-day-period-appointment):not(.calendar-day-period-interval):not(.calendar-day-today-unico-half),
+.dark .calendar-appointments .rdp-day.calendar-day-today:hover:not(.calendar-day-half-half):not(.calendar-day-period-appointment):not(.calendar-day-period-interval):not(.calendar-day-today-unico-half) {
+  background: rgba(251, 146, 60, 0.6) !important;
+}
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-agendado:not(.calendar-day-today-unico-half):hover {
+  background: rgba(139, 92, 246, 0.6) !important;
+}
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-period-interval:not(.calendar-day-period-appointment):not(.calendar-day-half-half):not(.calendar-day-today-unico-half):hover,
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-period-interval:not(.calendar-day-period-appointment):not(.calendar-day-half-half):not(.calendar-day-today-unico-half):hover {
+  background: linear-gradient(90deg, rgba(251, 146, 60, 0.6) 0%, rgba(251, 146, 60, 0.6) 50%, rgba(134, 239, 172, 0.6) 50%, rgba(134, 239, 172, 0.6) 100%) !important;
+  background-color: transparent !important;
+  background-image: linear-gradient(90deg, rgba(251, 146, 60, 0.6) 0%, rgba(251, 146, 60, 0.6) 50%, rgba(134, 239, 172, 0.6) 50%, rgba(134, 239, 172, 0.6) 100%) !important;
+}
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-period-appointment:not(.calendar-day-today-unico-half):hover,
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-period-appointment:not(.calendar-day-today-unico-half):hover,
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-half-half:not(.calendar-day-today-unico-half):hover,
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-half-half:not(.calendar-day-today-unico-half):hover,
+.dark .calendar-appointments button.rdp-day.calendar-day-half-half.calendar-day-today:not(.calendar-day-today-unico-half):hover,
+.dark .calendar-appointments .rdp-day.calendar-day-half-half.calendar-day-today:not(.calendar-day-today-unico-half):hover {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(134, 239, 172, 0.6) 50%, rgba(134, 239, 172, 0.6) 100%) !important;
+  background-color: transparent !important;
+  background-image: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(134, 239, 172, 0.6) 50%, rgba(134, 239, 172, 0.6) 100%) !important;
+}
+.dark .calendar-appointments button.rdp-day.calendar-day-today:not(.calendar-day-today-unico-half)[aria-selected="true"],
+.dark .calendar-appointments .rdp-day.calendar-day-today:not(.calendar-day-today-unico-half)[aria-selected="true"] {
+  background: rgba(251, 146, 60, 0.6) !important;
+}
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-agendado:not(.calendar-day-today-unico-half)[aria-selected="true"],
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-agendado:not(.calendar-day-today-unico-half)[aria-selected="true"] {
+  background: rgba(139, 92, 246, 0.6) !important;
+}
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-period-interval:not(.calendar-day-period-appointment):not(.calendar-day-half-half):not(.calendar-day-today-unico-half)[aria-selected="true"],
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-period-interval:not(.calendar-day-period-appointment):not(.calendar-day-half-half):not(.calendar-day-today-unico-half)[aria-selected="true"] {
+  background: linear-gradient(90deg, rgba(251, 146, 60, 0.6) 0%, rgba(251, 146, 60, 0.6) 50%, rgba(134, 239, 172, 0.6) 50%, rgba(134, 239, 172, 0.6) 100%) !important;
+}
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-period-appointment:not(.calendar-day-today-unico-half)[aria-selected="true"],
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-period-appointment:not(.calendar-day-today-unico-half)[aria-selected="true"],
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-half-half:not(.calendar-day-today-unico-half)[aria-selected="true"],
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-half-half:not(.calendar-day-today-unico-half)[aria-selected="true"] {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(134, 239, 172, 0.6) 50%, rgba(134, 239, 172, 0.6) 100%) !important;
+}
+
+/* Hoje com agendamento: 50% roxo (esq.) | 50% laranja (dir.) — mesmo lado do roxo nos demais splits */
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-today-unico-half,
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-today-unico-half {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(249, 115, 22, 0.6) 50%, rgba(249, 115, 22, 0.6) 100%) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-today-unico-half:hover,
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-today-unico-half:hover {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(249, 115, 22, 0.6) 50%, rgba(249, 115, 22, 0.6) 100%) !important;
+  background-color: transparent !important;
+  background-image: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(249, 115, 22, 0.6) 50%, rgba(249, 115, 22, 0.6) 100%) !important;
+}
+.calendar-appointments button.rdp-day.calendar-day-today.calendar-day-today-unico-half[aria-selected="true"],
+.calendar-appointments .rdp-day.calendar-day-today.calendar-day-today-unico-half[aria-selected="true"] {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(249, 115, 22, 0.6) 50%, rgba(249, 115, 22, 0.6) 100%) !important;
+}
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-today-unico-half,
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-today-unico-half {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(251, 146, 60, 0.6) 50%, rgba(251, 146, 60, 0.6) 100%) !important;
+  color: #fff !important;
+}
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-today-unico-half:hover,
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-today-unico-half:hover {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(251, 146, 60, 0.6) 50%, rgba(251, 146, 60, 0.6) 100%) !important;
+  background-color: transparent !important;
+  background-image: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(251, 146, 60, 0.6) 50%, rgba(251, 146, 60, 0.6) 100%) !important;
+}
+.dark .calendar-appointments button.rdp-day.calendar-day-today.calendar-day-today-unico-half[aria-selected="true"],
+.dark .calendar-appointments .rdp-day.calendar-day-today.calendar-day-today-unico-half[aria-selected="true"] {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.6) 50%, rgba(251, 146, 60, 0.6) 50%, rgba(251, 146, 60, 0.6) 100%) !important;
+}
+
+/* Células do calendário de agendamentos: fundo transparente para as cores dos dias (intervalo, 50/50, período) aparecerem ao clicar no período */
+.calendar-appointments td {
+  background: transparent !important;
+}
+
+/* Hover no dia: transparente; dias com modificador (half-half, interval, etc.) mantêm a cor nas regras específicas acima */
+.calendar-appointments button.rdp-day:hover:not(.calendar-day-half-half):not(.calendar-day-period-appointment):not(.calendar-day-period-interval):not(.calendar-day-agendado):not(.calendar-day-today):not(.calendar-day-today-unico-half),
+.calendar-appointments .rdp-day:hover:not(.calendar-day-half-half):not(.calendar-day-period-appointment):not(.calendar-day-period-interval):not(.calendar-day-agendado):not(.calendar-day-today):not(.calendar-day-today-unico-half) {
+  background-color: transparent;
+  background-image: none;
+}
+
+/* Cursor pointer nos dias do calendário de agendamentos */
+.calendar-appointments button.rdp-day,
+.calendar-appointments .rdp-day {
+  cursor: pointer !important;
+}
+
+/* Dia selecionado: borda e texto em tom harmônico (sem alterar as cores dos modificadores de fundo) */
+.calendar-appointments button.rdp-day.calendar-day-selected,
+.calendar-appointments .rdp-day.calendar-day-selected {
+  border: 1px solid #0f172a !important; /* slate-900, contrasta bem com verde/roxo/laranja */
+  box-shadow: inset 0 0 0 1px #0f172a !important;
+  font-weight: 700 !important;
+}
+.dark .calendar-appointments button.rdp-day.calendar-day-selected,
+.dark .calendar-appointments .rdp-day.calendar-day-selected {
+  border: 1px solid #e5e7eb !important; /* slate-200 no dark */
+  box-shadow: inset 0 0 0 1px #e5e7eb !important;
+  font-weight: 700 !important;
+}
+
+/* Fallback robusto para garantir destaque da seleção (inclusive em combinações com modificadores) */
+.calendar-appointments button.rdp-day[aria-selected="true"],
+.calendar-appointments .rdp-day[aria-selected="true"] {
+  border: 1px solid #0f172a !important;
+  box-shadow: inset 0 0 0 1px #0f172a !important;
+}
+.dark .calendar-appointments button.rdp-day[aria-selected="true"],
+.dark .calendar-appointments .rdp-day[aria-selected="true"] {
+  border: 1px solid #e5e7eb !important;
+  box-shadow: inset 0 0 0 1px #e5e7eb !important;
+}

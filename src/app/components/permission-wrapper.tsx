@@ -1,7 +1,7 @@
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import { useAuth, Permission } from '../context/AuthContext';
 import { Badge } from './ui/badge';
-import { Lock, Eye } from 'lucide-react';
+import { Eye } from 'lucide-react';
 
 interface PermissionWrapperProps {
   module: keyof Permission;
@@ -11,12 +11,12 @@ interface PermissionWrapperProps {
   showReadOnlyBadge?: boolean;
 }
 
-export function PermissionWrapper({ 
-  module, 
-  action, 
-  children, 
+export function PermissionWrapper({
+  module,
+  action,
+  children,
   fallback,
-  showReadOnlyBadge = false 
+  showReadOnlyBadge = false
 }: PermissionWrapperProps) {
   const { hasPermission } = useAuth();
 
@@ -47,7 +47,7 @@ export function PermissionWrapper({
 
 export function ReadOnlyIndicator() {
   const { user } = useAuth();
-  
+
   if (!user || user.role !== 'logistico') {
     return null;
   }
