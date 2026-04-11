@@ -199,8 +199,9 @@ export function useServiceOrderFormSave(params: Params) {
     const itemInvalido = params.itens.some((i) => !String(i.name ?? "").trim() || Number(i.quantity) <= 0 || Number(i.weight) <= 0);
     if (itemInvalido) return toast.error("Preencha todos os campos dos itens antes de salvar");
 
-    let assinaturaClienteFinal = params.assinaturaCliente?.trim() || (params.isEditMode ? (params.existingOrdem?.clientSignature ?? "") : "");
-    let assinaturaAgenteFinal = params.assinaturaAgente?.trim() || (params.isEditMode ? (params.existingOrdem?.agentSignature ?? "") : "");
+    /** Só o estado local (hidratado na edição com as URLs guardadas). Sem fallback para a ordem: se o utilizador limpar, fica vazio e deve voltar a assinar. */
+    let assinaturaClienteFinal = String(params.assinaturaCliente ?? "").trim();
+    let assinaturaAgenteFinal = String(params.assinaturaAgente ?? "").trim();
     if (!assinaturaClienteFinal) return toast.error("É necessária a assinatura do cliente");
     if (!assinaturaAgenteFinal) return toast.error("É necessária a assinatura do agente");
 

@@ -316,10 +316,10 @@ export function useServiceOrderFormState({
 
   const limparAssinaturaCliente = () => {
     const canvas = canvasClienteRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (canvas) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
     setAssinaturaCliente("");
     clienteAssinaturaDirtyRef.current = false;
   };
@@ -363,10 +363,10 @@ export function useServiceOrderFormState({
 
   const limparAssinaturaAgente = () => {
     const canvas = canvasAgenteRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (canvas) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
     setAssinaturaAgente("");
     agenteAssinaturaDirtyRef.current = false;
   };

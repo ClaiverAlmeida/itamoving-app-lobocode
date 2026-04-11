@@ -29,6 +29,7 @@ import { HrUsersTable } from "./hr/components/HrUsersTable";
 import { HrViewUserDialog } from "./hr/components/HrViewUserDialog";
 import { HrEditUserDialog } from "./hr/components/HrEditUserDialog";
 import { HrCreateUserDialog } from "./hr/components/HrCreateUserDialog";
+import { ConfirmAlertDialog } from "./ui/confirm-alert-dialog";
 
 export default function RHView() {
   const { user: currentUser } = useAuth();
@@ -53,6 +54,9 @@ export default function RHView() {
     isEditCredencialsDialogOpen,
     setIsEditCredencialsDialogOpen,
   } = useHrForm();
+
+  const [deleteUsuarioId, setDeleteUsuarioId] = useState<string | null>(null);
+  const [deleteUsuarioLoading, setDeleteUsuarioLoading] = useState(false);
 
   useEffect(() => {
     hrCrud.getAll().then((result) => {
@@ -94,12 +98,21 @@ export default function RHView() {
     });
   };
 
-  const handleDeleteUsuario = async (id: string) => {
-    await handleDeleteUsuarioAction({
-      id,
-      remove: hrCrud.delete,
-      deleteUsuario,
-    });
+  const openDeleteUsuario = (id: string) => setDeleteUsuarioId(id);
+
+  const confirmDeleteUsuario = async () => {
+    if (!deleteUsuarioId) return;
+    setDeleteUsuarioLoading(true);
+    try {
+      await handleDeleteUsuarioAction({
+        id: deleteUsuarioId,
+        remove: hrCrud.delete,
+        deleteUsuario,
+      });
+      setDeleteUsuarioId(null);
+    } finally {
+      setDeleteUsuarioLoading(false);
+    }
   };
 
   // Filtros
@@ -194,7 +207,7 @@ export default function RHView() {
                 fillFormFromUsuario(user);
                 setIsEditDialogOpen(true);
               }}
-              onDelete={(id) => handleDeleteUsuario(id)}
+              onDelete={(id) => openDeleteUsuario(id)}
             />
           </CardContent>
         </Card>
@@ -223,6 +236,24 @@ export default function RHView() {
         resetFormUsuario={resetFormUsuario}
         setSelectedUsuario={setSelectedUsuario}
         onSubmit={handleEditUsuario}
+      />
+
+      <ConfirmAlertDialog
+        open={Boolean(deleteUsuarioId)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteUsuarioId(null);
+        }}
+        title="Excluir funcionário?"
+        description={
+          <>
+            <p>Tem certeza que deseja excluir este funcionário?</p>
+            <p className="text-xs">Esta ação não pode ser desfeita.</p>
+          </>
+        }
+        confirmLabel="Excluir"
+        tone="destructive"
+        loading={deleteUsuarioLoading}
+        onConfirm={confirmDeleteUsuario}
       />
     </div>
   );

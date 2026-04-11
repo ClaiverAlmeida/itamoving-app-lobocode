@@ -185,9 +185,7 @@ export async function handleDeleteAgendamento(args: {
   setSelectedAgendamento: (ag: Appointment | null) => void;
   carregarAgendamentos: () => Promise<void>;
 }) {
-  const { id, clientName, remove, deleteAgendamento, setSelectedAgendamento, carregarAgendamentos } = args;
-  const confirm = window.confirm(`Tem certeza que deseja excluir o agendamento de ${clientName}?`);
-  if (!confirm) return null;
+  const { id, remove, deleteAgendamento, setSelectedAgendamento, carregarAgendamentos } = args;
   const result = await remove(id);
   if (!result.success) {
     toast.error(result.error ?? 'Erro ao excluir agendamento.');

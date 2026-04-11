@@ -348,6 +348,8 @@ export default function OrdemServicoForm({
         <ServiceOrderFormSignaturesCards
           canvasClienteRef={canvasClienteRef}
           canvasAgenteRef={canvasAgenteRef}
+          assinaturaCliente={assinaturaCliente}
+          assinaturaAgente={assinaturaAgente}
           startDrawingCliente={startDrawingCliente}
           drawCliente={drawCliente}
           stopDrawingCliente={stopDrawingCliente}

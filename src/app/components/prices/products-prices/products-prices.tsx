@@ -10,6 +10,7 @@ import type { ProductPriceForm, ProductsPricesTabProps } from "./products-prices
 import { resetProductForm } from "./products-prices.utils";
 import { ProductsPricesTable } from "./components/ProductsPricesTable";
 import { ProductsPricesDialogs } from "./components/ProductsPricesDialogs";
+import { ConfirmAlertDialog } from "../../ui/confirm-alert-dialog";
 
 export function ProductsPricesTab(props: ProductsPricesTabProps) {
   const { setPrecosProdutos, deleteProductPrice, className } = props;
@@ -25,6 +26,8 @@ export function ProductsPricesTab(props: ProductsPricesTabProps) {
   const [pageProduto, setPageProduto] = useState(1);
   const [limitProduto] = useState(10);
   const [paginationProduto, setPaginationProduto] = useState<ProductPricePagination | null>(null);
+  const [deleteProdutoId, setDeleteProdutoId] = useState<string | null>(null);
+  const [deleteProdutoLoading, setDeleteProdutoLoading] = useState(false);
 
   const carregarProdutos = async (page = pageProduto) => {
     const result = await getProductsPage({ page, limit: limitProduto });
@@ -76,15 +79,24 @@ export function ProductsPricesTab(props: ProductsPricesTabProps) {
     });
   };
 
-  const handleDeleteProduto = async (id: string) => {
-    await handleDelete({
-      id,
-      selectedProduto,
-      setSelectedProduto,
-      pageProduto,
-      carregarProdutos,
-      deleteProductPrice,
-    });
+  const openDeleteProduto = (id: string) => setDeleteProdutoId(id);
+
+  const confirmDeleteProduto = async () => {
+    if (!deleteProdutoId) return;
+    setDeleteProdutoLoading(true);
+    try {
+      await handleDelete({
+        id: deleteProdutoId,
+        selectedProduto,
+        setSelectedProduto,
+        pageProduto,
+        carregarProdutos,
+        deleteProductPrice,
+      });
+      setDeleteProdutoId(null);
+    } finally {
+      setDeleteProdutoLoading(false);
+    }
   };
 
   const handleExportProdutos = async () => {
@@ -133,7 +145,7 @@ export function ProductsPricesTab(props: ProductsPricesTabProps) {
           onExport={handleExportProdutos}
           produtosFiltrados={produtosFiltrados}
           onEdit={onEditProduto}
-          onDelete={handleDeleteProduto}
+          onDelete={openDeleteProduto}
           pagination={paginationProduto}
           page={pageProduto}
           onPrevPage={() => setPageProduto((p) => Math.max(1, p - 1))}
@@ -163,6 +175,24 @@ export function ProductsPricesTab(props: ProductsPricesTabProps) {
         setFormProduto={setFormProduto}
         onSubmitCreate={handleSubmitProduto}
         onSubmitEdit={handleEditProduto}
+      />
+
+      <ConfirmAlertDialog
+        open={Boolean(deleteProdutoId)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteProdutoId(null);
+        }}
+        title="Excluir produto?"
+        description={
+          <>
+            <p>Tem certeza que deseja excluir este produto?</p>
+            <p className="text-xs">Esta ação não pode ser desfeita.</p>
+          </>
+        }
+        confirmLabel="Excluir"
+        tone="destructive"
+        loading={deleteProdutoLoading}
+        onConfirm={confirmDeleteProduto}
       />
     </>
   );

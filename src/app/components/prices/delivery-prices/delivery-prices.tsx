@@ -15,6 +15,7 @@ import type { DeliveryPriceForm, DeliveryPricesTabProps } from "./delivery-price
 import { resetDeliveryForm, toUfBrasil, toUfEua } from "./delivery-prices.utils";
 import { DeliveryPricesTable } from "./components/DeliveryPricesTable";
 import { DeliveryPricesDialogs } from "./components/DeliveryPricesDialogs";
+import { ConfirmAlertDialog } from "../../ui/confirm-alert-dialog";
 
 export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
   const { setPrecosEntrega, deleteDeliveryPrice, className } = props;
@@ -30,6 +31,8 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
   const [pageEntrega, setPageEntrega] = useState(1);
   const [limitEntrega] = useState(10);
   const [paginationEntrega, setPaginationEntrega] = useState<DeliveryPricesPagination | null>(null);
+  const [deleteEntregaId, setDeleteEntregaId] = useState<string | null>(null);
+  const [deleteEntregaLoading, setDeleteEntregaLoading] = useState(false);
 
   const carregarPrecosEntrega = async (page = pageEntrega) => {
     const result = await getDeliveryPricesPage({ page, limit: limitEntrega });
@@ -89,15 +92,24 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
     });
   };
 
-  const handleDeleteEntrega = async (id: string) => {
-    await handleDeleteDelivery({
-      id,
-      selectedEntrega,
-      setSelectedEntrega,
-      pageEntrega,
-      carregarPrecosEntrega,
-      deleteDeliveryPrice,
-    });
+  const openDeleteEntrega = (id: string) => setDeleteEntregaId(id);
+
+  const confirmDeleteEntrega = async () => {
+    if (!deleteEntregaId) return;
+    setDeleteEntregaLoading(true);
+    try {
+      await handleDeleteDelivery({
+        id: deleteEntregaId,
+        selectedEntrega,
+        setSelectedEntrega,
+        pageEntrega,
+        carregarPrecosEntrega,
+        deleteDeliveryPrice,
+      });
+      setDeleteEntregaId(null);
+    } finally {
+      setDeleteEntregaLoading(false);
+    }
   };
 
   const handleExportarEntregas = async () => {
@@ -147,7 +159,7 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
             onExport={handleExportarEntregas}
             entregasFiltradas={entregasFiltradas}
             onEdit={onEditEntrega}
-            onDelete={handleDeleteEntrega}
+            onDelete={openDeleteEntrega}
             pagination={paginationEntrega}
             onPrevPage={() => setPageEntrega((p) => Math.max(1, p - 1))}
             onNextPage={() =>
@@ -184,6 +196,24 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
         setFormEntrega={setFormEntrega}
         onSubmitCreate={handleSubmitEntrega}
         onSubmitEdit={handleEditEntrega}
+      />
+
+      <ConfirmAlertDialog
+        open={Boolean(deleteEntregaId)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteEntregaId(null);
+        }}
+        title="Excluir preço de entrega?"
+        description={
+          <>
+            <p>Tem certeza que deseja excluir este preço de entrega?</p>
+            <p className="text-xs">Esta ação não pode ser desfeita.</p>
+          </>
+        }
+        confirmLabel="Excluir"
+        tone="destructive"
+        loading={deleteEntregaLoading}
+        onConfirm={confirmDeleteEntrega}
       />
     </>
   );

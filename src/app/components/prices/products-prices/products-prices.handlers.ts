@@ -94,9 +94,6 @@ export async function handleDelete(params: {
 }) {
   const { id, selectedProduto, setSelectedProduto, pageProduto, carregarProdutos, deleteProductPrice } = params;
 
-  const confirm = window.confirm("Tem certeza que deseja excluir este produto?");
-  if (!confirm) return;
-
   const result = await deleteProductPriceApi(id);
 
   if (result.success) {

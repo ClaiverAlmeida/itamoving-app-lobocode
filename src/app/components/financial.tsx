@@ -17,9 +17,12 @@ import { FinancialTransactionsHistory } from "./financial/components/transaction
 import { clientsCrud } from "./financial/index";
 import { toast } from "sonner";
 import { financialTransactionCrud } from "./financial/index";
+import { ConfirmAlertDialog } from "./ui/confirm-alert-dialog";
 
 export default function FinanceiroView() {
   const [transacoes, setTransacoes] = useState<FinancialTransaction[]>([]);
+  const [deleteTransacaoId, setDeleteTransacaoId] = useState<string | null>(null);
+  const [deleteTransacaoLoading, setDeleteTransacaoLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("todas");
@@ -95,6 +98,20 @@ export default function FinanceiroView() {
 
   const totals = useMemo(() => computeFinanceiroTotals(filteredTransacoes), [filteredTransacoes]);
 
+  const confirmDeleteTransacao = async () => {
+    if (!deleteTransacaoId) return;
+    setDeleteTransacaoLoading(true);
+    try {
+      await handleDeleteTransaction({
+        id: deleteTransacaoId,
+        deleteTransacao: excluirTransacao,
+      });
+      setDeleteTransacaoId(null);
+    } finally {
+      setDeleteTransacaoLoading(false);
+    }
+  };
+
   const receitasPorCategoria = useMemo(
     () => groupTransacoesByCategoria({ transacoes: totals.receitas, color: "#10B981" }),
     [totals.receitas],
@@ -142,7 +159,25 @@ export default function FinanceiroView() {
 
       <FinancialTransactionsHistory
         transacoes={transacoesHistoricoPeriodo}
-        onDelete={(id) => void handleDeleteTransaction({ id, deleteTransacao: excluirTransacao })}
+        onDelete={(id) => setDeleteTransacaoId(id)}
+      />
+
+      <ConfirmAlertDialog
+        open={Boolean(deleteTransacaoId)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTransacaoId(null);
+        }}
+        title="Excluir transação?"
+        description={
+          <>
+            <p>Tem certeza que deseja excluir esta transação?</p>
+            <p className="text-xs">Esta ação não pode ser desfeita.</p>
+          </>
+        }
+        confirmLabel="Excluir"
+        tone="destructive"
+        loading={deleteTransacaoLoading}
+        onConfirm={confirmDeleteTransacao}
       />
     </div>
   );

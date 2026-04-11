@@ -91,9 +91,6 @@ export async function handleDeleteDelivery(params: {
 }) {
   const { id, selectedEntrega, setSelectedEntrega, pageEntrega, carregarPrecosEntrega, deleteDeliveryPrice } = params;
 
-  const confirm = window.confirm("Tem certeza que deseja excluir este preço de entrega?");
-  if (!confirm) return;
-
   const result = await deleteDeliveryPriceApi(id);
   if (result.success) {
     deleteDeliveryPrice(id);

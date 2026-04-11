@@ -77,6 +77,7 @@ import {
 } from './appointments/index';
 import { AppointmentsCreatePeriodForm } from "./appointments/components/AppointmentsCreatePeriodForm";
 import { AppointmentsCreateAppointmentForm } from "./appointments/components/AppointmentsCreateAppointmentForm";
+import { ConfirmAlertDialog } from "./ui/confirm-alert-dialog";
 
 export default function AgendamentosView() {
   const {
@@ -99,6 +100,11 @@ export default function AgendamentosView() {
   const [isPeriodic, setIsPeriodic] = useState<boolean>(false);
   const [selectedAgendamento, setSelectedAgendamento] =
     useState<Appointment | null>(null);
+  const [deleteAgendamentoTarget, setDeleteAgendamentoTarget] = useState<{
+    id: string;
+    clientName: string;
+  } | null>(null);
+  const [deleteAgendamentoLoading, setDeleteAgendamentoLoading] = useState(false);
   const { user } = useAuth();
   const [clientes, setClientes] = useState<Client[]>([]);
   const [containers, setContainers] = useState<Container[]>([]);
@@ -325,15 +331,27 @@ export default function AgendamentosView() {
       carregarAgendamentos,
     });
 
-  const handleDelete = async (id: string, clientName: string) =>
-    handleDeleteAgendamento({
-      id,
-      clientName,
-      remove: appointmentsCrud.delete,
-      deleteAgendamento,
-      setSelectedAgendamento,
-      carregarAgendamentos,
-    });
+  const openDeleteAgendamento = (id: string, clientName: string) => {
+    setDeleteAgendamentoTarget({ id, clientName });
+  };
+
+  const confirmDeleteAgendamento = async () => {
+    if (!deleteAgendamentoTarget) return;
+    setDeleteAgendamentoLoading(true);
+    try {
+      await handleDeleteAgendamento({
+        id: deleteAgendamentoTarget.id,
+        clientName: deleteAgendamentoTarget.clientName,
+        remove: appointmentsCrud.delete,
+        deleteAgendamento,
+        setSelectedAgendamento,
+        carregarAgendamentos,
+      });
+      setDeleteAgendamentoTarget(null);
+    } finally {
+      setDeleteAgendamentoLoading(false);
+    }
+  };
 
   const handleCreatePeriodic = async (e: React.FormEvent) =>
     handleCreatePeriod({
@@ -942,7 +960,7 @@ export default function AgendamentosView() {
                   setSelectedAgendamento(null);
                   setIsSidePanelOpen(false);
                 }}
-                onDelete={handleDelete}
+                onDelete={openDeleteAgendamento}
                 onStatusChange={(id, value) =>
                   void handleStatusChange(id, value as Appointment["status"])
                 }
@@ -980,6 +998,29 @@ export default function AgendamentosView() {
           })()
         ) : null}
       </AppointmentsSidePanel>
+
+      <ConfirmAlertDialog
+        open={Boolean(deleteAgendamentoTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteAgendamentoTarget(null);
+        }}
+        title="Excluir agendamento?"
+        description={
+          deleteAgendamentoTarget ? (
+            <>
+              <p>
+                Tem certeza que deseja excluir o agendamento de{" "}
+                <span className="font-semibold text-foreground">{deleteAgendamentoTarget.clientName}</span>?
+              </p>
+              <p className="text-xs">Esta ação não pode ser desfeita.</p>
+            </>
+          ) : null
+        }
+        confirmLabel="Excluir"
+        tone="destructive"
+        loading={deleteAgendamentoLoading}
+        onConfirm={confirmDeleteAgendamento}
+      />
     </div >
   );
 }

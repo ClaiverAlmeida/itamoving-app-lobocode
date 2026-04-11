@@ -125,9 +125,7 @@ export const handleDeleteClient = async (args: {
   selectedClienteId?: string;
   setSelectedCliente: (c: Client | null) => void;
 }) => {
-  const { id, nome, remove, deleteCliente, selectedClienteId, setSelectedCliente } = args;
-  const confirm = window.confirm(`Tem certeza que deseja excluir o cliente ${nome}?`);
-  if (!confirm) return;
+  const { id, remove, deleteCliente, selectedClienteId, setSelectedCliente } = args;
   const result = await remove(id);
   if (result.success) {
     deleteCliente(id);
