@@ -1,0 +1,30 @@
+# itamoving App (frontend – Vite/React) – produção
+# Portas: app host 3121 e backend via domínio HTTPS
+services:
+  itamoving-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://itamoving-api.lobocode.com.br}
+    container_name: itamoving-app
+    restart: unless-stopped
+    ports:
+      - "3121:80"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - app-net-itamoving
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.docker.compose.project=itamoving-app-lobocode"
+      - "com.app.name=itamoving-app"
+
+networks:
+  app-net-itamoving:
+    external: true

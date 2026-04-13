@@ -9,5 +9,5 @@ export const API_BASE_URL =
   env?.VITE_API_URL
     ? env.VITE_API_URL
     : env?.PROD
-      ? "https://api.itamoving.com.br"
+      ? "https://itamoving-api.lobocode.com.br"
       : "http://localhost:30100";
