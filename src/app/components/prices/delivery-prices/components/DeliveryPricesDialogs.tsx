@@ -63,6 +63,9 @@ function mergeEditingSummaryIntoProducts(
   return [stub, ...list];
 }
 
+/** Valor do SearchableSelect para “sem produto” (payload trata como vazio → omit no POST / `null` no PATCH). */
+const NONE_PRODUCT_SELECT_VALUE = "";
+
 export function DeliveryPricesDialogs(props: DeliveryPricesDialogsProps) {
   const {
     isEntregaDialogOpen,
@@ -134,22 +137,39 @@ export function DeliveryPricesDialogs(props: DeliveryPricesDialogsProps) {
                   Rota
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Preço mínimo, prazo e se a rota está ativa
+                  Valor total do frete, prazo, rota ativa e se o frete é variável
                 </p>
 
                 <div className="space-y-2">
-                  <Label htmlFor="minimumPrice">Preço Mínimo (USD) *</Label>
+                  <Label htmlFor="routeName">Nome da Rota *</Label>
                   <Input
-                    id="minimumPrice"
+                    id="routeName"
+                    type="text"
+                    placeholder="Ex: Rota 1"
+                    value={formEntrega.routeName}
+                    onChange={(e) =>
+                      setFormEntrega((prev) => ({
+                        ...prev,
+                        routeName: e.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="totalPrice">Valor Total Frete (USD) *</Label>
+                  <Input
+                    id="totalPrice"
                     type="number"
                     step="0.01"
                     min={0.01}
                     placeholder="Ex: 150.00"
-                    value={formEntrega.minimumPrice}
+                    value={formEntrega.totalPrice}
                     onChange={(e) =>
                       setFormEntrega((prev) => ({
                         ...prev,
-                        minimumPrice: e.target.value,
+                        totalPrice: e.target.value,
                       }))
                     }
                     required
@@ -174,18 +194,34 @@ export function DeliveryPricesDialogs(props: DeliveryPricesDialogsProps) {
                   />
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
-                  <Switch
-                    id="activeEntrega"
-                    checked={formEntrega.active}
-                    onCheckedChange={(checked) =>
-                      setFormEntrega((prev) => ({
-                        ...prev,
-                        active: checked,
-                      }))
-                    }
-                  />
-                  <Label htmlFor="activeEntrega">Rota ativa</Label>
+                <div className="flex flex-wrap items-center gap-5">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="activeEntrega"
+                      checked={formEntrega.active}
+                      onCheckedChange={(checked) =>
+                        setFormEntrega((prev) => ({
+                          ...prev,
+                          active: checked,
+                        }))
+                      }
+                    />
+                    <Label htmlFor="activeEntrega">Rota ativa</Label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="isVariableDeliveryPrice"
+                      checked={formEntrega.isVariablePrice ?? false}
+                      onCheckedChange={(checked) =>
+                        setFormEntrega((prev) => ({
+                          ...prev,
+                          isVariablePrice: checked,
+                        }))
+                      }
+                    />
+                    <Label htmlFor="isVariableDeliveryPrice">Frete variável</Label>
+                  </div>
                 </div>
               </div>
 
@@ -195,18 +231,22 @@ export function DeliveryPricesDialogs(props: DeliveryPricesDialogsProps) {
                   Produto
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {produtosLoading ? "Carregando produtos…" : "Produto ao qual este frete se aplica"}
+                  {produtosLoading ? "Carregando produtos…" : "Produto ao qual este frete se aplica (opcional)"}
                 </p>
 
                 <div className="space-y-2">
-                  <Label>Produto *</Label>
+                  <Label>Produto</Label>
                   <SearchableSelect
                     className="space-y-0"
                     items={productItems}
-                    value={formEntrega.productId}
+                    value={formEntrega.productId ?? undefined}
                     onValueChange={(productId) =>
                       setFormEntrega((prev) => ({ ...prev, productId: productId }))
                     }
+                    emptyOption={{
+                      value: NONE_PRODUCT_SELECT_VALUE,
+                      label: "Nenhum produto",
+                    }}
                     placeholder="Selecione o produto"
                     searchPlaceholder="Buscar produto..."
                     emptyMessage="Nenhum produto encontrado."
@@ -243,7 +283,7 @@ export function DeliveryPricesDialogs(props: DeliveryPricesDialogsProps) {
           <DialogHeader>
             <DialogTitle>Editar Preço de Entrega</DialogTitle>
             <DialogDescription>
-              Atualize a rota e o produto vinculado ao frete
+              Configure a rota (valores e prazo) e o produto vinculado ao frete
             </DialogDescription>
           </DialogHeader>
 
@@ -254,20 +294,40 @@ export function DeliveryPricesDialogs(props: DeliveryPricesDialogsProps) {
                   <MapPin className="h-4 w-4 shrink-0 text-[#1E3A5F]" />
                   Rota
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Valor total do frete, prazo, rota ativa e se o frete é variável
+                </p>
 
                 <div className="space-y-2">
-                  <Label htmlFor="editMinimumPrice">Preço Mínimo (USD) *</Label>
+                  <Label htmlFor="editRouteName">Nome da Rota *</Label>
                   <Input
-                    id="editMinimumPrice"
+                    id="editRouteName"
+                    type="text"
+                    placeholder="Ex: Rota 1"
+                    value={formEntrega.routeName}
+                    onChange={(e) =>
+                      setFormEntrega((prev) => ({
+                        ...prev,
+                        routeName: e.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="editTotalPrice">Valor Total Frete (USD) *</Label>
+                  <Input
+                    id="editTotalPrice"
                     type="number"
                     step="0.01"
                     min={0.01}
                     placeholder="Ex: 150.00"
-                    value={formEntrega.minimumPrice}
+                    value={formEntrega.totalPrice}
                     onChange={(e) =>
                       setFormEntrega((prev) => ({
                         ...prev,
-                        minimumPrice: e.target.value,
+                        totalPrice: e.target.value,
                       }))
                     }
                     required
@@ -292,18 +352,34 @@ export function DeliveryPricesDialogs(props: DeliveryPricesDialogsProps) {
                   />
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
-                  <Switch
-                    id="editActive"
-                    checked={formEntrega.active}
-                    onCheckedChange={(checked) =>
-                      setFormEntrega((prev) => ({
-                        ...prev,
-                        active: !!checked,
-                      }))
-                    }
-                  />
-                  <Label htmlFor="editActive">Rota ativa</Label>
+                <div className="flex flex-wrap items-center gap-5">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="editActiveEntrega"
+                      checked={formEntrega.active}
+                      onCheckedChange={(checked) =>
+                        setFormEntrega((prev) => ({
+                          ...prev,
+                          active: checked,
+                        }))
+                      }
+                    />
+                    <Label htmlFor="editActiveEntrega">Rota ativa</Label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="editIsVariableDeliveryPrice"
+                      checked={formEntrega.isVariablePrice ?? false}
+                      onCheckedChange={(checked) =>
+                        setFormEntrega((prev) => ({
+                          ...prev,
+                          isVariablePrice: checked,
+                        }))
+                      }
+                    />
+                    <Label htmlFor="editIsVariableDeliveryPrice">Frete variável</Label>
+                  </div>
                 </div>
               </div>
 
@@ -313,18 +389,22 @@ export function DeliveryPricesDialogs(props: DeliveryPricesDialogsProps) {
                   Produto
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {produtosLoading ? "Carregando produtos…" : "Altere o produto se necessário"}
+                  {produtosLoading ? "Carregando produtos…" : "Produto ao qual este frete se aplica (opcional)"}
                 </p>
 
                 <div className="space-y-2">
-                  <Label>Produto *</Label>
+                  <Label>Produto</Label>
                   <SearchableSelect
                     className="space-y-0"
                     items={productItems}
-                    value={formEntrega.productId}
+                    value={formEntrega.productId ?? undefined}
                     onValueChange={(productId) =>
                       setFormEntrega((prev) => ({ ...prev, productId: productId }))
                     }
+                    emptyOption={{
+                      value: NONE_PRODUCT_SELECT_VALUE,
+                      label: "Nenhum produto",
+                    }}
                     placeholder="Selecione o produto"
                     searchPlaceholder="Buscar produto..."
                     emptyMessage="Nenhum produto encontrado."

@@ -39,7 +39,7 @@ export function DeliveryPricesTable(props: DeliveryPricesTableProps) {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por produtos, preço mínimo ou prazo..."
+            placeholder="Buscar por nome da rota, produto, valor total frete, prazo, etc..."
             value={searchTerm}
             onChange={(e) => onSearchTermChange(e.target.value)}
             className="pl-10"
@@ -54,9 +54,11 @@ export function DeliveryPricesTable(props: DeliveryPricesTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
+              <TableHead className="text-center">Nome da Rota</TableHead>
               <TableHead className="text-center">Produto</TableHead>
-              <TableHead className="text-center">Mínimo (USD)</TableHead>
+              <TableHead className="text-center">Valor total frete (USD)</TableHead>
               <TableHead className="text-center">Prazo (dias)</TableHead>
+              <TableHead className="text-center">Frete Variável?</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-center">Ações</TableHead>
             </TableRow>
@@ -71,6 +73,9 @@ export function DeliveryPricesTable(props: DeliveryPricesTableProps) {
             ) : (
               entregasFiltradas.map((entrega) => (
                 <TableRow key={entrega.id} className="hover:bg-muted/30 text-center justify-center">
+                  <TableCell className="text-center justify-center">
+                    {entrega.routeName}
+                  </TableCell>
                   <TableCell className="text-center justify-center flex items-center gap-1">
                     <div className="flex items-center gap-1 justify-center">
                       {entrega.product?.type?.includes("BOX") ? (
@@ -83,10 +88,10 @@ export function DeliveryPricesTable(props: DeliveryPricesTableProps) {
                         <Package className="w-5 h-5 text-muted-foreground" aria-hidden />
                       )}
                     </div>
-                    <span className="font-medium">{entrega.product?.name} - {ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[entrega.product?.type ?? ""]]}</span>
+                    <span className="font-medium">{entrega.product?.name ?? ""} - {entrega.product?.type ? ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[entrega.product?.type ?? ""]] : "Nenhum tipo de produto"}</span>
                   </TableCell>
                   <TableCell className="text-center justify-center">
-                    <span className="text-muted-foreground">${Number(entrega.minimumPrice).toFixed(2)}</span>
+                    <span className="font-semibold text-green-700">${Number(entrega.totalPrice).toFixed(2)}</span>
                   </TableCell>
                   <TableCell className="text-center justify-center">
                     <div className="flex items-center gap-1 justify-center">
@@ -95,7 +100,12 @@ export function DeliveryPricesTable(props: DeliveryPricesTableProps) {
                     </div>
                   </TableCell>
                   <TableCell className="text-center justify-center">
-                    <Badge variant={entrega.active ? "default" : "secondary"}>
+                    <Badge variant={entrega.isVariablePrice ? "default" : "secondary"}>
+                      {entrega.isVariablePrice ? "Sim" : "Não"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center justify-center">
+                    <Badge className={entrega.active ? "bg-green-500 text-white" : "bg-red-500 text-white"}>
                       {entrega.active ? "Ativa" : "Inativa"}
                     </Badge>
                   </TableCell>

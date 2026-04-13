@@ -145,7 +145,7 @@ export function ProductsPricesTable(props: ProductsPricesTableProps) {
                       <span className="font-semibold text-green-700">${Number(produto.salePrice).toFixed(2)}</span>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={produto.active ? "default" : "secondary"}>
+                      <Badge className={produto.active ? "bg-green-500 text-white" : "bg-red-500 text-white"}>
                         {produto.active ? "Ativo" : "Inativo"}
                       </Badge>
                     </TableCell>

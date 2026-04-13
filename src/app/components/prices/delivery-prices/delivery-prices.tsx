@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
 import { Button } from "../../ui/button";
 import { Plus } from "lucide-react";
@@ -16,6 +16,7 @@ import { resetDeliveryForm } from "./delivery-prices.utils";
 import { DeliveryPricesTable } from "./components/DeliveryPricesTable";
 import { DeliveryPricesDialogs } from "./components/DeliveryPricesDialogs";
 import { ConfirmAlertDialog } from "../../ui/confirm-alert-dialog";
+import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from "../../stock";
 
 export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
   const { setPrecosEntrega, deleteDeliveryPrice, className } = props;
@@ -33,6 +34,9 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
   const [paginationEntrega, setPaginationEntrega] = useState<DeliveryPricesPagination | null>(null);
   const [deleteEntregaId, setDeleteEntregaId] = useState<string | null>(null);
   const [deleteEntregaLoading, setDeleteEntregaLoading] = useState(false);
+
+  /** Valores do servidor no momento em que o usuário abriu "Editar" (base para o diff do PATCH). */
+  const editEntregaBaselineRef = useRef<DeliveryPrice | null>(null);
 
   const carregarPrecosEntrega = async (page = pageEntrega) => {
     const result = await getDeliveryPricesPage({ page, limit: limitEntrega });
@@ -64,16 +68,28 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
 
   const entregasFiltradas = entregas.filter(
     (p) =>
-      (p.minimumPrice ?? 0).toString()
+      (p.routeName ?? "").toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (p.totalPrice ?? 0).toString()
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
       (p.deliveryDeadline ?? 0).toString()
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
+      (p.product?.name)?.toString()
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[p.product?.type ?? ""]] ?? "").toLowerCase()
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (p.product?.type ?? "").toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (p.isVariablePrice ? "Sim" : "Não")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
       (p.active ? "Ativa" : "Inativa")
         .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-    //Adicionar filtros de produtos aqui
+        .includes(searchTerm.toLowerCase()),
   );
 
   const handleSubmitEntrega = async (e: React.FormEvent) => {
@@ -93,6 +109,7 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
       e,
       form: formEntrega,
       selectedEntrega,
+      editBaseline: editEntregaBaselineRef.current,
       setIsEditEntregaDialogOpen,
       setSelectedEntrega,
       resetFormEntrega,
@@ -126,12 +143,23 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
   };
 
   const onEditEntrega = (entrega: DeliveryPrice) => {
+    editEntregaBaselineRef.current = {
+      id: entrega.id,
+      routeName: entrega.routeName,
+      totalPrice: entrega.totalPrice,
+      deliveryDeadline: entrega.deliveryDeadline,
+      productId: entrega.productId,
+      active: entrega.active,
+      isVariablePrice: entrega.isVariablePrice,
+    };
     setSelectedEntrega(entrega);
     setFormEntrega({
-      productId: entrega.productId,
-      minimumPrice: entrega.minimumPrice.toString(),
-      deliveryDeadline: entrega.deliveryDeadline.toString(),
-      active: entrega.active,
+      routeName: entrega.routeName ?? "",
+      totalPrice: String(entrega.totalPrice ?? ""),
+      deliveryDeadline: String(entrega.deliveryDeadline ?? ""),
+      productId: entrega.productId ?? "",
+      active: entrega.active ?? true,
+      isVariablePrice: entrega.isVariablePrice ?? false,
     });
     setIsEditEntregaDialogOpen(true);
   };
@@ -199,6 +227,7 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
         onOpenChangeEditEntrega={(open) => {
           setIsEditEntregaDialogOpen(open);
           if (!open) {
+            editEntregaBaselineRef.current = null;
             setSelectedEntrega(null);
             resetFormEntrega();
           } else {
@@ -206,6 +235,7 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
           }
         }}
         onCloseEditEntrega={() => {
+          editEntregaBaselineRef.current = null;
           resetFormEntrega();
           setSelectedEntrega(null);
           setIsEditEntregaDialogOpen(false);

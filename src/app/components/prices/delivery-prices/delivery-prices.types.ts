@@ -1,10 +1,12 @@
 import type { DeliveryPrice } from "../../../api";
 
 export type DeliveryPriceForm = {
+  routeName: string;
   productId: string;
-  minimumPrice: string;
+  totalPrice: string;
   deliveryDeadline: string;
   active: boolean;
+  isVariablePrice: boolean;
 };
 
 export type DeliveryPricesTabProps = {

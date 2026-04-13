@@ -11,10 +11,12 @@ import type {
 function mapBackendToFrontend(price: DeliveryPriceBackend): DeliveryPrice {
   return {
     id: price.id,
+    routeName: price.routeName,
     productId: price.productId,
-    minimumPrice: price.minimumPrice,
+    totalPrice: price.totalPrice,
     deliveryDeadline: price.deliveryDeadline,
     active: price.active,
+    isVariablePrice: price.isVariablePrice,
     ...(price.product ? { product: price.product } : {}),
   };
 }

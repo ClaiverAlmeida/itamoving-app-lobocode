@@ -33,11 +33,6 @@ export async function handleCreateDeliverySubmit(params: {
   e.preventDefault();
   const payload = buildCreateDeliveryPayload(form);
 
-  if(!payload.productId || payload.productId.trim() === '') {
-    toast.error("Selecione um produto para cadastrar o preço de entrega.");
-    return;
-  }
-
   const result = await createDeliveryPrice(payload);
   if (!result.success) {
     toast.error(result.error ?? "Erro ao cadastrar preço de entrega.");
@@ -56,23 +51,31 @@ export async function handleEditDeliverySubmit(params: {
   e: React.FormEvent;
   form: DeliveryPriceForm;
   selectedEntrega: DeliveryPrice | null;
+  /** Snapshot ao abrir o diálogo (evita comparar com `selectedEntrega` mutável). */
+  editBaseline: DeliveryPrice | null;
   setIsEditEntregaDialogOpen: (open: boolean) => void;
   setSelectedEntrega: (p: DeliveryPrice | null) => void;
   resetFormEntrega: () => void;
   pageEntrega: number;
   carregarPrecosEntrega: (page: number) => Promise<void>;
 }) {
-  const { e, form, selectedEntrega, setIsEditEntregaDialogOpen, setSelectedEntrega, resetFormEntrega, pageEntrega, carregarPrecosEntrega } = params;
+  const {
+    e,
+    form,
+    selectedEntrega,
+    editBaseline,
+    setIsEditEntregaDialogOpen,
+    setSelectedEntrega,
+    resetFormEntrega,
+    pageEntrega,
+    carregarPrecosEntrega,
+  } = params;
 
   e.preventDefault();
   if (!selectedEntrega) return;
 
-  if(!form.productId || form.productId.trim() === '') {
-    toast.error("Selecione um produto para atualizar o preço de entrega.");
-    return;
-  }
-
-  const patchPayload = buildUpdateDeliveryPatch({ form, original: selectedEntrega });
+  const original = editBaseline ?? selectedEntrega;
+  const patchPayload = buildUpdateDeliveryPatch({ form, original });
   if (Object.keys(patchPayload).length === 0) {
     toast.info("Nenhum campo alterado.");
     return;
@@ -122,8 +125,8 @@ export async function handleExportDeliveries(params?: { onDone?: () => void }) {
       return result;
     }
 
-    exportDocument.createPdf(result.data, "Delivery Prices", "Delivery prices list");
-    toast.success("Preços de entrega exportados com sucesso");
+    // exportDocument.createPdf(result.data, "Delivery Prices", "Delivery prices list");
+    // toast.success("Preços de entrega exportados com sucesso");
     onDone?.();
     return result;
   }

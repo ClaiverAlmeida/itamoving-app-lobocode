@@ -5,7 +5,7 @@ import { AtendenteSelect, SearchableSelect } from "../../forms";
 import { AppointmentBoxesPerDayAlert, AppointmentBoxesPerPeriodAlert, EmptyStateAlert } from "../../alerts";
 import { Button } from "../../ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "../../ui/dialog";
-import { CalendarRange, Edit, Package, Users } from "lucide-react";
+import { CalendarRange, ContainerIcon, Edit, Package, Users } from "lucide-react";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
@@ -363,7 +363,7 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
             placeholder="Selecione o container"
             searchPlaceholder="Buscar container..."
             emptyMessage="Nenhum container encontrado."
-            itemIcon={Package}
+            itemIcon={ContainerIcon}
           />
 
           <div className="space-y-2">

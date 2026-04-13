@@ -6,7 +6,7 @@ import { AppointmentBoxesPerDayAlert, AppointmentBoxesPerPeriodAlert, EmptyState
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
-import { CalendarRange, Package, Users } from "lucide-react";
+import { CalendarRange, ContainerIcon, Package, Users } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { formatClienteAgendamentoLabel } from "../../clients/clients.display";
 import { Switch } from "../../ui/switch";
@@ -324,7 +324,7 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
         placeholder="Selecione o container"
         searchPlaceholder="Buscar container..."
         emptyMessage="Nenhum container encontrado."
-        itemIcon={Package}
+        itemIcon={ContainerIcon}
       />
 
       <div className="space-y-2">
