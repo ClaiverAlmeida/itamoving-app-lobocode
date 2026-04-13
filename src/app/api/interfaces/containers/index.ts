@@ -5,6 +5,7 @@ export type ContainerBoxLine = {
   boxNumber: string;
   size: string;
   weight: number;
+  value?: number;
   driverServiceOrderProductId?: string;
   driverServiceOrderId?: string;
   /** `DriverServiceOrder.containerId` — onde a OS está vinculada (pode diferir do container da carga). */
@@ -17,6 +18,12 @@ export type ContainerBoxLine = {
     weight: number;
     observations?: string;
   }>;
+};
+
+export type ContainerTapeUsage = {
+  quantity: number;
+  weight: number;
+  value: number;
 };
 
 /** UI model for a shipping container (distinct from {@link ContainersBackend}). */
@@ -54,6 +61,8 @@ export interface Container {
     attendant?: { id: string; name: string } | null;
   }[];
   boxes?: ContainerBoxLine[];
+  /** Fitas usadas para lacrar caixas (não entram como volume transferível). */
+  tapesUsed?: ContainerTapeUsage;
   totalWeight?: number;
 }
 
@@ -101,6 +110,7 @@ export interface ContainersBackend {
       containerProductId?: string | null;
       driverServiceOrderId?: string;
       weight?: number | null;
+      value?: number | null;
       product?: { type?: string; name?: string; dimensions?: string | null } | null;
       driverServiceOrder?: {
         id?: string;

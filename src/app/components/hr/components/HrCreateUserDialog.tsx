@@ -112,7 +112,20 @@ export function HrCreateUserDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="salary">Salário (USD) *</Label>
-              <Input id="salary" type="number" step="0.01" min={0.00} value={formUsuario.salary} onChange={(e) => setFormUsuario({ ...formUsuario, salary: Number(e.target.value) || 0 })} required />
+              <Input
+                id="salary"
+                type="number"
+                step="0.01"
+                min={0.00}
+                value={formUsuario.salary}
+                onChange={(e) =>
+                  setFormUsuario({
+                    ...formUsuario,
+                    salary: e.target.value === "" ? "" : Number(e.target.value),
+                  })
+                }
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status *</Label>

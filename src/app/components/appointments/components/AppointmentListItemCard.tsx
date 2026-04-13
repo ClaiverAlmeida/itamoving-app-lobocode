@@ -6,7 +6,7 @@ import { Button } from '../../ui/button';
 import { Card, CardContent } from '../../ui/card';
 import { Box, Calendar as CalendarIcon, MapPin, MessageCircle, Navigation, User } from 'lucide-react';
 import type { Appointment } from '../../../api';
-import { formatDateOnlyToBR } from '../../../utils';
+import { formatDateOnlyToBR, parseDateOnlyLocal } from '../../../utils';
 import { cn } from '../../ui/utils';
 
 const BORDER_LEFT_CLASS_BY_STATUS_COLOR: Record<string, string> = {
@@ -43,7 +43,7 @@ export function AppointmentListItemCard({
   const dateStr = (agendamento.collectionDate ?? '').slice(0, 10);
   const agDate =
     dateStr.length >= 10
-      ? new Date(dateStr + 'T12:00:00.000Z')
+      ? parseDateOnlyLocal(dateStr)
       : new Date(NaN);
   const isAtrasado =
     !Number.isNaN(agDate.getTime()) &&

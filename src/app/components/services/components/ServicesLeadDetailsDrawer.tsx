@@ -8,6 +8,7 @@ import { Calendar, CheckCircle2, DollarSign, Mail, MapPin, MessageCircle, Phone,
 import type { Lead } from "../services.types";
 import { PRIORIDADE_CONFIG, STATUS_CONFIG } from "../services.constants";
 import { formatCurrency, getAISuggestion } from "../services.utils";
+import { getAppTimeZone } from "../../../utils";
 
 export function ServicesLeadDetailsDrawer({
   selectedLead,
@@ -95,7 +96,12 @@ export function ServicesLeadDetailsDrawer({
             {selectedLead.dataMudanca ? (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Calendar className="w-4 h-4" />
-                <span>Previsto: {new Date(selectedLead.dataMudanca).toLocaleDateString("pt-BR")}</span>
+                <span>
+                  Previsto:{" "}
+                  {new Date(selectedLead.dataMudanca).toLocaleDateString("pt-BR", {
+                    timeZone: getAppTimeZone(),
+                  })}
+                </span>
               </div>
             ) : null}
             {selectedLead.valorEstimado ? (
@@ -170,7 +176,13 @@ export function ServicesLeadDetailsDrawer({
                   </div>
                   <p className="text-sm">{conversa.texto}</p>
                   <p className="text-xs text-slate-500 mt-1">
-                    {conversa.data.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    {conversa.data.toLocaleString("pt-BR", {
+                      timeZone: getAppTimeZone(),
+                      day: "2-digit",
+                      month: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </p>
                 </div>
               </motion.div>

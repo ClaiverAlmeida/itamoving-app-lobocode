@@ -166,7 +166,18 @@ export function DeliveryReceipt({
                         {row.etiqueta?.trim() ? row.etiqueta : "—"}
                       </td>
                     ) : null}
-                    <td className="py-2 pr-2 align-top text-center"><div className="font-medium">{row.tipoPrincipal}</div></td>
+                    <td className="py-2 pr-2 align-top text-center">
+                      <div className="font-medium">
+                        {row.quantityLabel ? (
+                          <span className="inline-flex items-center gap-2">
+                            <span className="font-bold text-[#1E3A5F] tabular-nums">{row.quantityLabel}</span>
+                            <span>{row.tipoPrincipal}</span>
+                          </span>
+                        ) : (
+                          row.tipoPrincipal
+                        )}
+                      </div>
+                    </td>
                     <td className="py-2 align-top text-center whitespace-nowrap">{row.weight != null ? Number(row.weight).toFixed(2) : "—"}</td>
                     <td><div className="text-center whitespace-nowrap">{row.value}</div></td>
                   </tr>

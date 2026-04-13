@@ -12,6 +12,7 @@ import {
   joinComma,
   orDash,
 } from '../clients.display';
+import { getAppTimeZone } from '../../../utils';
 
 type Props = {
   viewMode: ClientsViewMode;
@@ -135,7 +136,10 @@ export function ClientsContentView({
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4 flex-shrink-0" />
                       <span>
-                        Cadastrado em {new Date(cliente.createdAt).toLocaleDateString('pt-BR')}
+                        Cadastrado em{" "}
+                        {new Date(cliente.createdAt).toLocaleDateString("pt-BR", {
+                          timeZone: getAppTimeZone(),
+                        })}
                       </span>
                     </div>
 

@@ -12,17 +12,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { formatClienteAgendamentoLabel } from "../../clients/clients.display";
 import { Switch } from "../../ui/switch";
 import { Textarea } from "../../ui/textarea";
-import { formatDateOnlyToBR, toDateOnly } from "../../../utils";
+import { formatDateOnlyToBR, toDateOnly, toDateOnlyInAppTimeZone } from "../../../utils";
 import { getContainerStatusLabel } from "../../containers/containers.utils";
 
 type FormData = {
   clientId: string;
   collectionDate: string;
   collectionTime: string;
-  value: number;
-  downPayment: number;
+  value: number | "";
+  downPayment: number | "";
   isPeriodic: boolean;
-  qtyBoxes: number;
+  qtyBoxes: number | "";
   observations: string;
   userId: string;
   status: string;
@@ -242,11 +242,11 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
                                 const startStr =
                                   typeof period.startDate === "string"
                                     ? period.startDate.slice(0, 10)
-                                    : new Date(period.startDate).toISOString().slice(0, 10);
+                                    : toDateOnlyInAppTimeZone(period.startDate);
                                 const endStr =
                                   typeof period.endDate === "string"
                                     ? period.endDate.slice(0, 10)
-                                    : new Date(period.endDate).toISOString().slice(0, 10);
+                                    : toDateOnlyInAppTimeZone(period.endDate);
                                 void carregarQtdCaixasPorDia(prev.collectionDate, prev.isPeriodic, value);
                                 void carregarQtdCaixasPorPeriodo(startStr, endStr);
                               } else {
@@ -292,7 +292,12 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
               required
               min={1}
               value={formData.qtyBoxes}
-              onChange={(e) => setFormData({ ...formData, qtyBoxes: Number(e.target.value) })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  qtyBoxes: e.target.value === "" ? "" : Number(e.target.value),
+                })
+              }
             />
           </div>
 
@@ -305,7 +310,12 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
                 required
                 min={1}
                 value={formData.value}
-                onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    value: e.target.value === "" ? "" : Number(e.target.value),
+                  })
+                }
               />
             </div>
             <div className="space-y-2">
@@ -315,7 +325,12 @@ export function AppointmentsEditAppointmentDialog(props: Props) {
                 type="number"
                 min={0.0}
                 value={formData.downPayment}
-                onChange={(e) => setFormData({ ...formData, downPayment: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    downPayment: e.target.value === "" ? "" : Number(e.target.value),
+                  })
+                }
               />
             </div>
           </div>

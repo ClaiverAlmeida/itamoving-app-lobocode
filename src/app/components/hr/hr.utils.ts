@@ -1,7 +1,8 @@
 import type { Usuario } from "../../api";
 import type { HrUserFormData } from "./hr.payload";
+import { toDateOnlyInAppTimeZone } from "../../utils";
 
-export const dataPickerBlocked = () => new Date().toISOString().split("T")[0];
+export const dataPickerBlocked = () => toDateOnlyInAppTimeZone(new Date());
 
 export const formatJustLetters = (value: string): string => {
   const onlyLetters = value.replace(/[^\p{L}\s]/gu, "");
@@ -22,7 +23,7 @@ export const getFirstMissingRequired = (
   if (!formUsuario.birthDate) return "Data de Nascimento";
   if (!formUsuario.hireDate) return "Data de Admissão";
   if (!formUsuario.role?.trim()) return "Cargo";
-  if (formUsuario.salary === undefined || formUsuario.salary === null) return "Salário";
+  if (formUsuario.salary === undefined || formUsuario.salary === null || formUsuario.salary === "") return "Salário";
   if (!formUsuario.status) return "Status";
   if (!formUsuario.street?.trim()) return "Rua";
   if (!formUsuario.number?.trim()) return "Número";

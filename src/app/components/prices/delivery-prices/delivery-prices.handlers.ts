@@ -33,6 +33,11 @@ export async function handleCreateDeliverySubmit(params: {
   e.preventDefault();
   const payload = buildCreateDeliveryPayload(form);
 
+  if(!payload.productId || payload.productId.trim() === '') {
+    toast.error("Selecione um produto para cadastrar o preço de entrega.");
+    return;
+  }
+
   const result = await createDeliveryPrice(payload);
   if (!result.success) {
     toast.error(result.error ?? "Erro ao cadastrar preço de entrega.");
@@ -61,6 +66,11 @@ export async function handleEditDeliverySubmit(params: {
 
   e.preventDefault();
   if (!selectedEntrega) return;
+
+  if(!form.productId || form.productId.trim() === '') {
+    toast.error("Selecione um produto para atualizar o preço de entrega.");
+    return;
+  }
 
   const patchPayload = buildUpdateDeliveryPatch({ form, original: selectedEntrega });
   if (Object.keys(patchPayload).length === 0) {

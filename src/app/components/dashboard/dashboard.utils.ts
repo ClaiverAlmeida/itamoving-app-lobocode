@@ -33,7 +33,7 @@ import { format, isPast, isToday, isValid, startOfMonth, subDays, subMonths } fr
 import type { LucideIcon } from "lucide-react";
 import { ALARTE_COLOR_MAP, type Alerta, type AtividadeRecente } from "./dashboard.constants";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { parseApiDateToLocalDate, toDateOnly } from "../../utils/date";
+import { parseApiDateToLocalDate, parseDateOnlyLocal, toDateOnly, toDateOnlyInAppTimeZone } from "../../utils";
 
 export type FinanceiroDataPoint = { mes: string; receitas: number; despesas: number; lucro: number };
 export type ContainerStatusDataPoint = { name: string; value: number; color: string };
@@ -41,8 +41,8 @@ export type EstoqueDataPoint = { tipo: string; quantidade: number; fill: string 
 export type PerformanceDataPoint = { dia: string; clientes: number; agendamentos: number; containers: number };
 
 export function getAgendamentosCounts(agendamentos: Appointment[]) {
-  const hoje = new Date().toISOString().split("T")[0];
-  const amanha = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const hoje = toDateOnlyInAppTimeZone(new Date());
+  const amanha = toDateOnlyInAppTimeZone(new Date(Date.now() + 24 * 60 * 60 * 1000));
   const agendamentosHoje = agendamentos.filter((a) => a.collectionDate === hoje).length;
   const agendamentosAmanha = agendamentos.filter((a) => a.collectionDate === amanha).length;
   const agendamentosPendentes = agendamentos.filter((a) => a.status === "PENDING").length;
@@ -211,7 +211,10 @@ export function buildAlertas(params: {
   const alerts: Alerta[] = [];
 
   const atrasados = agendamentos.filter((a) => {
-    const dataAgendamento = new Date(a.collectionDate + "T00:00:00");
+    const collectionDate = (a.collectionDate ?? "").slice(0, 10);
+    if (!collectionDate) return false;
+    const dataAgendamento = parseDateOnlyLocal(collectionDate);
+    if (Number.isNaN(dataAgendamento.getTime())) return false;
     return isPast(dataAgendamento) && a.status === "PENDING" && !isToday(dataAgendamento);
   });
 

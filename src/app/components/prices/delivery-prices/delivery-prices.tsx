@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
 import { Button } from "../../ui/button";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import type { DeliveryPricesPagination, DeliveryPrice } from "../../../api";
-import { getDeliveryPricesPage } from "./delivery-prices.crud";
+import type { DeliveryPricesPagination, DeliveryPrice, ProductPrice } from "../../../api";
+import { getDeliveryPricesPage, getProductPrices } from "./delivery-prices.crud";
 import {
   handleCreateDeliverySubmit,
   handleDeleteDelivery,
@@ -12,7 +12,7 @@ import {
   handleExportDeliveries,
 } from "./delivery-prices.handlers";
 import type { DeliveryPriceForm, DeliveryPricesTabProps } from "./delivery-prices.types";
-import { resetDeliveryForm, toUfBrasil, toUfEua } from "./delivery-prices.utils";
+import { resetDeliveryForm } from "./delivery-prices.utils";
 import { DeliveryPricesTable } from "./components/DeliveryPricesTable";
 import { DeliveryPricesDialogs } from "./components/DeliveryPricesDialogs";
 import { ConfirmAlertDialog } from "../../ui/confirm-alert-dialog";
@@ -45,6 +45,17 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
     }
   };
 
+  const carregarProdutos = useCallback(async (): Promise<ProductPrice[]> => {
+    const result = await getProductPrices();
+    if (result.success && result.data) {
+      return result.data.filter((p) => p.active === true && p.type !== "TAPE_ADHESIVE");
+    }
+    if (result.error) {
+      toast.error(result.error);
+    }
+    return [];
+  }, []);
+
   useEffect(() => {
     carregarPrecosEntrega(pageEntrega);
   }, [pageEntrega, limitEntrega]);
@@ -53,18 +64,16 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
 
   const entregasFiltradas = entregas.filter(
     (p) =>
-      (p.originCity ?? "")
+      (p.minimumPrice ?? 0).toString()
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      (p.destinationCity ?? "")
+      (p.deliveryDeadline ?? 0).toString()
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      (p.originState ?? "")
+      (p.active ? "Ativa" : "Inativa")
         .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (p.destinationState ?? "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()),
+        .includes(searchTerm.toLowerCase())
+    //Adicionar filtros de produtos aqui
   );
 
   const handleSubmitEntrega = async (e: React.FormEvent) => {
@@ -119,11 +128,7 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
   const onEditEntrega = (entrega: DeliveryPrice) => {
     setSelectedEntrega(entrega);
     setFormEntrega({
-      originCity: entrega.originCity,
-      originState: toUfEua(entrega.originState),
-      destinationCity: entrega.destinationCity,
-      destinationState: toUfBrasil(entrega.destinationState),
-      pricePerKg: entrega.pricePerKg.toString(),
+      productId: entrega.productId,
       minimumPrice: entrega.minimumPrice.toString(),
       deliveryDeadline: entrega.deliveryDeadline.toString(),
       active: entrega.active,
@@ -137,9 +142,9 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <CardTitle>Preços de Entrega por Cidade</CardTitle>
+              <CardTitle>Preços de Entrega</CardTitle>
               <CardDescription>
-                Configure os preços de frete entre cidades EUA-Brasil
+                Configure os preços de frete por produtos, preço mínimo ou prazo
               </CardDescription>
             </div>
             <Button
@@ -173,25 +178,38 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
 
       <DeliveryPricesDialogs
         isEntregaDialogOpen={isEntregaDialogOpen}
+        editingProductSummary={selectedEntrega?.product ?? null}
+        onCarregarProdutos={carregarProdutos}
         onOpenChangeEntrega={(open) => {
           setIsEntregaDialogOpen(open);
           if (open) {
             resetFormEntrega();
             setSelectedEntrega(null);
             setIsEditEntregaDialogOpen(false);
+          } else {
+            resetFormEntrega();
+            setSelectedEntrega(null);
           }
         }}
-        onCloseEntrega={() => setIsEntregaDialogOpen(false)}
+        onCloseEntrega={() => {
+          resetFormEntrega();
+          setIsEntregaDialogOpen(false);
+        }}
         isEditEntregaDialogOpen={isEditEntregaDialogOpen}
         onOpenChangeEditEntrega={(open) => {
           setIsEditEntregaDialogOpen(open);
           if (!open) {
             setSelectedEntrega(null);
+            resetFormEntrega();
           } else {
             setIsEntregaDialogOpen(false);
           }
         }}
-        onCloseEditEntrega={() => setIsEditEntregaDialogOpen(false)}
+        onCloseEditEntrega={() => {
+          resetFormEntrega();
+          setSelectedEntrega(null);
+          setIsEditEntregaDialogOpen(false);
+        }}
         formEntrega={formEntrega}
         setFormEntrega={setFormEntrega}
         onSubmitCreate={handleSubmitEntrega}

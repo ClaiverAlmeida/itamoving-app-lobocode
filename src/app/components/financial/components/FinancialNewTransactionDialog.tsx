@@ -11,6 +11,7 @@ import type { TransactionFormData } from "../index";
 import { CATEGORIAS_DESPESA, CATEGORIAS_RECEITA, METODOS_PAGAMENTO } from "../index";
 import { handleNewTransactionSubmit } from "../index";
 import { formatFinancialClientOptionLabel } from "../financial.client-label";
+import { toDateOnlyInAppTimeZone } from "../../../utils";
 
 export function FinancialNewTransactionDialog(props: {
   carregarClientes: () => Promise<Client[]>;
@@ -27,7 +28,7 @@ export function FinancialNewTransactionDialog(props: {
       type: "REVENUE",
       category: "",
       value: "",
-      date: new Date().toISOString().split("T")[0],
+      date: toDateOnlyInAppTimeZone(new Date()),
       description: "",
       paymentMethod: "",
     };

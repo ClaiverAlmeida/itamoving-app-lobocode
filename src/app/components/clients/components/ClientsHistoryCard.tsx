@@ -8,6 +8,7 @@ import {
   type ClienteAtividade,
   type HistoricoPaginado,
 } from '../clients.constants';
+import { getAppTimeZone } from '../../../utils';
 
 type Props = {
   selectedClienteId: string;
@@ -56,8 +57,12 @@ export function ClientsHistoryCard({
                     <div className="flex-1 min-w-0 space-y-2">
                       <p className="font-semibold text-sm">{atividade.descricao}</p>
                       <p className="text-xs text-muted-foreground">
-                        {atividade.data.toLocaleDateString('pt-BR')} às{' '}
+                        {atividade.data.toLocaleDateString('pt-BR', {
+                          timeZone: getAppTimeZone(),
+                        })}{' '}
+                        às{' '}
                         {atividade.data.toLocaleTimeString('pt-BR', {
+                          timeZone: getAppTimeZone(),
                           hour: '2-digit',
                           minute: '2-digit',
                         })}{' '}

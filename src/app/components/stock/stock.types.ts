@@ -52,6 +52,8 @@ export type StockItemConfig = {
   cor: "red" | "green" | "orange" | "purple" | "blue";
   minimo: number;
   ideal: number;
+  /** Opcional: só a cor do ícone (ex.: fita com `AdhesiveTapeIcon` em azul no card). */
+  iconClassName?: string;
 };
 
 export type StockStatistics = {

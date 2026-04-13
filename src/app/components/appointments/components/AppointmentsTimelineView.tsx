@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Box, Calendar as CalendarIcon, MapPin } from "lucide-react";
 import { cn } from "../../ui/utils";
 import type { Appointment } from "../../../api";
+import { parseDateOnlyLocal } from "../../../utils";
 
 const BORDER_LEFT_CLASS_BY_STATUS_COLOR: Record<string, string> = {
   "bg-yellow-500": "border-l-yellow-600",
@@ -42,7 +43,7 @@ export function AppointmentsTimelineView({
     <div className="space-y-4">
       {daysOfWeek.map((day) => {
         const dayAgendamentos = filteredAgendamentos.filter((ag) =>
-          isSameDay(new Date((ag.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z"), day),
+          isSameDay(parseDateOnlyLocal((ag.collectionDate ?? "").slice(0, 10)), day),
         );
 
         return (

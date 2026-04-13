@@ -2,6 +2,7 @@ import React,{ useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { getAppTimeZone } from '../utils';
 
 interface Message {
   id: string;
@@ -186,6 +187,7 @@ export default function WhatsAppChat() {
                   <p className="text-sm whitespace-pre-line">{message.text}</p>
                   <p className="text-xs text-slate-500 mt-1">
                     {message.timestamp.toLocaleTimeString('pt-BR', {
+                      timeZone: getAppTimeZone(),
                       hour: '2-digit',
                       minute: '2-digit',
                     })}

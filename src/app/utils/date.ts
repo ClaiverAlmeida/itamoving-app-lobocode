@@ -29,7 +29,7 @@ export function formatDateOnlyToBR(value: string | undefined | null): string {
 
 /**
  * Interpreta YYYY-MM-DD como calendário local (meia-noite local).
- * `new Date("YYYY-MM-DD")` em JS usa UTC e pode exibir o dia anterior em fusos como America/Sao_Paulo.
+ * `new Date("YYYY-MM-DD")` em JS usa UTC e pode exibir o dia anterior em fusos como Philadelphia (America/New_York).
  */
 export function parseDateOnlyLocal(ymd: string): Date {
     const s = String(ymd).trim().slice(0, 10);

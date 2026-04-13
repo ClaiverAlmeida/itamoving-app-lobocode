@@ -41,6 +41,7 @@ import {
   PopoverTrigger,
 } from './components/ui/popover';
 import { useNotifications } from './hooks/useNotifications';
+import { getAppTimeZone } from './utils';
 import { notificationsService } from './api';
 const DashboardView = lazy(() => import('./components/dashboard'));
 const ClientesView = lazy(() => import('./components/clients'));
@@ -563,7 +564,11 @@ function MainApp() {
                                 <p className="text-sm font-medium text-foreground">{n.title}</p>
                                 <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
                                 <p className="text-[10px] text-muted-foreground mt-1">
-                                  {n.createdAt ? new Date(n.createdAt).toLocaleString('pt-BR') : ''}
+                                  {n.createdAt
+                                    ? new Date(n.createdAt).toLocaleString('pt-BR', {
+                                        timeZone: getAppTimeZone(),
+                                      })
+                                    : ''}
                                 </p>
                               </motion.li>
                             ))}

@@ -1,14 +1,12 @@
 /** UI model for a delivery price row (list / forms). */
 export interface DeliveryPrice {
   id: string;
-  originCity: string;
-  originState: string;
-  destinationCity: string;
-  destinationState: string;
-  pricePerKg: number;
+  productId: string;
   minimumPrice: number;
   deliveryDeadline: number;
   active: boolean;
+  /** Preenchido quando a API retorna o relacionamento `product`. */
+  product?: Pick<ProductPrice, "id" | "name" | "type">;
 }
 
 /** UI model for a product price row (list / forms). */
@@ -62,12 +60,7 @@ export interface ProductPricePagination {
 }
 
 export interface CreateDeliveryPriceDTO {
-  id?: string;
-  originCity: string;
-  originState: string;
-  destinationCity: string;
-  destinationState: string;
-  pricePerKg: number;
+  productId: string;
   minimumPrice: number;
   deliveryDeadline: number;
   active: boolean;
@@ -76,16 +69,13 @@ export interface CreateDeliveryPriceDTO {
 export interface DeliveryPriceBackend {
   id: string;
   companyId: string;
-  originCity: string;
-  originState: string;
-  destinationCity: string;
-  destinationState: string;
-  pricePerKg: number;
   minimumPrice: number;
+  productId: string;
   deliveryDeadline: number;
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  product?: Pick<ProductPrice, "id" | "name" | "type">;
 }
 
 export interface DeliveryPricesPagination {

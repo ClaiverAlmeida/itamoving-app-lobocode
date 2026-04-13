@@ -27,6 +27,11 @@ function pickSenderUsaFromDriverServiceOrder(o: {
 
 type BackendContainerProductRow = NonNullable<ContainersBackend["products"]>[number];
 
+function isTapeAdhesive(raw: string | null | undefined): boolean {
+  const normalized = String(raw ?? "").trim().toUpperCase();
+  return normalized === "TAPE_ADHESIVE" || normalized.includes("FITA ADESIVA");
+}
+
 function pickLinkedDopForProduct(p: BackendContainerProductRow) {
   const dops = p.driverServiceOrderProducts ?? [];
   const byCp = dops.find(
@@ -62,6 +67,7 @@ function mapBackendToFrontend(container: ContainersBackend): Container {
           boxNumber: p.boxNumber,
           size: linked?.product?.type ?? p.size ?? "",
           weight: linked?.weight ?? p.weight ?? 0,
+          value: linked?.value ?? 0,
           driverServiceOrderProductId: linked?.id,
           driverServiceOrderId: linked?.driverServiceOrderId ?? ord?.id,
           orderPrimaryContainerId: ord?.containerId ?? null,
@@ -69,7 +75,14 @@ function mapBackendToFrontend(container: ContainersBackend): Container {
         };
       })
     : [];
-  const boxes = fromProducts.length ? fromProducts : container.boxes ?? [];
+  const rawBoxes = fromProducts.length ? fromProducts : container.boxes ?? [];
+  const boxes = rawBoxes.filter((box) => !isTapeAdhesive(box.size));
+  const tapeLines = rawBoxes.filter((box) => isTapeAdhesive(box.size));
+  const tapesUsed = {
+    quantity: tapeLines.length,
+    weight: tapeLines.reduce((sum, line) => sum + (Number(line.weight) || 0), 0),
+    value: tapeLines.reduce((sum, line) => sum + (Number(line.value) || 0), 0),
+  };
   const totalWeight =
     container.totalWeight ?? boxes.reduce((s, b) => s + (b?.weight ?? 0), 0);
   return {
@@ -89,6 +102,7 @@ function mapBackendToFrontend(container: ContainersBackend): Container {
     status: container.status as Container["status"],
     totalWeight,
     boxes,
+    tapesUsed,
     volumeLetter: container.volumeLetter ?? undefined,
     volumeCapacity:
       container.volumeCapacity !== undefined && container.volumeCapacity !== null

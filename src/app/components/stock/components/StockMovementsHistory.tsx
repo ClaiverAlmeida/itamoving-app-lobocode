@@ -9,6 +9,7 @@ import { Label } from "../../ui/label";
 import { ITEM_LABELS, MOVIMENTACOES_PAGE_SIZE } from "../stock.constants";
 import type { EstoqueMovimentacao } from "../stock.types";
 import { getMovItemKey, getMovQuantity } from "../stock.utils";
+import { getAppTimeZone } from "../../../utils";
 
 type Props = {
   showFilters: boolean;
@@ -111,8 +112,15 @@ export function StockMovementsHistory(props: Props) {
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             <span>
-                              {new Date(mov.createdAt).toLocaleDateString("pt-BR")} às{" "}
-                              {new Date(mov.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                              {new Date(mov.createdAt).toLocaleDateString("pt-BR", {
+                                timeZone: getAppTimeZone(),
+                              })}{" "}
+                              às{" "}
+                              {new Date(mov.createdAt).toLocaleTimeString("pt-BR", {
+                                timeZone: getAppTimeZone(),
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
                             </span>
                           </div>
                           <div className="flex min-w-0 items-center gap-1">

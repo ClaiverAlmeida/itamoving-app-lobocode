@@ -42,7 +42,7 @@ import type {
   CreateAppointmentsPeriodsDTO,
   UpdateAppointmentsPeriodsDTO,
 } from "../api";
-import { toDateOnly, formatDateOnlyToBR } from "../utils";
+import { toDateOnly, formatDateOnlyToBR, parseDateOnlyLocal, toDateOnlyInAppTimeZone } from "../utils";
 import {
   containersCrud,
   getStatusConfig,
@@ -206,7 +206,8 @@ export default function AgendamentosView() {
       return;
     };
 
-    const collectionDateISO = new Date(collectionDate).toISOString() ?? "";
+    const collectionDateYmd = toDateOnly(collectionDate);
+    const collectionDateISO = collectionDateYmd ? `${collectionDateYmd}T00:00:00.000Z` : "";
     const result = await appointmentsCrud.getAllQtdBoxesPerDay(collectionDateISO, isPeriodic, appointmentPeriodId);
     if (result.success && result.data !== undefined) {
       const raw = result.data as any;
@@ -238,8 +239,8 @@ export default function AgendamentosView() {
     const start = new Date(startDate);
     const end = new Date(endDate);
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return;
-    const startDateISO = toDateOnly(startDate) || start.toISOString().slice(0, 10);
-    const endDateISO = toDateOnly(endDate) || end.toISOString().slice(0, 10);
+    const startDateISO = toDateOnly(startDate) || toDateOnlyInAppTimeZone(start);
+    const endDateISO = toDateOnly(endDate) || toDateOnlyInAppTimeZone(end);
 
     const result = await appointmentsCrud.getAllQtdBoxesPerPeriod(startDateISO, endDateISO);
     if (result.success && result.data !== undefined) {
@@ -282,8 +283,8 @@ export default function AgendamentosView() {
     const pid = String(formData.appointmentPeriodId).trim();
     const period = periodos.find((p) => String(p.id ?? "") === pid);
     if (period?.startDate != null && period?.endDate != null) {
-      const startStr = typeof period.startDate === "string" ? period.startDate.slice(0, 10) : new Date(period.startDate).toISOString().slice(0, 10);
-      const endStr = typeof period.endDate === "string" ? period.endDate.slice(0, 10) : new Date(period.endDate).toISOString().slice(0, 10);
+      const startStr = typeof period.startDate === "string" ? period.startDate.slice(0, 10) : toDateOnlyInAppTimeZone(period.startDate);
+      const endStr = typeof period.endDate === "string" ? period.endDate.slice(0, 10) : toDateOnlyInAppTimeZone(period.endDate);
       carregarQtdCaixasPorPeriodo(startStr, endStr);
     }
   }, [periodDialogOpen, formData.isPeriodic, formData.appointmentPeriodId, periodos]);
@@ -383,7 +384,7 @@ export default function AgendamentosView() {
     });
 
   const dataPickerBlocked = () => {
-    return format(new Date(), "yyyy-MM-dd");
+    return toDateOnlyInAppTimeZone(new Date());
   };
 
   /** Quando é agendamento por período, limita o date picker ao intervalo do período (YYYY-MM-DD). */
@@ -450,9 +451,7 @@ export default function AgendamentosView() {
       // Período
       if (filters.periodo !== "todos") {
         const now = new Date();
-        const agendamentoDate = new Date(
-          (agendamento.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z",
-        );
+        const agendamentoDate = parseDateOnlyLocal((agendamento.collectionDate ?? "").slice(0, 10));
 
         if (filters.periodo === "hoje") {
           if (!isToday(agendamentoDate)) return false;
@@ -496,7 +495,7 @@ export default function AgendamentosView() {
   const agendamentosDosDia = useMemo(() => {
     return filteredAgendamentos.filter((ag) =>
       isSameDay(
-        new Date((ag.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z"),
+        parseDateOnlyLocal((ag.collectionDate ?? "").slice(0, 10)),
         selectedDate,
       ),
     );
@@ -550,22 +549,22 @@ export default function AgendamentosView() {
     ).length;
     const hoje = filteredAgendamentos.filter((a) =>
       isToday(
-        new Date((a.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z"),
+        parseDateOnlyLocal((a.collectionDate ?? "").slice(0, 10)),
       ),
     ).length;
     const amanha = filteredAgendamentos.filter((a) =>
       isTomorrow(
-        new Date((a.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z"),
+        parseDateOnlyLocal((a.collectionDate ?? "").slice(0, 10)),
       ),
     ).length;
     const atrasados = filteredAgendamentos.filter(
       (a) =>
         isPast(
-          new Date((a.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z"),
+          parseDateOnlyLocal((a.collectionDate ?? "").slice(0, 10)),
         ) &&
         a.status === "PENDING" &&
         !isToday(
-          new Date((a.collectionDate ?? "").slice(0, 10) + "T12:00:00.000Z"),
+          parseDateOnlyLocal((a.collectionDate ?? "").slice(0, 10)),
         ),
     ).length;
 

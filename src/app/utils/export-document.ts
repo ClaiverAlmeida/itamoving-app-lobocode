@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 const logo = new URL('../../assets/itamoving-logo.png', import.meta.url).href;
+import { getAppTimeZone, toDateOnlyInAppTimeZone } from "./timezone";
 
 // Identidade visual Itamoving (azul escuro e azul claro)
 const COLORS = {
@@ -55,7 +56,7 @@ export class ExportDocument {
     this.pdf.setFont("helvetica", "normal");
     this.pdf.setFontSize(9);
     this.pdf.text(
-      "Documento gerado em: " + new Date().toLocaleDateString("pt-BR"),
+      "Documento gerado em: " + new Date().toLocaleDateString("pt-BR", { timeZone: getAppTimeZone() }),
       36,
       20,
     );
@@ -224,7 +225,7 @@ export class ExportDocument {
     this.pdf.setTextColor(...COLORS.textMuted);
     this.pdf.setFontSize(8);
     this.pdf.text(
-      `ITAMOVING · Gerado em: ${new Date().toLocaleString("pt-BR")}`,
+      `ITAMOVING · Gerado em: ${new Date().toLocaleString("pt-BR", { timeZone: getAppTimeZone() })}`,
       PAGE_WIDTH / 2,
       footerY,
       { align: "center" },
@@ -301,7 +302,7 @@ export class ExportDocument {
   }
 
   createPdf(data: unknown, title: string, description: string) {
-    const now = new Date().toISOString().split("T")[0];
+    const now = toDateOnlyInAppTimeZone(new Date());
     const fileName = `ITAMOVING-${title.replace(/\s+/g, "-")}-${now}.pdf`;
 
     this.pdf = new jsPDF({

@@ -3,8 +3,10 @@ import { Button } from "../../../ui/button";
 import { Input } from "../../../ui/input";
 import { Badge } from "../../../ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../ui/table";
-import { Search, Download, MapPin, Edit, Trash2, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Download, Edit, Trash2, Calendar, ChevronLeft, ChevronRight, Box, Package, PersonStanding } from "lucide-react";
 import type { DeliveryPrice, DeliveryPricesPagination } from "../../../../api";
+import { iconClassForBoxProductType, ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from "../../../stock";
+import { AdhesiveTapeIcon } from "../../../ui/adhesive-tape-icon";
 
 export type DeliveryPricesTableProps = {
   searchTerm: string;
@@ -37,7 +39,7 @@ export function DeliveryPricesTable(props: DeliveryPricesTableProps) {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por cidade ou estado..."
+            placeholder="Buscar por produtos, preço mínimo ou prazo..."
             value={searchTerm}
             onChange={(e) => onSearchTermChange(e.target.value)}
             className="pl-10"
@@ -52,11 +54,9 @@ export function DeliveryPricesTable(props: DeliveryPricesTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="text-center">Origem</TableHead>
-              <TableHead className="text-center">Destino</TableHead>
-              <TableHead className="text-center">Preço/Kg</TableHead>
-              <TableHead className="text-center">Mínimo</TableHead>
-              <TableHead className="text-center">Prazo</TableHead>
+              <TableHead className="text-center">Produto</TableHead>
+              <TableHead className="text-center">Mínimo (USD)</TableHead>
+              <TableHead className="text-center">Prazo (dias)</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-center">Ações</TableHead>
             </TableRow>
@@ -71,26 +71,19 @@ export function DeliveryPricesTable(props: DeliveryPricesTableProps) {
             ) : (
               entregasFiltradas.map((entrega) => (
                 <TableRow key={entrega.id} className="hover:bg-muted/30 text-center justify-center">
-                  <TableCell className="text-center justify-center">
-                    <div className="flex items-center gap-2 justify-center">
-                      <MapPin className="w-4 h-4 text-blue-600" />
-                      <div>
-                        <div className="font-medium">{entrega.originCity}</div>
-                        <div className="text-xs text-muted-foreground">{entrega.originState}, USA</div>
-                      </div>
+                  <TableCell className="text-center justify-center flex items-center gap-1">
+                    <div className="flex items-center gap-1 justify-center">
+                      {entrega.product?.type?.includes("BOX") ? (
+                        <Box className={`w-5 h-5 ${iconClassForBoxProductType(entrega.product?.type)}`} aria-hidden />
+                      ) : entrega.product?.type === "PERSONALIZED_ITEM" ? (
+                        <PersonStanding className="w-5 h-5 text-purple-600" />
+                      ) : entrega.product?.type === "TAPE_ADHESIVE" ? (
+                        <AdhesiveTapeIcon className="h-5 w-5 shrink-0" />
+                      ) : (
+                        <Package className="w-5 h-5 text-muted-foreground" aria-hidden />
+                      )}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-center justify-center">
-                    <div className="flex items-center gap-2 justify-center">
-                      <MapPin className="w-4 h-4 text-green-600" />
-                      <div>
-                        <div className="font-medium">{entrega.destinationCity}</div>
-                        <div className="text-xs text-muted-foreground">{entrega.destinationState}, Brasil</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center justify-center">
-                    <span className="font-semibold text-green-700">${Number(entrega.pricePerKg).toFixed(2)}</span>
+                    <span className="font-medium">{entrega.product?.name} - {ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[entrega.product?.type ?? ""]]}</span>
                   </TableCell>
                   <TableCell className="text-center justify-center">
                     <span className="text-muted-foreground">${Number(entrega.minimumPrice).toFixed(2)}</span>

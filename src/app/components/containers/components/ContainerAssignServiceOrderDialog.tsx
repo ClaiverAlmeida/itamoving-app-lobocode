@@ -29,6 +29,7 @@ import {
   linkedDriverServiceOrderIdsToFetch,
   mergeOrderProductWithPhysicalBox,
   serviceOrderSenderDisplayName,
+  isTapeAdhesiveType,
 } from "../containers.utils";
 import { ServiceOrderBoxesPreview } from "./ServiceOrderBoxesPreview";
 import { ContainerBoxItemsList } from "./ContainerBoxItemsList";
@@ -222,7 +223,13 @@ export function ContainerAssignServiceOrderDialog({
     [workingContainer.boxes],
   );
 
-  const nCaixasOrdem = detail?.driverServiceOrderProducts?.length ?? 0;
+  const nCaixasOrdem = useMemo(
+    () =>
+      (detail?.driverServiceOrderProducts ?? []).filter(
+        (product) => !isTapeAdhesiveType(product.type),
+      ).length,
+    [detail?.driverServiceOrderProducts],
+  );
 
   const [previewLabels, setPreviewLabels] = useState<string[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -582,6 +589,13 @@ export function ContainerAssignServiceOrderDialog({
                         {linkedOverview.totalWeight.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
                       </p>
                     </div>
+                    <div className="col-span-2 sm:col-span-4 rounded-md border bg-background px-3 py-2 text-center">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fitas utilizadas</p>
+                      <p className="text-sm font-semibold tabular-nums mt-1">
+                        {(workingContainer.tapesUsed?.quantity ?? 0)} un. ·{" "}
+                        {(workingContainer.tapesUsed?.weight ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -610,7 +624,7 @@ export function ContainerAssignServiceOrderDialog({
                               <p className="text-[11px] text-muted-foreground mt-0.5">{formatServiceOrderBoxLine(box)}</p>
                             </div>
                             <div className="flex flex-col items-end gap-1 shrink-0">
-                              {box.driverServiceOrderProductId && (
+                              {box.driverServiceOrderProductId && !isTapeAdhesiveType(box.size) && (
                                 <Button
                                   type="button"
                                   variant="secondary"
@@ -731,7 +745,7 @@ export function ContainerAssignServiceOrderDialog({
                                     </span>
                                   </p>
                                   <div className="flex items-center gap-1.5 shrink-0">
-                                    {box.id && (
+                                    {box.id && !isTapeAdhesiveType(box.type) && (
                                       <Button
                                         type="button"
                                         variant="secondary"

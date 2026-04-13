@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import { format, isToday, isTomorrow } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { Appointment } from "../../../api";
+import { parseDateOnlyLocal } from "../../../utils";
 
 export function DashboardNextAppointmentsCard({
   agendamentos,
@@ -36,7 +37,7 @@ export function DashboardNextAppointmentsCard({
           {agendamentos.slice(0, 6).map((agendamento) => {
             const dateRaw = agendamento.collectionDate ?? "";
             const dateStr = dateRaw.slice(0, 10);
-            const dataAgendamento = dateStr.length === 10 ? new Date(dateStr + "T00:00:00") : null;
+            const dataAgendamento = dateStr.length === 10 ? parseDateOnlyLocal(dateStr) : null;
             const ehHoje = dataAgendamento ? isToday(dataAgendamento) : false;
             const ehAmanha = dataAgendamento ? isTomorrow(dataAgendamento) : false;
 

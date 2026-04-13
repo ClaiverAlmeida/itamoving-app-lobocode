@@ -120,6 +120,7 @@ export type ReciboRow = {
   tipoCadastro: string;
   weight: number | undefined;
   value: string;
+  quantityLabel?: string;
   /** Etiqueta física no container (N-LETRA), quando a linha já está vinculada. */
   etiqueta: string | null;
 };
@@ -134,28 +135,53 @@ export function summarizeOrdemForRecibo(ordem: DriverServiceOrder) {
   };
 
   const products = getOrdemProductsList(ordem);
+  const rows: ReciboRow[] = [];
+  let fitaCount = 0;
+  let fitaPesoTotal = 0;
+  let fitaValorTotal = 0;
 
-  const rows: ReciboRow[] = products.map((p, idx) => {
+  for (let idx = 0; idx < products.length; idx += 1) {
+    const p = products[idx];
     const rawType = String(p?.type ?? "").trim();
     const category =
       mapCatalogProductTypeToRecibo((p as { productType?: string }).productType) ??
       classifyDriverProductType(rawType);
     if (category) summary[category] += 1;
 
-    const tipoPrincipal = `${rawType}`;
-    const valor = `$${Number(p.value ?? 0).toFixed(2)}`;
+    const peso = Number(p.weight ?? 0);
+    const valorNumerico = Number(p.value ?? 0);
+
+    if (category === "fita") {
+      fitaCount += 1;
+      fitaPesoTotal += Number.isFinite(peso) ? peso : 0;
+      fitaValorTotal += Number.isFinite(valorNumerico) ? valorNumerico : 0;
+      continue;
+    }
+
     const etiqueta =
       (p as { containerBoxNumber?: string | null }).containerBoxNumber?.trim() || null;
 
-    return {
+    rows.push({
       key: String(p.id ?? `box-${idx}`),
-      tipoPrincipal,
+      tipoPrincipal: `${rawType}`,
       tipoCadastro: rawType || "-",
       weight: p.weight,
-      value: valor,
+      value: `$${valorNumerico.toFixed(2)}`,
       etiqueta,
-    };
-  });
+    });
+  }
+
+  if (fitaCount > 0) {
+    rows.push({
+      key: "fita-adesiva-consolidada",
+      tipoPrincipal: "Fita adesiva",
+      tipoCadastro: "TAPE_ADHESIVE",
+      weight: fitaPesoTotal,
+      value: `$${fitaValorTotal.toFixed(2)}`,
+      quantityLabel: `${fitaCount}x`,
+      etiqueta: null,
+    });
+  }
 
   return { rows, summary, totalUnidades: products.length };
 }

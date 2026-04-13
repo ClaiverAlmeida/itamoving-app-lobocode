@@ -11,14 +11,11 @@ import type {
 function mapBackendToFrontend(price: DeliveryPriceBackend): DeliveryPrice {
   return {
     id: price.id,
-    originCity: price.originCity,
-    originState: price.originState,
-    destinationCity: price.destinationCity,
-    destinationState: price.destinationState,
-    pricePerKg: price.pricePerKg,
+    productId: price.productId,
     minimumPrice: price.minimumPrice,
     deliveryDeadline: price.deliveryDeadline,
     active: price.active,
+    ...(price.product ? { product: price.product } : {}),
   };
 }
 
