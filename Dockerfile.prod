@@ -1,0 +1,79 @@
+# Multi-stage build para produção
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Instalar dependências do sistema necessárias
+RUN apk add --no-cache python3 make g++
+
+# Copiar arquivos de dependências
+COPY package*.json ./
+
+# Instalar dependências (npm install pois não há package-lock.json)
+RUN npm install --legacy-peer-deps
+
+# Copiar código fonte
+COPY . .
+
+# API itamoving em produção
+ARG VITE_API_URL=https://itamoving-api.lobocode.com.br
+ENV VITE_API_URL=$VITE_API_URL
+
+# Build da aplicação (este projeto está configurado para gerar na pasta 'build')
+RUN npm run build
+
+# Stage de produção com Nginx
+FROM nginx:alpine AS production
+
+# Copiar arquivos buildados (este projeto usa /build conforme vite.config.ts)
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# Configuração otimizada do Nginx para SPA
+RUN echo 'server { \
+    listen 80; \
+    server_name _; \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    \
+    # Compressão gzip \
+    gzip on; \
+    gzip_vary on; \
+    gzip_min_length 1024; \
+    gzip_types text/css text/javascript application/javascript application/json image/svg+xml; \
+    \
+    # Cache de assets estáticos \
+    location ~* \\.(?:css|js|jpg|jpeg|gif|png|ico|svg|woff|woff2|ttf|eot)$ { \
+        expires 1y; \
+        add_header Cache-Control "public, immutable"; \
+    } \
+    \
+    # PWA - Service Worker e Manifest \
+    location ~* \\.(?:webmanifest|js)$ { \
+        add_header Cache-Control "no-cache"; \
+        add_header Content-Type "application/manifest+json" always; \
+        try_files $uri =404; \
+    } \
+    \
+    # SPA routing - todas as rotas retornam index.html \
+    location / { \
+        try_files $uri $uri/ /index.html; \
+        add_header Cache-Control "no-cache"; \
+    } \
+    \
+    # Health check endpoint \
+    location /health { \
+        access_log off; \
+        return 200 "healthy\n"; \
+        add_header Content-Type text/plain; \
+    } \
+}' > /etc/nginx/conf.d/default.conf
+
+# Expor porta
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
+
+# Comando para iniciar
+CMD ["nginx", "-g", "daemon off;"]

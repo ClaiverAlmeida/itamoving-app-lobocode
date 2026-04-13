@@ -5,7 +5,7 @@ const getApiBaseUrl = (): string => {
   try {
     const env = (import.meta as { env?: { VITE_API_URL?: string; PROD?: boolean } }).env;
     if (env?.VITE_API_URL) return env.VITE_API_URL;
-    if (env?.PROD) return 'https://api.itamoving.com.br';
+    if (env?.PROD) return 'https://itamoving-api.lobocode.com.br';
   } catch {
     // ignore
   }

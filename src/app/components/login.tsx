@@ -8,6 +8,8 @@ import { useAuth } from '../context/AuthContext';
 import { motion } from 'motion/react';
 import { Truck, Lock, Mail, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
+const itamovingLogo = new URL('../../assets/itamoving-logo.png', import.meta.url).href;
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -63,7 +65,7 @@ export default function Login() {
             className="flex items-center justify-center gap-3 mb-4"
           >
             <div className="p-2 lg:p-3 bg-gradient-to-br from-[#F5A623] to-[#E59400] rounded-2xl shadow-2xl">
-              <img src="./src/assets/itamoving-logo.png" alt="Itamoving Mudanças" className='w-15 h-15 lg:w-20 lg:h-20 text-white user-select-none pointer-events-none select-none' />
+              <img src={itamovingLogo} alt="Itamoving Mudanças" className='w-15 h-15 lg:w-20 lg:h-20 text-white user-select-none pointer-events-none select-none' />
               {/* <Truck className="w-10 h-10 lg:w-12 lg:h-12 text-white" /> */}
             </div>
           </motion.div>
