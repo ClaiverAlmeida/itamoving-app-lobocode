@@ -116,8 +116,8 @@ export async function handleExport(params: { onDone?: () => void }) {
       return result;
     }
 
-    exportDocument.createPdf(result.data, "Products", "Products list");
-    toast.success("Produtos exportados com sucesso");
+    // exportDocument.createPdf(result.data, "Products", "Products list");
+    // toast.success("Produtos exportados com sucesso");
     onDone?.();
     return result;
   }

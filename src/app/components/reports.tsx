@@ -49,9 +49,7 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
   const estoqueBaixoCount = itemKeys.filter((key) => estoqueSafe[key] < ESTOQUE_MINIMO[key]).length;
   const estoqueIdealCount = itemKeys.filter((key) => estoqueSafe[key] >= ESTOQUE_IDEAL[key]).length;
 
-  const gerarRelatorioPDF = (tipo: string) => {
-    alert(`Gerando relatório de ${tipo}... (funcionalidade demonstrativa)`);
-  };
+  const gerarRelatorioPDF = (tipo: string) => {return;};
 
   const formatCurrency = (value: number) => formatCurrencyUSD(value);
 

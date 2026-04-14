@@ -142,7 +142,7 @@ export const handleExportClients = async (runExport: () => Promise<any>) => {
     toast.error('Nenhum cliente cadastrado');
     return;
   }
-  toast.success('Clientes exportados com sucesso');
+  // toast.success('Clientes exportados com sucesso');
 };
 
 export const handleImportClients = async (args: {

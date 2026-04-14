@@ -38,7 +38,6 @@ export default function Login() {
 
   const handleForgetPassword = async (email: string | null, e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    alert(email);
   }
 
   const currentYear = new Date().getFullYear();
