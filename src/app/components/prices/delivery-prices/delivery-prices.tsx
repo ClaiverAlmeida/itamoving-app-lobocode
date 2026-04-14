@@ -180,7 +180,7 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
               onClick={() => setIsEntregaDialogOpen(true)}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Nova Rota
+              Novo Frete
             </Button>
           </div>
         </CardHeader>

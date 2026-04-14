@@ -31,9 +31,8 @@ export function buildDriverServiceOrderProducts({
       return {
         ...(existingProductIds.has(c.id) ? { id: c.id } : {}),
         deliveryPriceId: dpId || null,
-        ...(c.productId ? { productId: c.productId } : {}),
         value: c.value,
-        driverServiceOrderProductsItems: itemsNested,
+        driverServiceOrderProductsItems: [],
       };
     }
 

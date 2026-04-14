@@ -18,22 +18,23 @@ type ResumoValores = {
   temFrete: boolean;
 };
 
-function produtoVinculadoEntrega(
-  entrega: DeliveryPrice,
+/** Caixa de catálogo vinculada ao preço de entrega (somente exibição; não grava `productId` na linha da OS). */
+function caixaCatalogoDoFrete(
+  entrega: DeliveryPrice | undefined,
   opcoesCaixa: ProductPrice[],
 ): { name: string; typeLabel: string } | null {
+  if (!entrega) return null;
+  if (entrega.product) {
+    const key = PRODUCT_TYPE_TO_ITEM_KEY[entrega.product.type];
+    return { name: entrega.product.name, typeLabel: ITEM_LABELS[key] ?? entrega.product.type };
+  }
   if (!entrega.productId) return null;
   const cat = opcoesCaixa.find((p) => p.id === entrega.productId);
   if (cat) {
     const key = PRODUCT_TYPE_TO_ITEM_KEY[cat.type];
     return { name: cat.name, typeLabel: ITEM_LABELS[key] ?? cat.type };
   }
-  if (entrega.product) {
-    const t = entrega.product.type as keyof typeof PRODUCT_TYPE_TO_ITEM_KEY;
-    const key = PRODUCT_TYPE_TO_ITEM_KEY[t];
-    return { name: entrega.product.name, typeLabel: key ? ITEM_LABELS[key] : entrega.product.type };
-  }
-  return { name: "Produto vinculado", typeLabel: "Ver catálogo de preços" };
+  return { name: "Produto vinculado à rota", typeLabel: "Ver catálogo de preços" };
 }
 
 type Props = {
@@ -53,7 +54,6 @@ type Props = {
   removerItens: (id: string) => void;
   caixaTemTodosCamposPreenchidos: (caixa: Caixa) => boolean;
   isFitaAdesiva: (caixa: Caixa, opcoesCaixa: ProductPrice[]) => boolean;
-  entregaExigeItens: (caixa: Caixa, precosEntrega: DeliveryPrice[], opcoesCaixa: ProductPrice[]) => boolean;
 };
 
 export function ServiceOrderFormProductsCard(props: Props) {
@@ -73,7 +73,6 @@ export function ServiceOrderFormProductsCard(props: Props) {
     removerItens,
     caixaTemTodosCamposPreenchidos,
     isFitaAdesiva,
-    entregaExigeItens,
   } = props;
 
   const rotasAtivas = useMemo(() => precosEntrega.filter((e) => e.active), [precosEntrega]);
@@ -127,23 +126,10 @@ export function ServiceOrderFormProductsCard(props: Props) {
                 !isEntrega && (anterior == null || anterior.lineKind === "delivery");
               const abrirSecaoFrete =
                 isEntrega && (anterior == null || anterior.lineKind !== "delivery");
-              const itensDaCaixa = itens.filter((i) => i.caixaId === caixa.id);
-              const pesoItensDaCaixa = itensDaCaixa.reduce((acc, item) => acc + item.weight, 0).toFixed(2);
-              const pesoTotalCaixa =
-                caixa.weight != null && caixa.weight > 0 ? parseFloat(Number(caixa.weight).toFixed(2)) : 0;
-              const isGreaterThanPesoTotalCaixa =
-                !isEntrega && Number(pesoItensDaCaixa) > Number(pesoTotalCaixa) ? "text-red-500" : "";
-              const podeAdicionarItens = caixaTemTodosCamposPreenchidos(caixa);
-              const fitaAdesiva = isFitaAdesiva(caixa, opcoesCaixa);
-              const entregaSel = isEntrega
-                ? precosEntrega.find((e) => e.id === (caixa.deliveryPriceId ?? caixa.type))
-                : undefined;
-              const exigeItensEntrega = isEntrega && entregaExigeItens(caixa, precosEntrega, opcoesCaixa);
-              const mostrarBlocoItens =
-                !isEntrega ? !fitaAdesiva && itensDaCaixa.length > 0 : exigeItensEntrega && itensDaCaixa.length > 0;
-              const produtoFrete = entregaSel ? produtoVinculadoEntrega(entregaSel, opcoesCaixa) : null;
 
               if (isEntrega) {
+                const entregaSel = precosEntrega.find((e) => e.id === (caixa.deliveryPriceId ?? caixa.type));
+                const caixaFreteCatalogo = caixaCatalogoDoFrete(entregaSel, opcoesCaixa);
                 return (
                   <Fragment key={caixa.id}>
                     {abrirSecaoFrete ? (
@@ -157,7 +143,7 @@ export function ServiceOrderFormProductsCard(props: Props) {
                           Frete e rotas
                         </div>
                         <p className="text-xs text-muted-foreground pl-6 leading-snug">
-                          Rota e valor do frete — separado do catálogo de volumes e produtos.
+                          Frete e valor do frete — separado do catálogo de volumes e produtos.
                         </p>
                       </div>
                     ) : null}
@@ -177,7 +163,7 @@ export function ServiceOrderFormProductsCard(props: Props) {
 
                     <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
                       <div className="flex-1 min-w-0 space-y-1">
-                        <Label className="text-xs font-medium text-[#1E3A5F]">Rota de entrega (ativas)</Label>
+                        <Label className="text-xs font-medium text-[#1E3A5F]">Frete (ativos)</Label>
                         <SearchableSelect
                           className="space-y-0"
                           items={rotasAtivas.map((e) => ({
@@ -219,31 +205,11 @@ export function ServiceOrderFormProductsCard(props: Props) {
                       </div>
                     </div>
 
-                    {exigeItensEntrega ? (
-                      <div className="flex justify-start">
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={!podeAdicionarItens}
-                          title={
-                            podeAdicionarItens
-                              ? "Adicionar itens do produto vinculado"
-                              : "Selecione a rota e confira o valor antes de adicionar itens"
-                          }
-                          className="rounded-md bg-[#F5A623] hover:bg-[#E59400] disabled:opacity-50 disabled:pointer-events-none"
-                          onClick={() => adicionarItens(caixa.id)}
-                        >
-                          <Plus className="w-5 h-5" />
-                          Itens do volume
-                        </Button>
-                      </div>
-                    ) : null}
-
                     {entregaSel ? (
                       <div className="rounded-lg border border-sky-200/80 bg-white/90 p-4 shadow-inner space-y-3">
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#2A4A6F]/75">Rota</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#2A4A6F]/75">Frete</p>
                             <p className="text-base font-semibold text-[#1E3A5F] leading-snug">{entregaSel.routeName}</p>
                           </div>
                           <div className="flex flex-wrap gap-2 shrink-0">
@@ -259,7 +225,7 @@ export function ServiceOrderFormProductsCard(props: Props) {
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-4 text-sm">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <Clock className="h-4 w-4 shrink-0 text-[#2A4A6F]" aria-hidden />
                             <span>
@@ -276,109 +242,33 @@ export function ServiceOrderFormProductsCard(props: Props) {
                           </div>
                         </div>
 
-                        {produtoFrete ? (
-                          <div className="rounded-md border border-amber-200/90 bg-gradient-to-r from-amber-50/90 to-orange-50/50 p-3 flex gap-3 items-start">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F5A623]/25 text-[#B45309]">
-                              <Package className="h-5 w-5" />
-                            </div>
-                            <div className="min-w-0 flex-1 space-y-0.5">
-                              <p className="text-xs font-semibold text-amber-950/90 uppercase tracking-wide">
-                                Produto vinculado ao frete
-                              </p>
-                              <p className="font-semibold text-foreground">{produtoFrete.name}</p>
-                              <p className="text-xs text-muted-foreground">{produtoFrete.typeLabel}</p>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-muted-foreground border-t border-dashed border-border pt-3">
-                            Esta rota não possui produto de catálogo vinculado — apenas o frete e o prazo se aplicam.
-                          </p>
-                        )}
-                      </div>
-                    ) : null}
-
-                    {mostrarBlocoItens ? (
-                      <div className="rounded-lg border border-dashed border-[#2A4A6F]/30 bg-white p-3 space-y-2">
-                        <p className="text-xs font-semibold text-muted-foreground">Itens desta entrega</p>
-                        {itensDaCaixa.map((item, idx) => (
-                          <div key={item.id} className="grid grid-cols-1 sm:grid-cols-11 gap-2 rounded-md border bg-muted/30 p-2">
-                            <div className="sm:col-span-1 space-y-1">
-                              <Label className="text-xs text-muted-foreground">Nº</Label>
-                              <div className="flex h-9 items-center justify-center rounded-md bg-muted text-xs font-semibold text-muted-foreground">
-                                {idx + 1}
-                              </div>
-                            </div>
-                            <div className="sm:col-span-3 space-y-1">
-                              <Label className="text-xs text-muted-foreground">Nome do item</Label>
-                              <Input value={item.name} onChange={(e) => atualizarItem(item.id, "name", e.target.value)} placeholder="Nome do item" />
-                            </div>
-                            <div className="sm:col-span-2 space-y-1">
-                              <Label className="text-xs text-muted-foreground">Quantidade</Label>
-                              <Input
-                                value={item.quantity === 0 ? "" : item.quantity}
-                                type="number"
-                                min={0}
-                                onChange={(e) => atualizarItem(item.id, "quantity", parseFloat(e.target.value) || 0)}
-                                placeholder="0"
-                              />
-                            </div>
-                            <div className="sm:col-span-2 space-y-1">
-                              <Label className="text-xs text-muted-foreground">Peso (kg)</Label>
-                              <Input
-                                type="number"
-                                min={0}
-                                step="0.1"
-                                value={item.weight === 0 ? "" : item.weight}
-                                onChange={(e) => atualizarItem(item.id, "weight", parseFloat(e.target.value) || 0)}
-                                placeholder="kg"
-                              />
-                            </div>
-                            <div className="sm:col-span-2 space-y-1">
-                              <Label className="text-xs text-muted-foreground">Observações</Label>
-                              <Input
-                                type="text"
-                                value={item.observations ?? ""}
-                                onChange={(e) => atualizarItem(item.id, "observations", e.target.value)}
-                                placeholder="Observações"
-                              />
-                            </div>
-                            <div className="sm:col-span-1 space-y-1">
-                              <Label className="text-xs text-transparent select-none pointer-events-none" aria-hidden>
-                                {"\u00A0"}
-                              </Label>
-                              <div className="flex justify-end">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removerItens(item.id)}
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  aria-label="Remover item"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        <div className="flex flex-col justify-end gap-2 items-start sm:items-end">
-                          <div className="flex gap-2">
-                            <p className="text-sm text-muted-foreground font-semibold">Total de itens:</p>
-                            <p className="text-sm text-muted-foreground">{itensDaCaixa.length}</p>
-                          </div>
-                          <div className="flex gap-2">
-                            <p className={`text-sm text-muted-foreground font-semibold ${isGreaterThanPesoTotalCaixa}`}>
-                              Peso total dos itens:
-                            </p>
-                            <p className={`text-sm text-muted-foreground ${isGreaterThanPesoTotalCaixa}`}>{pesoItensDaCaixa} kg</p>
-                          </div>
-                        </div>
+                        <p className="text-[11px] leading-snug text-muted-foreground">
+                          {caixaFreteCatalogo ? (
+                            <>
+                              <span className="font-medium text-[#2A4A6F]/85">Caixa:</span>{" "}
+                              <span className="text-foreground/90">{caixaFreteCatalogo.name}</span>
+                              <span className="text-muted-foreground/90"> ({caixaFreteCatalogo.typeLabel})</span>
+                            </>
+                          ) : (
+                            <span className="italic">Sem caixa vinculada no cadastro desta rota.</span>
+                          )}
+                        </p>
                       </div>
                     ) : null}
                   </motion.div>
                   </Fragment>
                 );
               }
+
+              const itensDaCaixa = itens.filter((i) => i.caixaId === caixa.id);
+              const pesoItensDaCaixa = itensDaCaixa.reduce((acc, item) => acc + item.weight, 0).toFixed(2);
+              const pesoTotalCaixa =
+                caixa.weight != null && caixa.weight > 0 ? parseFloat(Number(caixa.weight).toFixed(2)) : 0;
+              const isGreaterThanPesoTotalCaixa =
+                Number(pesoItensDaCaixa) > Number(pesoTotalCaixa) ? "text-red-500" : "";
+              const podeAdicionarItens = caixaTemTodosCamposPreenchidos(caixa);
+              const fitaAdesiva = isFitaAdesiva(caixa, opcoesCaixa);
+              const mostrarBlocoItens = !fitaAdesiva && itensDaCaixa.length > 0;
 
               return (
                 <Fragment key={caixa.id}>

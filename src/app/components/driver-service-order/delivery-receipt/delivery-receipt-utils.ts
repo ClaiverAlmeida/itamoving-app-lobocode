@@ -194,9 +194,15 @@ export function summarizeOrdemForRecibo(ordem: DriverServiceOrder) {
       const valorF = Number(p.value ?? 0);
       const etiquetaFrete =
         (p as { containerBoxNumber?: string | null }).containerBoxNumber?.trim() || null;
-      const freteTemCaixa = p.weight != null;
-      const boxName = String(p.product?.name ?? "").trim() || null;
-      const boxType = toFriendlyTypeLabel(p.product?.type ?? p.productType);
+      const prodLinha = p.product;
+      const prodEntrega = p.deliveryPrice?.product;
+      const catalogo = prodLinha ?? prodEntrega;
+      const temCatalogo = Boolean(catalogo && String(catalogo.name ?? "").trim());
+      const freteTemCaixa = temCatalogo || Boolean(etiquetaFrete);
+      const boxName = temCatalogo ? String(catalogo!.name).trim() : null;
+      const boxType = temCatalogo
+        ? toFriendlyTypeLabel(catalogo!.type ?? (p as { productType?: string }).productType)
+        : null;
       rows.push({
         key: String(p.id ?? `frete-${idx}`),
         tipoPrincipal: rawType || "Frete",
@@ -206,9 +212,9 @@ export function summarizeOrdemForRecibo(ordem: DriverServiceOrder) {
         etiqueta: null,
         isFrete: true,
         freightHasBox: freteTemCaixa,
-        freightBoxLabel: freteTemCaixa ? etiquetaFrete : null,
-        freightBoxName: freteTemCaixa ? boxName : null,
-        freightBoxType: freteTemCaixa ? boxType : null,
+        freightBoxLabel: etiquetaFrete,
+        freightBoxName: boxName,
+        freightBoxType: boxType,
       });
       continue;
     }

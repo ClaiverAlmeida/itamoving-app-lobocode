@@ -134,18 +134,18 @@ export function DeliveryPricesDialogs(props: DeliveryPricesDialogsProps) {
               <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <MapPin className="h-4 w-4 shrink-0 text-[#1E3A5F]" />
-                  Rota
+                  Frete
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Valor total do frete, prazo, rota ativa e se o frete é variável
+                  Valor total do frete, prazo, frete ativo e se o frete é variável
                 </p>
 
                 <div className="space-y-2">
-                  <Label htmlFor="routeName">Nome da Rota *</Label>
+                  <Label htmlFor="routeName">Nome do Frete *</Label>
                   <Input
                     id="routeName"
                     type="text"
-                    placeholder="Ex: Rota 1"
+                    placeholder="Ex: Frete 1"
                     value={formEntrega.routeName}
                     onChange={(e) =>
                       setFormEntrega((prev) => ({
@@ -206,7 +206,7 @@ export function DeliveryPricesDialogs(props: DeliveryPricesDialogsProps) {
                         }))
                       }
                     />
-                    <Label htmlFor="activeEntrega">Rota ativa</Label>
+                    <Label htmlFor="activeEntrega">Frete ativo</Label>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -292,18 +292,18 @@ export function DeliveryPricesDialogs(props: DeliveryPricesDialogsProps) {
               <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <MapPin className="h-4 w-4 shrink-0 text-[#1E3A5F]" />
-                  Rota
+                  Frete
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Valor total do frete, prazo, rota ativa e se o frete é variável
                 </p>
 
                 <div className="space-y-2">
-                  <Label htmlFor="editRouteName">Nome da Rota *</Label>
+                  <Label htmlFor="editRouteName">Nome do Frete *</Label>
                   <Input
                     id="editRouteName"
                     type="text"
-                    placeholder="Ex: Rota 1"
+                    placeholder="Ex: Frete 1"
                     value={formEntrega.routeName}
                     onChange={(e) =>
                       setFormEntrega((prev) => ({
@@ -364,7 +364,7 @@ export function DeliveryPricesDialogs(props: DeliveryPricesDialogsProps) {
                         }))
                       }
                     />
-                    <Label htmlFor="editActiveEntrega">Rota ativa</Label>
+                    <Label htmlFor="editActiveEntrega">Frete ativo</Label>
                   </div>
 
                   <div className="flex items-center gap-2">

@@ -31,7 +31,6 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import {
   caixaTemTodosCamposPreenchidos,
-  entregaExigeItens,
   isFitaAdesiva,
 } from './service-order-form/index';
 
@@ -348,7 +347,6 @@ export default function OrdemServicoForm({
           removerItens={removerItens}
           caixaTemTodosCamposPreenchidos={caixaTemTodosCamposPreenchidos}
           isFitaAdesiva={isFitaAdesiva}
-          entregaExigeItens={entregaExigeItens}
         />
 
         {/* Seção Assinaturas */}

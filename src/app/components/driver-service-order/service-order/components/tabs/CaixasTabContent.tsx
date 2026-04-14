@@ -3,7 +3,11 @@ import { Package, Printer } from "lucide-react";
 import { Button } from "../../../../ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../../ui/table";
 import type { DriverServiceOrderView } from "../../../../../api";
-import { RECIBO_CATEGORY_LABEL, summarizeOrdemForRecibo } from "../../../delivery-receipt";
+import {
+  RECIBO_CATEGORY_LABEL,
+  mapCatalogProductTypeToRecibo,
+  summarizeOrdemForRecibo,
+} from "../../../delivery-receipt";
 import { formatUsd } from "../../service-order.utils";
 
 export function CaixasTabContent({
@@ -43,13 +47,40 @@ export function CaixasTabContent({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {ordem.driverServiceOrderProducts.map((p, rowIdx) => (
-                <TableRow key={p.id} className={rowIdx % 2 === 1 ? "bg-muted/20" : undefined}>
-                  <TableCell className="text-center">{p.type}</TableCell>
-                  <TableCell className="text-center">{Number(p.weight).toFixed(2)}</TableCell>
-                  <TableCell className="text-center">{formatUsd(p.value)}</TableCell>
-                </TableRow>
-              ))}
+              {ordem.driverServiceOrderProducts.map((p, rowIdx) => {
+                const isFrete = Boolean(p.deliveryPriceId != null && String(p.deliveryPriceId).trim() !== "");
+                const cat = p.deliveryPrice?.product ?? p.product;
+                const catKey = cat?.type != null ? mapCatalogProductTypeToRecibo(cat.type) : null;
+                const tipoCatLabel =
+                  catKey != null ? RECIBO_CATEGORY_LABEL[catKey] : cat?.type != null ? String(cat.type) : null;
+                const pesoLinha =
+                  isFrete && (p.weight == null || !Number.isFinite(Number(p.weight)))
+                    ? "—"
+                    : Number(p.weight ?? 0).toFixed(2);
+                return (
+                  <TableRow key={p.id} className={rowIdx % 2 === 1 ? "bg-muted/20" : undefined}>
+                    <TableCell className="text-center align-middle">
+                      <div className="py-0.5">
+                        <span className="font-medium">{p.type}</span>
+                        {isFrete ? (
+                          <span className="mt-0.5 block truncate max-w-[220px] mx-auto text-[10px] leading-tight text-muted-foreground">
+                            {cat?.name ? (
+                              <>
+                                {cat.name}
+                                {tipoCatLabel ? ` (${tipoCatLabel})` : ""}
+                              </>
+                            ) : (
+                              <span className="italic">Sem caixa na rota</span>
+                            )}
+                          </span>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center align-top">{pesoLinha}</TableCell>
+                    <TableCell className="text-center align-top">{formatUsd(p.value)}</TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

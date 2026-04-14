@@ -278,7 +278,7 @@ export function useServiceOrderFormState({
             const entrega = precosEntrega.find((e) => e.id === valor);
             if (entrega) {
               novaCaixa.deliveryPriceId = entrega.id;
-              novaCaixa.productId = entrega.productId;
+              delete (novaCaixa as { productId?: string }).productId;
               delete (novaCaixa as { weight?: number }).weight;
               novaCaixa.value = entrega.totalPrice;
             }
@@ -326,12 +326,12 @@ export function useServiceOrderFormState({
 
   const adicionarItens = (caixaId: string) => {
     const caixa = caixas.find((c) => c.id === caixaId);
+    if (caixa?.lineKind === "delivery") {
+      toast.error("Itens não se aplicam à linha de frete.");
+      return;
+    }
     if (!caixa || !caixaTemTodosCamposPreenchidos(caixa)) {
-      toast.error(
-        caixa?.lineKind === "delivery"
-          ? "Selecione a rota de entrega e o valor antes de adicionar itens"
-          : "Preencha tipo, peso e valor do volume antes de adicionar itens",
-      );
+      toast.error("Preencha tipo, peso e valor do volume antes de adicionar itens");
       return;
     }
     setItens((prev) => [...prev, { id: novoIdItem(), caixaId, name: "", quantity: 0, weight: 0, observations: "" }]);
@@ -553,7 +553,6 @@ export function useServiceOrderFormState({
               lineKind: "delivery" as const,
               deliveryPriceId: dpId,
               type: dpId,
-              productId: p.productId ?? undefined,
               number: "",
               value: p.value,
             };
@@ -573,6 +572,8 @@ export function useServiceOrderFormState({
 
     const mappedItens: Item[] = [];
     for (const p of existingOrdem.driverServiceOrderProducts ?? []) {
+      const dpId = p.deliveryPriceId != null ? String(p.deliveryPriceId).trim() : "";
+      if (dpId) continue;
       for (const it of p.driverServiceOrderProductsItems ?? []) {
         mappedItens.push({
           id: it.id ?? novoIdItem(),

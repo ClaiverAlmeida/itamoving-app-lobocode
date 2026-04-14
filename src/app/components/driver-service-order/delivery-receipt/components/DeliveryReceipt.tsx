@@ -187,26 +187,35 @@ export function DeliveryReceipt({
                     ) : null}
                     <td className="py-2 pr-2 align-top text-center">
                       {row.isFrete ? (
-                        <div className="mt-1.5 mx-auto max-w-[320px] text-center text-[11px] leading-relaxed text-muted-foreground">
+                        <div className="mx-auto max-w-[280px] text-center text-[10px] leading-tight text-muted-foreground">
+                          <span className="block text-xs font-semibold text-foreground">
+                            {row.tipoPrincipal || "Frete"}
+                          </span>
                           {row.freightHasBox ? (
-                            <>
-                              <p className="truncate whitespace-nowrap text-sm font-bold text-foreground">
-                                Frete: {row.tipoPrincipal || "Frete"}
-                              </p>
-                              <p className="truncate whitespace-nowrap">
-                                Caixa
-                                {row.freightBoxLabel?.trim()
-                                  ? ` (${row.freightBoxLabel.trim()})`
-                                  : ""}: {row.freightBoxName?.trim() || "sem nome"} | {row.freightBoxType?.trim() || "sem tipo"}
-                              </p>
-                            </>
+                            <span
+                              className="mt-0.5 block truncate"
+                              title={[
+                                row.freightBoxName?.trim(),
+                                row.freightBoxType?.trim(),
+                                row.freightBoxLabel?.trim(),
+                              ]
+                                .filter((s): s is string => Boolean(s))
+                                .join(" · ")}
+                            >
+                              {row.freightBoxName?.trim() || row.freightBoxType?.trim() ? (
+                                <>
+                                  Caixa: {row.freightBoxName?.trim() || "—"}
+                                  {row.freightBoxType?.trim() ? ` (${row.freightBoxType.trim()})` : ""}
+                                  {row.freightBoxLabel?.trim() ? ` · ${row.freightBoxLabel.trim()}` : ""}
+                                </>
+                              ) : row.freightBoxLabel?.trim() ? (
+                                <>Etq. {row.freightBoxLabel.trim()}</>
+                              ) : (
+                                <>—</>
+                              )}
+                            </span>
                           ) : (
-                            <>
-                              <p className="truncate whitespace-nowrap text-sm font-bold text-foreground">
-                                Frete: {row.tipoPrincipal || "Frete"}
-                              </p>
-                              <p className="truncate whitespace-nowrap">Caixa: não associada</p>
-                            </>
+                            <span className="mt-0.5 block opacity-90">Sem caixa na rota</span>
                           )}
                         </div>
                       ) : (

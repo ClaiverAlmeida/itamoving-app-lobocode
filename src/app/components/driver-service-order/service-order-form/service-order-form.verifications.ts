@@ -1,4 +1,4 @@
-import type { Caixa, DeliveryPrice, ProductPrice } from "../../../api";
+import type { Caixa, ProductPrice } from "../../../api";
 
 export function renumerarCaixas(lista: Caixa[]) {
   return lista.map((caixa) => ({
@@ -48,21 +48,5 @@ export function isFitaAdesiva(caixa: Caixa, opcoesCaixa: ProductPrice[]) {
 
 export function isCaixaPersonalizada(caixa: Caixa, opcoesCaixa: ProductPrice[]) {
   return obterTipoProdutoDaCaixa(caixa, opcoesCaixa) === "PERSONALIZED_ITEM";
-}
-
-/** Itens obrigatórios quando o preço de entrega referencia um produto de volume (exc. fita e personalizado). */
-export function entregaExigeItens(
-  caixa: Caixa,
-  precosEntrega: DeliveryPrice[],
-  opcoesCaixa: ProductPrice[],
-): boolean {
-  if (!isLinhaEntrega(caixa)) return false;
-  const eid = String(caixa.deliveryPriceId ?? caixa.type ?? "").trim();
-  const ent = precosEntrega.find((e) => e.id === eid);
-  if (!ent?.productId) return false;
-  const prod = opcoesCaixa.find((p) => p.id === ent.productId);
-  if (!prod) return false;
-  if (prod.type === "TAPE_ADHESIVE" || prod.type === "PERSONALIZED_ITEM") return false;
-  return true;
 }
 

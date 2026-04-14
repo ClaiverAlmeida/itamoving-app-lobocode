@@ -54,7 +54,7 @@ export function DeliveryPricesTable(props: DeliveryPricesTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="text-center">Nome da Rota</TableHead>
+              <TableHead className="text-center">Nome do Frete</TableHead>
               <TableHead className="text-center">Produto</TableHead>
               <TableHead className="text-center">Valor total frete (USD)</TableHead>
               <TableHead className="text-center">Prazo (dias)</TableHead>
