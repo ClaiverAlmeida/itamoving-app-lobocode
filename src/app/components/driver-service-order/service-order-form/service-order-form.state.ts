@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { Caixa, Container, DriverUser, Item, ProductPrice } from "../../../api";
+import type { Caixa, Container, DeliveryPrice, DriverUser, Item, ProductPrice } from "../../../api";
 import { serviceOrderFormCrud } from "./service-order-form.crud";
 import { loadDataUrlOnCanvas, resolveCaixaSelectValueFromApiLine } from "./service-order-form.utils";
 import { caixaTemTodosCamposPreenchidos, novoIdItem, renumerarCaixas } from "./service-order-form.verifications";
@@ -52,6 +52,7 @@ export function useServiceOrderFormState({
   const [isDrawingCliente, setIsDrawingCliente] = useState(false);
   const [isDrawingAgente, setIsDrawingAgente] = useState(false);
   const [precosProdutos, setPrecosProdutos] = useState<ProductPrice[]>([]);
+  const [precosEntrega, setPrecosEntrega] = useState<DeliveryPrice[]>([]);
   const [motoristas, setMotoristas] = useState<DriverUser[]>([]);
   const [containers, setContainers] = useState<Container[]>([]);
   const [produtosLoading, setProdutosLoading] = useState(false);
@@ -96,6 +97,25 @@ export function useServiceOrderFormState({
   const [destinatarioComplemento, setDestinatarioComplemento] = useState(initCliente.destinatarioComplemento);
 
   const [caixas, setCaixas] = useState<Caixa[]>([]);
+  const resumoValoresProdutos = useMemo(() => {
+    let volumeCount = 0;
+    let valorVolumes = 0;
+    let valorFrete = 0;
+    for (const c of caixas) {
+      if (c.lineKind === "delivery") valorFrete += Number(c.value) || 0;
+      else {
+        volumeCount += 1;
+        valorVolumes += Number(c.value) || 0;
+      }
+    }
+    return {
+      volumeCount,
+      valorVolumes,
+      valorFrete,
+      valorTotal: valorVolumes + valorFrete,
+      temFrete: valorFrete > 0.005,
+    };
+  }, [caixas]);
   const [itens, setItens] = useState<Item[]>([]);
   const [assinaturaCliente, setAssinaturaCliente] = useState("");
   const [assinaturaAgente, setAssinaturaAgente] = useState("");
@@ -142,7 +162,7 @@ export function useServiceOrderFormState({
     () => containers.filter((c) => c.status !== "CANCELLED"),
     [containers],
   );
-  const valorTotalCaixas = caixas.reduce((sum, c) => sum + c.value, 0);
+  const valorTotalCaixas = resumoValoresProdutos.valorTotal;
   const paymentPoolUsd = useMemo(
     () =>
       computePaymentPoolUsd({
@@ -229,7 +249,10 @@ export function useServiceOrderFormState({
       return;
     }
     setCaixas((prev) =>
-      renumerarCaixas([...prev, { id: Date.now().toString(), type: "", number: "", value: 0, weight: 0 }]),
+      renumerarCaixas([
+        ...prev,
+        { id: Date.now().toString(), lineKind: "volume", type: "", number: "", value: 0, weight: 0 },
+      ]),
     );
   };
 
@@ -239,11 +262,23 @@ export function useServiceOrderFormState({
         if (c.id !== id) return c;
         const novaCaixa = { ...c, [campo]: valor };
         if (campo === "type") {
-          const produto = opcoesCaixa.find((p) => p.size === valor || p.name === valor);
-          if (produto) {
-            novaCaixa.productId = produto.id;
-            novaCaixa.value = produto.salePrice;
-            novaCaixa.weight = produto.maxWeight ?? 0;
+          if (c.lineKind === "delivery") {
+            const entrega = precosEntrega.find((e) => e.id === valor);
+            if (entrega) {
+              novaCaixa.deliveryPriceId = entrega.id;
+              novaCaixa.productId = entrega.productId;
+              delete (novaCaixa as { weight?: number }).weight;
+              novaCaixa.value = entrega.totalPrice;
+            }
+          } else {
+            const produto = opcoesCaixa.find(
+              (p) => p.size === valor || p.name === valor || (p.dimensions != null && p.dimensions === valor),
+            );
+            if (produto) {
+              novaCaixa.productId = produto.id;
+              novaCaixa.value = produto.salePrice;
+              novaCaixa.weight = produto.maxWeight ?? 0;
+            }
           }
         }
         return novaCaixa;
@@ -256,14 +291,37 @@ export function useServiceOrderFormState({
     setCaixas((prev) => renumerarCaixas(prev.filter((c) => c.id !== id)));
   };
 
-  const adicionarPrecoEntrega = () => {
-    toast.info("Adicionar preço de entrega");
-  }
+  const adicionarPrecoEntrega = async () => {
+    const result = await serviceOrderFormCrud.getDeliveryPrices(1, 200);
+    const lista = result.success && result.data ? result.data : [];
+    if (result.success && result.data) setPrecosEntrega(result.data);
+    const opcoesAtivas = lista.filter((e) => e.active);
+    if (opcoesAtivas.length === 0) {
+      toast.info("Não há preços de entrega ativos; cadastre um preço de entrega para continuar.");
+      return;
+    }
+    setCaixas((prev) =>
+      renumerarCaixas([
+        ...prev,
+        {
+          id: Date.now().toString(),
+          lineKind: "delivery",
+          type: "",
+          number: "",
+          value: 0,
+        },
+      ]),
+    );
+  };
 
   const adicionarItens = (caixaId: string) => {
     const caixa = caixas.find((c) => c.id === caixaId);
     if (!caixa || !caixaTemTodosCamposPreenchidos(caixa)) {
-      toast.error("Preencha tipo, peso e valor do volume antes de adicionar itens");
+      toast.error(
+        caixa?.lineKind === "delivery"
+          ? "Selecione a rota de entrega e o valor antes de adicionar itens"
+          : "Preencha tipo, peso e valor do volume antes de adicionar itens",
+      );
       return;
     }
     setItens((prev) => [...prev, { id: novoIdItem(), caixaId, name: "", quantity: 0, weight: 0, observations: "" }]);
@@ -387,6 +445,13 @@ export function useServiceOrderFormState({
   }, [carregarProdutos]);
 
   useEffect(() => {
+    void (async () => {
+      const r = await serviceOrderFormCrud.getDeliveryPrices(1, 200);
+      if (r.success && r.data) setPrecosEntrega(r.data);
+    })();
+  }, []);
+
+  useEffect(() => {
     if (existingOrdem?.id) return;
     if (user?.role === "motorista" && user?.id) setMotoristaResponsavel(user.id);
   }, [appointmentId, existingOrdem?.id, user?.role, user?.id]);
@@ -418,7 +483,7 @@ export function useServiceOrderFormState({
   useEffect(() => {
     if (!existingOrdem?.id) return;
     const nProdutos = existingOrdem.driverServiceOrderProducts?.length ?? 0;
-    const key = `${existingOrdem.id}:${precosProdutos.length}:${nProdutos}`;
+    const key = `${existingOrdem.id}:${precosProdutos.length}:${precosEntrega.length}:${nProdutos}`;
     if (hydratedKeyRef.current === key) return;
     hydratedKeyRef.current = key;
 
@@ -471,19 +536,34 @@ export function useServiceOrderFormState({
 
     setCaixas(
       renumerarCaixas(
-        existingOrdem.driverServiceOrderProducts.map((p: any) => ({
-          id: p.id!,
-          productId: p.productId ?? undefined,
-          type: resolveCaixaSelectValueFromApiLine(p, prods),
-          number: "",
-          value: p.value,
-          weight: p.weight,
-        })),
+        existingOrdem.driverServiceOrderProducts.map((p: any) => {
+          const dpId = p.deliveryPriceId != null ? String(p.deliveryPriceId).trim() : "";
+          if (dpId) {
+            return {
+              id: p.id!,
+              lineKind: "delivery" as const,
+              deliveryPriceId: dpId,
+              type: dpId,
+              productId: p.productId ?? undefined,
+              number: "",
+              value: p.value,
+            };
+          }
+          return {
+            id: p.id!,
+            lineKind: "volume" as const,
+            productId: p.productId ?? undefined,
+            type: resolveCaixaSelectValueFromApiLine(p, prods),
+            number: "",
+            value: p.value,
+            weight: p.weight,
+          };
+        }),
       ),
     );
 
     const mappedItens: Item[] = [];
-    for (const p of existingOrdem.driverServiceOrderProducts) {
+    for (const p of existingOrdem.driverServiceOrderProducts ?? []) {
       for (const it of p.driverServiceOrderProductsItems ?? []) {
         mappedItens.push({
           id: it.id ?? novoIdItem(),
@@ -519,12 +599,12 @@ export function useServiceOrderFormState({
     setAssinaturaCliente(sigC);
     setAssinaturaAgente(sigA);
 
-    requestAnimationFrame(() => {
+       requestAnimationFrame(() => {
       loadDataUrlOnCanvas(sigC, canvasClienteRef);
       loadDataUrlOnCanvas(sigA, canvasAgenteRef);
-      setHydrationReady(precosProdutos.length > 0);
+      setHydrationReady(precosProdutos.length > 0 || precosEntrega.length > 0);
     });
-  }, [existingOrdem, precosProdutos]);
+  }, [existingOrdem, precosProdutos, precosEntrega]);
 
   useEffect(() => {
     if (!existingOrdem?.id || !motoristas.length) return;
@@ -547,6 +627,8 @@ export function useServiceOrderFormState({
     motoristasLoading,
     hydrationReady,
     opcoesCaixa,
+    precosEntrega,
+    resumoValoresProdutos,
     remetenteNome,
     setRemetenteNome,
     remetenteTel,

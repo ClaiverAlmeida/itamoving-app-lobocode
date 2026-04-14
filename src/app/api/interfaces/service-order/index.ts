@@ -40,6 +40,15 @@ export interface DriverServiceOrder {
     /** Etiqueta no container após vínculo (ex.: 3-A). Vem de `containerProduct.boxNumber`. */
     containerBoxNumber?: string | null;
     productId?: string;
+    /** Linha de frete; quando preenchido, o valor entra no subtotal de frete do recibo. */
+    deliveryPriceId?: string | null;
+    deliveryPrice?: {
+      id: string;
+      routeName: string;
+      totalPrice?: number;
+      productId?: string | null;
+      product?: { id: string; name: string; type: string };
+    };
     /**
      * Rótulo para exibição (ex.: nome + tipo amigável), montado a partir de `product` na resposta da API.
      * Não é persistido nem enviado no body de criação/atualização (o DTO da API não aceita este campo).
@@ -53,7 +62,8 @@ export interface DriverServiceOrder {
       name: string;
       dimensions?: string | null;
     };
-    weight: number;
+    /** Linhas só de frete podem vir sem peso (`null`/`undefined` na API). */
+    weight?: number | null;
     value: number;
     driverServiceOrderProductsItems?: {
       id?: string;
@@ -93,13 +103,20 @@ export interface DriverServiceOrderFormProps {
   existingOrdem?: DriverServiceOrder;
 }
 
+export type ServiceOrderLineKind = "volume" | "delivery";
+
 export interface Caixa {
   id: string;
+  /** Volume (caixa/produto catálogo) ou linha de frete (`DeliveryPrice`). */
+  lineKind?: ServiceOrderLineKind;
   productId?: string;
+  /** Para `lineKind === "delivery"`, CUID do preço de entrega. */
+  deliveryPriceId?: string;
   type: string;
   number: string;
   value: number;
-  weight: number;
+  /** Ausente em linhas de frete — só volumes usam peso da caixa. */
+  weight?: number;
 }
 
 export interface Item {

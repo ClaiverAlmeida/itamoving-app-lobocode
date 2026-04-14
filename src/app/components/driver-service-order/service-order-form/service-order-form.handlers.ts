@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { toast } from "sonner";
-import type { Caixa, DriverUser, Item, DriverServiceOrder, ProductPrice } from "../../../api";
+import type { Caixa, DeliveryPrice, DriverUser, Item, DriverServiceOrder, ProductPrice } from "../../../api";
 import { serviceOrderFormService } from "../../../api";
 import { buildDriverServiceOrderProducts, buildServiceOrderPayload } from "./service-order-form.payload";
 import { computePaymentSplitUsd, round2 } from "./service-order-form.payment";
-import { caixaTemTodosCamposPreenchidos, isCaixaPersonalizada, isFitaAdesiva } from "./service-order-form.verifications";
+import {
+  caixaTemTodosCamposPreenchidos,
+  entregaExigeItens,
+  isCaixaPersonalizada,
+  isFitaAdesiva,
+  isLinhaEntrega,
+} from "./service-order-form.verifications";
 import { serviceOrderFormCrud } from "./service-order-form.crud";
 import { resolveSignatureToMinioUrl } from "./service-order-form.signature";
 
@@ -67,6 +73,7 @@ type Params = {
   caixas: Caixa[];
   itens: Item[];
   opcoesCaixa: ProductPrice[];
+  precosEntrega: DeliveryPrice[];
   existingProductIds: Set<string>;
 };
 
@@ -122,7 +129,15 @@ export function useServiceOrderFormSave(params: Params) {
         clientSignature: params.assinaturaCliente.trim(),
         agentSignature: params.assinaturaAgente.trim(),
       },
-      caixas: params.caixas.map((c) => ({ id: c.id, productId: c.productId, type: c.type, value: c.value, weight: c.weight })),
+      caixas: params.caixas.map((c) => ({
+        id: c.id,
+        lineKind: c.lineKind,
+        productId: c.productId,
+        deliveryPriceId: c.deliveryPriceId,
+        type: c.type,
+        value: c.value,
+        weight: c.weight,
+      })),
       itens: params.itens.map((i) => ({
         id: i.id,
         caixaId: i.caixaId,
@@ -192,10 +207,17 @@ export function useServiceOrderFormSave(params: Params) {
     if (params.caixas.length === 0) return toast.error("Adicione pelo menos um volume ou produto");
     if (params.caixas.some((c) => !caixaTemTodosCamposPreenchidos(c))) return toast.error("Preencha todos os campos dos volumes ou produtos antes de salvar");
     const caixaSemItensObrigatorios = params.caixas.some((c) => {
+      if (isLinhaEntrega(c)) {
+        if (!entregaExigeItens(c, params.precosEntrega, params.opcoesCaixa)) return false;
+        return params.itens.filter((i) => i.caixaId === c.id).length === 0;
+      }
       if (isFitaAdesiva(c, params.opcoesCaixa) || isCaixaPersonalizada(c, params.opcoesCaixa)) return false;
       return params.itens.filter((i) => i.caixaId === c.id).length === 0;
     });
-    if (caixaSemItensObrigatorios) return toast.error("Cada volume precisa ter ao menos 1 item (fita adesiva e item personalizado não exigem itens)");
+    if (caixaSemItensObrigatorios)
+      return toast.error(
+        "Cada volume precisa ter ao menos 1 item (fita adesiva e item personalizado não exigem itens). Linhas de frete com produto de caixa vinculado também exigem itens.",
+      );
     const itemInvalido = params.itens.some((i) => !String(i.name ?? "").trim() || Number(i.quantity) <= 0 || Number(i.weight) <= 0);
     if (itemInvalido) return toast.error("Preencha todos os campos dos itens antes de salvar");
 
@@ -388,7 +410,9 @@ export function useServiceOrderFormSave(params: Params) {
           continue;
         }
         const caixaDiff =
+          String(cur.lineKind ?? "volume") !== String(init.lineKind ?? "volume") ||
           String(cur.productId ?? "") !== String(init.productId ?? "") ||
+          String(cur.deliveryPriceId ?? "") !== String(init.deliveryPriceId ?? "") ||
           cur.type !== init.type ||
           cur.value !== init.value ||
           cur.weight !== init.weight;

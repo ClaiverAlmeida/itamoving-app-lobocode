@@ -15,19 +15,8 @@ export function buildDriverServiceOrderProducts({
   opcoesCaixa,
   existingProductIds,
 }: BuildProductsParams) {
-  return caixas.map((c) => ({
-    ...(existingProductIds.has(c.id) ? { id: c.id } : {}),
-    ...(c.productId
-      ? { productId: c.productId }
-      : (() => {
-          const produto = opcoesCaixa.find(
-            (p) => p.size === c.type || p.name === c.type || (p.dimensions != null && p.dimensions === c.type),
-          );
-          return produto?.id ? { productId: produto.id } : {};
-        })()),
-    value: c.value,
-    weight: c.weight,
-    driverServiceOrderProductsItems: itens
+  return caixas.map((c) => {
+    const itemsNested = itens
       .filter((i) => i.caixaId === c.id)
       .map((i) => ({
         id: i.id,
@@ -35,8 +24,35 @@ export function buildDriverServiceOrderProducts({
         quantity: Number(i.quantity) || 0,
         weight: Number(i.weight) || 0,
         observations: i.observations ?? "",
-      })),
-  }));
+      }));
+
+    if (c.lineKind === "delivery") {
+      const dpId = String(c.deliveryPriceId ?? "").trim();
+      return {
+        ...(existingProductIds.has(c.id) ? { id: c.id } : {}),
+        deliveryPriceId: dpId || null,
+        ...(c.productId ? { productId: c.productId } : {}),
+        value: c.value,
+        driverServiceOrderProductsItems: itemsNested,
+      };
+    }
+
+    return {
+      ...(existingProductIds.has(c.id) ? { id: c.id } : {}),
+      deliveryPriceId: null,
+      ...(c.productId
+        ? { productId: c.productId }
+        : (() => {
+            const produto = opcoesCaixa.find(
+              (p) => p.size === c.type || p.name === c.type || (p.dimensions != null && p.dimensions === c.type),
+            );
+            return produto?.id ? { productId: produto.id } : {};
+          })()),
+           value: c.value,
+      weight: Number(c.weight) || 0,
+      driverServiceOrderProductsItems: itemsNested,
+    };
+  });
 }
 
 type BuildPayloadParams = {

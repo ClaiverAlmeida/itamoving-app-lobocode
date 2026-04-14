@@ -31,6 +31,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import {
   caixaTemTodosCamposPreenchidos,
+  entregaExigeItens,
   isFitaAdesiva,
 } from './service-order-form/index';
 
@@ -58,6 +59,8 @@ export default function OrdemServicoForm({
     motoristasLoading,
     hydrationReady,
     opcoesCaixa,
+    precosEntrega,
+    resumoValoresProdutos,
     remetenteNome,
     setRemetenteNome,
     remetenteTel,
@@ -193,6 +196,7 @@ export default function OrdemServicoForm({
     caixas,
     itens,
     opcoesCaixa,
+    precosEntrega,
     existingProductIds: existingProductIdsRef.current,
   });
 
@@ -332,7 +336,9 @@ export default function OrdemServicoForm({
           caixas={caixas}
           itens={itens}
           opcoesCaixa={opcoesCaixa}
+          precosEntrega={precosEntrega}
           valorTotalCaixas={valorTotalCaixas}
+          resumoValoresProdutos={resumoValoresProdutos}
           adicionarCaixa={adicionarCaixa}
           adicionarPrecoEntrega={adicionarPrecoEntrega}
           atualizarCaixa={atualizarCaixa}
@@ -342,6 +348,7 @@ export default function OrdemServicoForm({
           removerItens={removerItens}
           caixaTemTodosCamposPreenchidos={caixaTemTodosCamposPreenchidos}
           isFitaAdesiva={isFitaAdesiva}
+          entregaExigeItens={entregaExigeItens}
         />
 
         {/* Seção Assinaturas */}
@@ -363,6 +370,9 @@ export default function OrdemServicoForm({
         {/* Seção Pagamento em Espécie */}
         <ServiceOrderFormPaymentCard
           valorTotalCaixas={valorTotalCaixas}
+          valorSubtotalVolumes={resumoValoresProdutos.valorVolumes}
+          valorSubtotalFrete={resumoValoresProdutos.valorFrete}
+          temFrete={resumoValoresProdutos.temFrete}
           valorAgendamento={Number(agendamento?.value ?? 0)}
           valorAntecipacao={Number(agendamento?.downPayment ?? 0)}
           paymentPoolUsd={paymentPoolUsd}
