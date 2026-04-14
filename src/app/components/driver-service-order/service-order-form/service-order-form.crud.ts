@@ -18,7 +18,14 @@ export const serviceOrderFormCrud = {
       ? productsService.getAllForServiceOrderEdit(opts.driverServiceOrderId)
       : productsService.getAll(),
   /** Lista paginada: busca página única com limite alto para o formulário da OS. */
-  getDeliveryPrices: (page = 1, limit = 200) => deliveryPricesService.getAll(page, limit),
+  getDeliveryPrices: (
+    page = 1,
+    limit = 200,
+    opts?: { includeDeletedForEdit?: boolean; driverServiceOrderId?: string },
+  ) =>
+    opts?.includeDeletedForEdit
+      ? deliveryPricesService.getAllForServiceOrderEdit(opts.driverServiceOrderId)
+      : deliveryPricesService.getAll(page, limit),
   create: (payload: DriverServiceOrder) => serviceOrderFormService.create(payload),
   update: (id: string, payload: Partial<DriverServiceOrder>) => serviceOrderFormService.update(id, payload),
 };

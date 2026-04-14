@@ -233,6 +233,18 @@ export function useServiceOrderFormState({
     }
   }, [isEditMode, existingOrdem?.id]);
 
+  const carregarPrecosEntrega = useCallback(async () => {
+    const result = await serviceOrderFormCrud.getDeliveryPrices(1, 200, {
+      includeDeletedForEdit: isEditMode,
+      driverServiceOrderId: isEditMode ? existingOrdem?.id : undefined,
+    });
+    if (result.success && result.data) {
+      setPrecosEntrega(result.data);
+      return result.data;
+    }
+    return [] as DeliveryPrice[];
+  }, [isEditMode, existingOrdem?.id]);
+
   const adicionarCaixa = async () => {
     const produtos = await carregarProdutos();
     const opcoesAtivas = produtos.filter(
@@ -292,9 +304,7 @@ export function useServiceOrderFormState({
   };
 
   const adicionarPrecoEntrega = async () => {
-    const result = await serviceOrderFormCrud.getDeliveryPrices(1, 200);
-    const lista = result.success && result.data ? result.data : [];
-    if (result.success && result.data) setPrecosEntrega(result.data);
+    const lista = await carregarPrecosEntrega();
     const opcoesAtivas = lista.filter((e) => e.active);
     if (opcoesAtivas.length === 0) {
       toast.info("Não há preços de entrega ativos; cadastre um preço de entrega para continuar.");
@@ -446,10 +456,9 @@ export function useServiceOrderFormState({
 
   useEffect(() => {
     void (async () => {
-      const r = await serviceOrderFormCrud.getDeliveryPrices(1, 200);
-      if (r.success && r.data) setPrecosEntrega(r.data);
+      await carregarPrecosEntrega();
     })();
-  }, []);
+  }, [carregarPrecosEntrega]);
 
   useEffect(() => {
     if (existingOrdem?.id) return;

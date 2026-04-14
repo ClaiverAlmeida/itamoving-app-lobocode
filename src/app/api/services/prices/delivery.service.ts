@@ -37,6 +37,28 @@ export class DeliveryPricesService extends BaseCrudService<
     }, true);
   }
 
+  /**
+   * Lista preços de entrega incluindo soft-deleted (somente para edição de ordem de serviço).
+   */
+  async getAllForServiceOrderEdit(driverServiceOrderId?: string): Promise<{
+    success: boolean;
+    data?: DeliveryPrice[];
+    error?: string;
+  }> {
+    const result = await api.get<
+      DeliveryPriceBackend[] | { data: DeliveryPriceBackend[] }
+    >(`${this.resource}/service-order-edit-options`, {
+      ...(driverServiceOrderId ? { params: { driverServiceOrderId } } : {}),
+    });
+
+    if (!result.success) {
+      return { success: false, error: result.error || this.errorMessages.listError };
+    }
+
+    const items = this.unwrapList(result.data);
+    return { success: true, data: items.map(this.mapBackendToFrontend) };
+  }
+
   async export(): Promise<{
     success: boolean;
     data?: DeliveryPrice[];
