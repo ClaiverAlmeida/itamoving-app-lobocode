@@ -21,15 +21,6 @@ export function FinancialHeaderSection(props: {
         </div>
 
         <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:flex-wrap sm:gap-3">
-          <Button
-            variant={showFilters ? "default" : "outline"}
-            size="sm"
-            onClick={onToggleFilters}
-            className="w-full sm:w-auto"
-          >
-            <Filter className="w-4 h-4 mr-2" />
-            Filtros
-          </Button>
           <Button variant="outline" size="sm" className="w-full sm:w-auto">
             <Download className="w-4 h-4 mr-2" />
             Exportar

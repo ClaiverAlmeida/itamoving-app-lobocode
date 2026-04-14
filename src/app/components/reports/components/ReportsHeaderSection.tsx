@@ -1,7 +1,9 @@
 import React from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Button } from "../../ui/button";
 import { Filter, Download } from "lucide-react";
 import type { ReportType } from "../reports.constants";
+import { ReportsFiltersPanel } from "./filters/ReportsFiltersPanel";
 
 export function ReportsHeaderSection(props: {
   showFilters: boolean;
@@ -14,8 +16,25 @@ export function ReportsHeaderSection(props: {
   }>;
   selectedReport: ReportType;
   onSelectReport: (value: ReportType) => void;
+  filterDateFrom: string;
+  filterDateTo: string;
+  onFilterDateFromChange: (value: string) => void;
+  onFilterDateToChange: (value: string) => void;
+  onClearFilters: () => void;
 }) {
-  const { showFilters, onToggleFilters, onExportAll, reportTypes, selectedReport, onSelectReport } = props;
+  const {
+    showFilters,
+    onToggleFilters,
+    onExportAll,
+    reportTypes,
+    selectedReport,
+    onSelectReport,
+    filterDateFrom,
+    filterDateTo,
+    onFilterDateFromChange,
+    onFilterDateToChange,
+    onClearFilters,
+  } = props;
 
   return (
     <div className="space-y-4">
@@ -40,6 +59,29 @@ export function ReportsHeaderSection(props: {
           </Button>
         </div>
       </div>
+
+      <AnimatePresence initial={false}>
+        {showFilters && (
+          <motion.div
+            key="reports-filters"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="pb-1 pt-0.5">
+              <ReportsFiltersPanel
+                dateFrom={filterDateFrom}
+                dateTo={filterDateTo}
+                onDateFromChange={onFilterDateFromChange}
+                onDateToChange={onFilterDateToChange}
+                onClear={onClearFilters}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {reportTypes.map((type) => {
