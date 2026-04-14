@@ -117,6 +117,7 @@ export default function Login() {
                         onChange={(e) => setEmail(e.target.value)}
                         className="pl-10 h-11"
                         required
+                        autoComplete="email"
                         disabled={loading}
                       />
                     </div>
@@ -134,6 +135,7 @@ export default function Login() {
                         onChange={(e) => setSenha(e.target.value)}
                         className="pl-10 pr-10 h-11"
                         required
+                        autoComplete="off"
                         disabled={loading}
                       />
                       <button
