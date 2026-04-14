@@ -11,33 +11,33 @@ import {
 import type { LeadPriority, LeadStatus, LeadsFilters } from "./services.types";
 
 export const STATUS_ORDER: LeadStatus[] = [
-  "novo",
-  "qualificando",
-  "orcamento",
-  "negociando",
-  "fechado",
-  "perdido",
+  "Novo",
+  "Qualificando",
+  "Orçamento",
+  "Negociando",
+  "Fechado",
+  "Perdido",
 ];
 
 export const STATUS_CONFIG: Record<
   LeadStatus,
   { label: string; color: string; icon: any }
 > = {
-  novo: { label: "Novos", color: "bg-blue-500", icon: AlertCircle },
-  qualificando: { label: "Qualificando", color: "bg-purple-500", icon: User },
-  orcamento: { label: "Orçamento enviado", color: "bg-yellow-500", icon: DollarSign },
-  negociando: { label: "Negociando", color: "bg-orange-500", icon: MessageCircle },
-  fechado: { label: "Fechado", color: "bg-green-500", icon: CheckCircle2 },
-  perdido: { label: "Perdido", color: "bg-red-500", icon: AlertCircle },
+  Novo: { label: "Novos", color: "bg-blue-500", icon: AlertCircle },
+  Qualificando: { label: "Qualificando", color: "bg-purple-500", icon: User },
+  Orçamento: { label: "Orçamento enviado", color: "bg-yellow-500", icon: DollarSign },
+  Negociando: { label: "Negociando", color: "bg-orange-500", icon: MessageCircle },
+  Fechado: { label: "Fechado", color: "bg-green-500", icon: CheckCircle2 },
+  Perdido: { label: "Perdido", color: "bg-red-500", icon: AlertCircle },
 };
 
 export const PRIORIDADE_CONFIG: Record<
   LeadPriority,
   { label: string; color: string; bg: string; icon: any }
 > = {
-  alta: { label: "Alta", color: "text-red-600", bg: "bg-red-50", icon: Flame },
-  media: { label: "Média", color: "text-yellow-600", bg: "bg-yellow-50", icon: Timer },
-  baixa: { label: "Baixa", color: "text-slate-600", bg: "bg-slate-50", icon: Minus },
+  Alta: { label: "Alta", color: "text-red-600", bg: "bg-red-50", icon: Flame },
+  Média: { label: "Média", color: "text-yellow-600", bg: "bg-yellow-50", icon: Timer },
+  Baixa: { label: "Baixa", color: "text-slate-600", bg: "bg-slate-50", icon: Minus },
 };
 
 export const INITIAL_LEADS_FILTERS: LeadsFilters = {

@@ -1,14 +1,14 @@
 export type LeadStatus =
-  | "novo"
-  | "qualificando"
-  | "orcamento"
-  | "negociando"
-  | "fechado"
-  | "perdido";
+  | "Novo"
+  | "Qualificando"
+  | "Orçamento"
+  | "Negociando"
+  | "Fechado"
+  | "Perdido";
 
-export type LeadPriority = "alta" | "media" | "baixa";
+export type LeadPriority = "Alta" | "Média" | "Baixa";
 
-export type LeadMessageSender = "cliente" | "bot" | "atendente";
+export type LeadMessageSender = "Cliente" | "Bot" | "Atendente";
 
 export interface LeadConversation {
   id: string;
