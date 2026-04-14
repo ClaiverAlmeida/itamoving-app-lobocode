@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useRef, useMemo } from 'react';
 import { BrowserRouter, useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Toaster } from './components/ui/sonner';
@@ -40,6 +40,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from './components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { useNotifications } from './hooks/useNotifications';
 import { getAppTimeZone } from './utils';
 import { notificationsService } from './api';
@@ -145,8 +146,9 @@ function MainApp() {
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [removingNotificationId, setRemovingNotificationId] = useState<string | null>(null);
+  const [deletingNotificationIds, setDeletingNotificationIds] = useState<string[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsTab, setNotificationsTab] = useState<'unread' | 'read'>('unread');
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [mobileNotificationsAlignOffset, setMobileNotificationsAlignOffset] = useState(0);
   const notificationsTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -248,6 +250,14 @@ function MainApp() {
   };
 
   const menuItems = getMenuItems();
+  const unreadNotifications = useMemo(
+    () => notifications.filter((n) => !n.isRead),
+    [notifications],
+  );
+  const readNotifications = useMemo(
+    () => notifications.filter((n) => n.isRead),
+    [notifications],
+  );
 
   const renderView = () => {
     // Motorista pode acessar Minhas Entregas e Ordem de Serviço
@@ -472,110 +482,237 @@ function MainApp() {
                     </h3>
                     <Button variant="ghost" className="relative text-xs w-fit hover:bg-transparent hover:text-foreground" onClick={async () => {
                       const result = await notificationsService.markAllAsRead();
-                      if (result.success) refreshNotifications();
+                      if (result.success) {
+                        setNotificationsTab('read');
+                        refreshNotifications();
+                      }
                       else toast.error(result.error);
                     }}>Marcar todas como lidas</Button>
                   </div>
                   <div className="max-h-[320px] overflow-y-auto">
-                    <AnimatePresence mode="wait">
-                      {loading ? (
-                        <motion.div
-                          key="loading"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="flex items-center justify-center py-8"
-                        >
-                          <motion.div
-                            animate={{ opacity: [0.5, 1, 0.5] }}
-                            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                            className="text-sm text-muted-foreground"
-                          >
-                            Carregando...
-                          </motion.div>
-                        </motion.div>
-                      ) : notifications.length === 0 ? (
-                        <motion.div
-                          key="empty"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.25 }}
-                          className="flex flex-col items-center justify-center py-12 px-4 text-center"
-                        >
-                          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                            <Bell className="w-6 h-6 text-muted-foreground" />
-                          </div>
-                          <p className="text-sm font-medium text-foreground">Nenhuma notificação</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Você será avisado quando houver novidades.
-                          </p>
-                        </motion.div>
-                      ) : (
-                        <motion.ul
-                          key="list"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="divide-y divide-border"
-                        >
-                          <AnimatePresence mode="popLayout">
-                            {(removingNotificationId ? notifications.filter((n) => n.id !== removingNotificationId) : notifications).map((n, index) => (
-                              <motion.li
-                                key={n.id}
-                                layout
-                                initial={{ opacity: 0, y: 6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, x: -8, transition: { duration: 0.2 } }}
-                                transition={{ duration: 0.25, delay: index * 0.03 }}
-                                className={`${!n.isRead ? 'cursor-pointer pointer-events-auto' : 'cursor-auto pointer-events-none'} px-4 py-3 text-left transition-colors duration-200 hover:bg-muted/50 ${!n.isRead ? 'bg-muted/30' : 'bg-transparent'}`}
-                                onClick={async (e) => {
-                                  if ((e.target as HTMLElement).closest('button')) return;
-                                  const result = await notificationsService.markAsRead(n.isRead, n.id);
-                                  if (result.success) refreshNotifications();
-                                  else toast.error(result.error);
-                                }}
+                    <Tabs
+                      value={notificationsTab}
+                      onValueChange={(value) => setNotificationsTab(value as 'unread' | 'read')}
+                      className="w-full"
+                    >
+                      <div className="px-4 pt-3">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="unread">Não lidas ({unreadNotifications.length})</TabsTrigger>
+                          <TabsTrigger value="read">Lidas ({readNotifications.length})</TabsTrigger>
+                        </TabsList>
+                      </div>
+
+                      <TabsContent value="unread" className="mt-2">
+                        <AnimatePresence mode="wait">
+                          {loading ? (
+                            <motion.div
+                              key="loading-unread"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="flex items-center justify-center py-8"
+                            >
+                              <motion.div
+                                animate={{ opacity: [0.5, 1, 0.5] }}
+                                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                                className="text-sm text-muted-foreground"
                               >
-                                <div className="flex items-center justify-between mb-2">
-                                  <Badge variant={!n.isRead ? 'destructive' : 'default'} className="text-xs cursor-auto transition-colors duration-200">{!n.isRead ? 'Nova' : 'Lida'}</Badge>
-                                </div>
-                                <div className="flex justify-end items-center gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="relative top-0 bg-transparent hover:bg-transparent border-none p-0 m-0 cursor-pointer"
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      const id = n.id;
-                                      setRemovingNotificationId(id);
-                                      setTimeout(async () => {
-                                        const res = await notificationsService.delete(id);
-                                        if (res.success) await refreshNotifications();
-                                        else toast.error(res.error ?? 'Erro ao excluir');
-                                        setRemovingNotificationId(null);
-                                      }, 220);
-                                    }}
+                                Carregando...
+                              </motion.div>
+                            </motion.div>
+                          ) : unreadNotifications.length === 0 ? (
+                            <motion.div
+                              key="empty-unread"
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.25 }}
+                              className="flex flex-col items-center justify-center py-12 px-4 text-center"
+                            >
+                              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                                <Bell className="w-6 h-6 text-muted-foreground" />
+                              </div>
+                              <p className="text-sm font-medium text-foreground">Nenhuma não lida</p>
+                            </motion.div>
+                          ) : (
+                            <motion.ul
+                              key="list-unread"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="divide-y divide-border"
+                            >
+                              <AnimatePresence mode="popLayout">
+                                {unreadNotifications.map((n, index) => (
+                                  <motion.li
+                                    key={n.id}
+                                    layout
+                                    initial={{ opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, x: -8, transition: { duration: 0.2 } }}
+                                    transition={{ duration: 0.25, delay: index * 0.03 }}
+                                    className="cursor-auto px-4 py-3 text-left transition-colors duration-200 hover:bg-muted/50 bg-muted/30"
                                   >
-                                    <Trash className="w-4 h-4 text-red-500" />
-                                  </Button>
-                                </div>
-                                <p className="text-sm font-medium text-foreground">{n.title}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
-                                <p className="text-[10px] text-muted-foreground mt-1">
-                                  {n.createdAt
-                                    ? new Date(n.createdAt).toLocaleString('pt-BR', {
-                                        timeZone: getAppTimeZone(),
-                                      })
-                                    : ''}
-                                </p>
-                              </motion.li>
-                            ))}
-                          </AnimatePresence>
-                        </motion.ul>
-                      )}
-                    </AnimatePresence>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <Badge variant="destructive" className="text-xs cursor-auto transition-colors duration-200">Nova</Badge>
+                                    </div>
+                                    <div className="flex justify-end items-center gap-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="relative top-0 bg-transparent hover:bg-transparent border-none p-0 m-0 cursor-pointer"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          const result = await notificationsService.markAsRead(n.isRead, n.id);
+                                          if (result.success) refreshNotifications();
+                                          else toast.error(result.error);
+                                        }}
+                                      >
+                                        <Eye className="w-4 h-4 text-blue-500" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="relative top-0 bg-transparent hover:bg-transparent border-none p-0 m-0 cursor-pointer"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          const id = n.id;
+                                          setDeletingNotificationIds((prev) =>
+                                            prev.includes(id) ? prev : [...prev, id],
+                                          );
+                                          try {
+                                            const res = await notificationsService.delete(id);
+                                            if (res.success) await refreshNotifications();
+                                            else toast.error(res.error ?? 'Erro ao excluir');
+                                          } finally {
+                                            setDeletingNotificationIds((prev) =>
+                                              prev.filter((currentId) => currentId !== id),
+                                            );
+                                          }
+                                        }}
+                                        disabled={deletingNotificationIds.includes(n.id)}
+                                      >
+                                        <Trash className="w-4 h-4 text-red-500" />
+                                      </Button>
+                                    </div>
+                                    <p className="text-sm font-medium text-foreground">{n.title}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                      {n.createdAt
+                                        ? new Date(n.createdAt).toLocaleString('pt-BR', {
+                                            timeZone: getAppTimeZone(),
+                                          })
+                                        : ''}
+                                    </p>
+                                  </motion.li>
+                                ))}
+                              </AnimatePresence>
+                            </motion.ul>
+                          )}
+                        </AnimatePresence>
+                      </TabsContent>
+
+                      <TabsContent value="read" className="mt-2">
+                        <AnimatePresence mode="wait">
+                          {loading ? (
+                            <motion.div
+                              key="loading-read"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="flex items-center justify-center py-8"
+                            >
+                              <motion.div
+                                animate={{ opacity: [0.5, 1, 0.5] }}
+                                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                                className="text-sm text-muted-foreground"
+                              >
+                                Carregando...
+                              </motion.div>
+                            </motion.div>
+                          ) : readNotifications.length === 0 ? (
+                            <motion.div
+                              key="empty-read"
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.25 }}
+                              className="flex flex-col items-center justify-center py-12 px-4 text-center"
+                            >
+                              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                                <Bell className="w-6 h-6 text-muted-foreground" />
+                              </div>
+                              <p className="text-sm font-medium text-foreground">Nenhuma lida</p>
+                            </motion.div>
+                          ) : (
+                            <motion.ul
+                              key="list-read"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="divide-y divide-border"
+                            >
+                              <AnimatePresence mode="popLayout">
+                                {readNotifications.map((n, index) => (
+                                  <motion.li
+                                    key={n.id}
+                                    layout
+                                    initial={{ opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, x: -8, transition: { duration: 0.2 } }}
+                                    transition={{ duration: 0.25, delay: index * 0.03 }}
+                                    className="cursor-auto px-4 py-3 text-left transition-colors duration-200 hover:bg-muted/50 bg-transparent"
+                                  >
+                                    <div className="flex items-center justify-between mb-2">
+                                      <Badge variant="default" className="text-xs cursor-auto transition-colors duration-200">Lida</Badge>
+                                    </div>
+                                    <div className="flex justify-end items-center gap-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="relative top-0 bg-transparent hover:bg-transparent border-none p-0 m-0 cursor-pointer"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          const id = n.id;
+                                          setDeletingNotificationIds((prev) =>
+                                            prev.includes(id) ? prev : [...prev, id],
+                                          );
+                                          try {
+                                            const res = await notificationsService.delete(id);
+                                            if (res.success) await refreshNotifications();
+                                            else toast.error(res.error ?? 'Erro ao excluir');
+                                          } finally {
+                                            setDeletingNotificationIds((prev) =>
+                                              prev.filter((currentId) => currentId !== id),
+                                            );
+                                          }
+                                        }}
+                                        disabled={deletingNotificationIds.includes(n.id)}
+                                      >
+                                        <Trash className="w-4 h-4 text-red-500" />
+                                      </Button>
+                                    </div>
+                                    <p className="text-sm font-medium text-foreground">{n.title}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                      {n.createdAt
+                                        ? new Date(n.createdAt).toLocaleString('pt-BR', {
+                                            timeZone: getAppTimeZone(),
+                                          })
+                                        : ''}
+                                    </p>
+                                  </motion.li>
+                                ))}
+                              </AnimatePresence>
+                            </motion.ul>
+                          )}
+                        </AnimatePresence>
+                      </TabsContent>
+                    </Tabs>
                   </div>
                 </PopoverContent>
               </Popover>
