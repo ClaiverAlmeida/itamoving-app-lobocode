@@ -14,6 +14,7 @@ import {
   joinComma,
   orDash,
 } from '../clients.display';
+import { getAppTimeZone } from '../../../utils';
 
 type Props = {
   selectedCliente: Client | null;
@@ -70,7 +71,10 @@ export function ClientsSidePanel({
                       {selectedCliente.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
                     </Badge>
                     <Badge variant="outline">
-                      Cliente desde {new Date(selectedCliente.createdAt).toLocaleDateString('pt-BR')}
+                      Cliente desde{" "}
+                      {new Date(selectedCliente.createdAt).toLocaleDateString("pt-BR", {
+                        timeZone: getAppTimeZone(),
+                      })}
                     </Badge>
                   </div>
                 </div>

@@ -1,8 +1,7 @@
 import React from "react";
-import { Search } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
-import { Input } from "../../ui/input";
 import type { Client } from "../../../api";
+import { ReportSearchInput } from "../components/ui/ReportSearchInput";
 
 export function ClientesSearchCard(props: {
   searchTerm: string;
@@ -18,15 +17,12 @@ export function ClientesSearchCard(props: {
         <CardDescription>Busque por nome, CPF ou telefone</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Digite para buscar..."
-            value={searchTerm}
-            onChange={(e) => onChangeSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        <ReportSearchInput
+          value={searchTerm}
+          onChange={onChangeSearchTerm}
+          placeholder="Digite para buscar..."
+          aria-label="Buscar cliente por nome, CPF ou telefone"
+        />
 
         <div className="space-y-2 max-h-[320px] overflow-y-auto">
           {filteredClientes.map((cliente) => {

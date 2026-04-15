@@ -121,6 +121,21 @@ function mapProductRelation(raw: unknown): OsLineProduct | undefined {
   };
 }
 
+function mapDeliveryPriceRelation(raw: unknown):
+  | NonNullable<DriverServiceOrder["driverServiceOrderProducts"][number]["deliveryPrice"]>
+  | undefined {
+  const row = asRecord(raw);
+  if (row == null || row.id == null) return undefined;
+  const prod = mapProductRelation(row.product);
+  return {
+    id: String(row.id),
+    routeName: String(row.routeName ?? ""),
+    totalPrice: row.totalPrice != null ? Number(row.totalPrice) : undefined,
+    productId: row.productId != null ? String(row.productId) : undefined,
+    ...(prod ? { product: prod } : {}),
+  };
+}
+
 function displayTypeFromProductRelation(productRaw: Record<string, unknown> | undefined): string {
   if (!productRaw) return "";
   const t = String(productRaw.type ?? "") as ProductType;
@@ -153,20 +168,45 @@ function mapProducts(raw: unknown): DriverServiceOrder["driverServiceOrderProduc
     const productRaw = asRecord(row.product) ?? {};
     const typeFromRelation = displayTypeFromProductRelation(productRaw);
     const legacyType = String(row.type ?? "");
+    const deliveryPriceIdRaw =
+      row.deliveryPriceId ?? (row as Record<string, unknown>).delivery_price_id;
+    const deliveryPriceId =
+      deliveryPriceIdRaw != null && String(deliveryPriceIdRaw).trim() !== ""
+        ? String(deliveryPriceIdRaw)
+        : undefined;
+    const deliveryPrice = mapDeliveryPriceRelation(
+      row.deliveryPrice ?? (row as Record<string, unknown>).delivery_price,
+    );
     const cp = asRecord(row.containerProduct ?? (row as Record<string, unknown>).container_product);
     const containerBoxNumber =
       cp != null && cp.boxNumber != null && String(cp.boxNumber).trim() !== ""
         ? String(cp.boxNumber).trim()
         : undefined;
+    const tipoFrete =
+      deliveryPriceId && deliveryPrice
+        ? `Frete: ${deliveryPrice.routeName}`
+        : deliveryPriceId
+          ? "Frete"
+          : "";
+    const rawLineWeight = row.weight;
+    const weightLinha = deliveryPriceId
+      ? rawLineWeight != null &&
+          rawLineWeight !== "" &&
+          Number.isFinite(Number(rawLineWeight))
+        ? Number(rawLineWeight)
+        : undefined
+      : Number(rawLineWeight) || 0;
     return {
       id: String(row.id ?? ""),
       number: String(row.number ?? ""),
       containerBoxNumber,
       productId: row.productId != null ? String(row.productId) : undefined,
-      type: typeFromRelation || legacyType,
+      deliveryPriceId,
+      deliveryPrice,
+      type: tipoFrete || typeFromRelation || legacyType,
       productType: product?.type,
       product,
-      weight: Number(row.weight) || 0,
+      ...(deliveryPriceId && weightLinha === undefined ? {} : { weight: weightLinha as number }),
       value: Number(row.value) || 0,
       driverServiceOrderProductsItems: items,
     };

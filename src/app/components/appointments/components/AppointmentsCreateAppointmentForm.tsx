@@ -6,22 +6,22 @@ import { AppointmentBoxesPerDayAlert, AppointmentBoxesPerPeriodAlert, EmptyState
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
-import { CalendarRange, Package, Users } from "lucide-react";
+import { CalendarRange, ContainerIcon, Package, Users } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { formatClienteAgendamentoLabel } from "../../clients/clients.display";
 import { Switch } from "../../ui/switch";
 import { Textarea } from "../../ui/textarea";
-import { formatDateOnlyToBR, toDateOnly } from "../../../utils";
+import { formatDateOnlyToBR, toDateOnly, toDateOnlyInAppTimeZone } from "../../../utils";
 import { getContainerStatusLabel } from "../../containers/containers.utils";
 
 type FormData = {
   clientId: string;
   collectionDate: string;
   collectionTime: string;
-  value: number;
-  downPayment: number;
+  value: number | "";
   isPeriodic: boolean;
-  qtyBoxes: number;
+  downPayment: number | "";
+  qtyBoxes: number | "";
   observations: string;
   userId: string;
   status: string;
@@ -203,11 +203,11 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
                             const startStr =
                               typeof period.startDate === "string"
                                 ? period.startDate.slice(0, 10)
-                                : new Date(period.startDate).toISOString().slice(0, 10);
+                                : toDateOnlyInAppTimeZone(period.startDate);
                             const endStr =
                               typeof period.endDate === "string"
                                 ? period.endDate.slice(0, 10)
-                                : new Date(period.endDate).toISOString().slice(0, 10);
+                                : toDateOnlyInAppTimeZone(period.endDate);
                             void carregarQtdCaixasPorDia(prev.collectionDate, prev.isPeriodic, value);
                             void carregarQtdCaixasPorPeriodo(startStr, endStr);
                           } else {
@@ -253,7 +253,12 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
           required
           min={1}
           value={formData.qtyBoxes}
-          onChange={(e) => setFormData({ ...formData, qtyBoxes: Number(e.target.value) })}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              qtyBoxes: e.target.value === "" ? "" : Number(e.target.value),
+            })
+          }
         />
       </div>
 
@@ -266,7 +271,12 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
             required
             min={1}
             value={formData.value}
-            onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                value: e.target.value === "" ? "" : Number(e.target.value),
+              })
+            }
           />
         </div>
         <div className="space-y-2">
@@ -276,7 +286,12 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
             type="number"
             min={0.0}
             value={formData.downPayment}
-            onChange={(e) => setFormData({ ...formData, downPayment: Number(e.target.value) })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                downPayment: e.target.value === "" ? "" : Number(e.target.value),
+              })
+            }
           />
         </div>
       </div>
@@ -309,7 +324,7 @@ export function AppointmentsCreateAppointmentForm(props: Props) {
         placeholder="Selecione o container"
         searchPlaceholder="Buscar container..."
         emptyMessage="Nenhum container encontrado."
-        itemIcon={Package}
+        itemIcon={ContainerIcon}
       />
 
       <div className="space-y-2">

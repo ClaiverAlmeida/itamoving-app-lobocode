@@ -11,14 +11,13 @@ import type {
 function mapBackendToFrontend(price: DeliveryPriceBackend): DeliveryPrice {
   return {
     id: price.id,
-    originCity: price.originCity,
-    originState: price.originState,
-    destinationCity: price.destinationCity,
-    destinationState: price.destinationState,
-    pricePerKg: price.pricePerKg,
-    minimumPrice: price.minimumPrice,
+    routeName: price.routeName,
+    productId: price.productId,
+    totalPrice: price.totalPrice,
     deliveryDeadline: price.deliveryDeadline,
     active: price.active,
+    isVariablePrice: price.isVariablePrice,
+    ...(price.product ? { product: price.product } : {}),
   };
 }
 
@@ -36,6 +35,28 @@ export class DeliveryPricesService extends BaseCrudService<
       updateError: "Erro ao atualizar preço de entrega",
       deleteError: "Erro ao deletar preço de entrega",
     }, true);
+  }
+
+  /**
+   * Lista preços de entrega incluindo soft-deleted (somente para edição de ordem de serviço).
+   */
+  async getAllForServiceOrderEdit(driverServiceOrderId?: string): Promise<{
+    success: boolean;
+    data?: DeliveryPrice[];
+    error?: string;
+  }> {
+    const result = await api.get<
+      DeliveryPriceBackend[] | { data: DeliveryPriceBackend[] }
+    >(`${this.resource}/service-order-edit-options`, {
+      ...(driverServiceOrderId ? { params: { driverServiceOrderId } } : {}),
+    });
+
+    if (!result.success) {
+      return { success: false, error: result.error || this.errorMessages.listError };
+    }
+
+    const items = this.unwrapList(result.data);
+    return { success: true, data: items.map(this.mapBackendToFrontend) };
   }
 
   async export(): Promise<{

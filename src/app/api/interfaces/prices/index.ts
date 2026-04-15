@@ -1,14 +1,14 @@
 /** UI model for a delivery price row (list / forms). */
 export interface DeliveryPrice {
   id: string;
-  originCity: string;
-  originState: string;
-  destinationCity: string;
-  destinationState: string;
-  pricePerKg: number;
-  minimumPrice: number;
+  routeName: string;
+  totalPrice: number;
   deliveryDeadline: number;
+  productId?: string | undefined;
   active: boolean;
+  isVariablePrice: boolean;
+  /** Preenchido quando a API retorna o relacionamento `product`. */
+  product?: Pick<ProductPrice, "id" | "name" | "type">;
 }
 
 /** UI model for a product price row (list / forms). */
@@ -62,30 +62,27 @@ export interface ProductPricePagination {
 }
 
 export interface CreateDeliveryPriceDTO {
-  id?: string;
-  originCity: string;
-  originState: string;
-  destinationCity: string;
-  destinationState: string;
-  pricePerKg: number;
-  minimumPrice: number;
+  routeName: string;
+  totalPrice: number;
   deliveryDeadline: number;
+  /** Ausente ou `null`: sem produto vinculado (`null` no PATCH desvincula no backend). */
+  productId?: string | null;
   active: boolean;
+  isVariablePrice: boolean;
 }
 
 export interface DeliveryPriceBackend {
   id: string;
   companyId: string;
-  originCity: string;
-  originState: string;
-  destinationCity: string;
-  destinationState: string;
-  pricePerKg: number;
-  minimumPrice: number;
+  routeName: string;
+  totalPrice: number;
   deliveryDeadline: number;
+  productId?: string | undefined;
   active: boolean;
+  isVariablePrice: boolean;
   createdAt: string;
   updatedAt: string;
+  product?: Pick<ProductPrice, "id" | "name" | "type">;
 }
 
 export interface DeliveryPricesPagination {

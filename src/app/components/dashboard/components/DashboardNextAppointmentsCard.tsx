@@ -7,6 +7,9 @@ import { motion } from "motion/react";
 import { format, isToday, isTomorrow } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { Appointment } from "../../../api";
+import { parseDateOnlyLocal } from "../../../utils";
+import { DASHBOARD_APPOINTMENT_STATUS_STYLE_MAP } from "../dashboard.constants";
+import { DashboardAppointmentStatusBadge } from "./DashboardAppointmentStatusBadge";
 
 export function DashboardNextAppointmentsCard({
   agendamentos,
@@ -36,34 +39,19 @@ export function DashboardNextAppointmentsCard({
           {agendamentos.slice(0, 6).map((agendamento) => {
             const dateRaw = agendamento.collectionDate ?? "";
             const dateStr = dateRaw.slice(0, 10);
-            const dataAgendamento = dateStr.length === 10 ? new Date(dateStr + "T00:00:00") : null;
+            const dataAgendamento = dateStr.length === 10 ? parseDateOnlyLocal(dateStr) : null;
             const ehHoje = dataAgendamento ? isToday(dataAgendamento) : false;
             const ehAmanha = dataAgendamento ? isTomorrow(dataAgendamento) : false;
+            const statusStyle = DASHBOARD_APPOINTMENT_STATUS_STYLE_MAP[agendamento.status];
 
             return (
               <motion.div key={agendamento.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-                <Card className={`hover:shadow-lg transition-all border-l-4 ${ehHoje ? "border-green-500 bg-green-50" : ehAmanha ? "border-blue-500 bg-blue-50" : "border-slate-300"}`}>
+                <Card className={`hover:shadow-lg transition-all border-l-4 ${statusStyle.cardBorder} ${statusStyle.cardBg}`}>
                   <CardContent className="p-4">
                     <div className="space-y-2">
                       <div className="flex items-start justify-between">
                         <h4 className="font-semibold text-sm break-words">{(agendamento as any).client?.name}</h4>
-                        <Badge
-                          className={
-                            agendamento.status === "CONFIRMED"
-                              ? "bg-green-100 text-green-700"
-                              : agendamento.status === "PENDING"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-slate-100 text-slate-700"
-                          }
-                        >
-                          {agendamento.status === "PENDING"
-                            ? "Pendente"
-                            : agendamento.status === "CONFIRMED"
-                              ? "Confirmado"
-                              : agendamento.status === "COLLECTED"
-                                ? "Coletado"
-                                : "Cancelado"}
-                        </Badge>
+                        <DashboardAppointmentStatusBadge status={agendamento.status} />
                       </div>
 
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">

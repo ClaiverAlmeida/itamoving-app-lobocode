@@ -27,6 +27,7 @@ import {
 import { format, isToday, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { useDashboardData, type DashboardDataConfig } from '../hooks/useDashboardData';
+import { parseDateOnlyLocal, toDateOnlyInAppTimeZone } from '../utils';
 
 interface DashboardViewProps {
   onNavigate?: (view: View) => void;
@@ -41,12 +42,12 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
 
   // Cálculos
   const agendamentosHoje = agendamentos.filter(a => {
-    const hoje = new Date().toISOString().split('T')[0];
+    const hoje = toDateOnlyInAppTimeZone(new Date());
     return a.collectionDate === hoje;
   }).length;
 
   const agendamentosAmanha = agendamentos.filter(a => {
-    const amanha = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const amanha = toDateOnlyInAppTimeZone(new Date(Date.now() + 24 * 60 * 60 * 1000));
     return a.collectionDate === amanha;
   }).length;
 
@@ -104,7 +105,10 @@ export default function DashboardView({ onNavigate, dataSources }: DashboardView
 
     // Agendamentos atrasados
     const atrasados = agendamentos.filter(a => {
-      const dataAgendamento = new Date(a.collectionDate + 'T00:00:00');
+      const collectionDate = (a.collectionDate ?? "").slice(0, 10);
+      if (!collectionDate) return false;
+      const dataAgendamento = parseDateOnlyLocal(collectionDate);
+      if (Number.isNaN(dataAgendamento.getTime())) return false;
       return isPast(dataAgendamento) && a.status === 'PENDING' && !isToday(dataAgendamento);
     });
 

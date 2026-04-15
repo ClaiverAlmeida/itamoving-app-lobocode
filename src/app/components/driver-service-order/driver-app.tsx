@@ -31,6 +31,7 @@ import {
   type TruckStockItem,
 } from "./driver-app/index";
 import { orDash } from "../clients/clients.display";
+import { AdhesiveTapeIcon } from "../ui/adhesive-tape-icon";
 
 const OrdemServicoForm = lazy(() => import("./service-order-form"));
 const DeliveryReceipt = lazy(async () => {
@@ -134,7 +135,7 @@ export default function MotoristaApp() {
       {
         label: "Fitas",
         value: Number(estoque.adhesiveTape) ?? 0,
-        Icon: Package,
+        Icon: AdhesiveTapeIcon,
         iconBg: "bg-blue-50 dark:bg-blue-950/40",
         iconClass: "text-blue-600 dark:text-blue-400",
         valueClass: "text-blue-900 dark:text-blue-100",

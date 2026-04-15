@@ -20,7 +20,7 @@ export function useHrForm() {
       hireDate: user.hireDate ?? "",
       terminationDate: user.terminationDate ?? "",
       role: user.role,
-      salary: user.salary ?? 0,
+      salary: user.salary ?? "",
       status: user.status,
       street: user.address?.street ?? "",
       number: user.address?.number ?? "",

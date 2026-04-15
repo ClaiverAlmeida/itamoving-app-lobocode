@@ -39,6 +39,7 @@ import {
 } from "./driver-service-order/service-order";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { ConfirmAlertDialog } from "./ui/confirm-alert-dialog";
 
 export default function OrdemDeServicoView() {
   const [ordens, setOrdens] = useState<DriverServiceOrderView[]>([]);
@@ -82,6 +83,10 @@ export default function OrdemDeServicoView() {
   const [reciboOrdem, setReciboOrdem] = useState<DriverServiceOrderView | null>(null);
   const [reciboLoading, setReciboLoading] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
+  const [archiveOrderTarget, setArchiveOrderTarget] = useState<DriverServiceOrderView | null>(null);
+  const [restoreOrderTarget, setRestoreOrderTarget] = useState<DriverServiceOrderView | null>(null);
+  const [archiveOrderLoading, setArchiveOrderLoading] = useState(false);
+  const [restoreOrderLoading, setRestoreOrderLoading] = useState(false);
   const { user } = useAuth();
   const isPodeArquivar = Boolean(user?.role.includes("admin"));
 
@@ -201,45 +206,56 @@ export default function OrdemDeServicoView() {
     [emArquivadas],
   );
 
-  const excluirOrdem = useCallback(
-    async (order: DriverServiceOrderView) => {
+  const solicitarArquivarOrdem = useCallback(
+    (order: DriverServiceOrderView) => {
       if (!user?.role.includes("admin")) return;
-
-      const confirm = window.confirm(
-        `Arquivar esta ordem de serviço?\n\nCliente (EUA): ${order.sender.usaName}\nNúmero: #${order.id}\n\nA ordem deixa de aparecer na lista principal; produtos e itens permanecem no registo. Pode desarquivar depois na aba Arquivadas.`,
-      );
-      if (confirm) {
-        const result = await serviceOrderCrud.remove(order.id!);
-        if (!result.success) {
-          toast.error(result.error || "Erro ao arquivar ordem de serviço");
-          return;
-        }
-        toast.success("Ordem de serviço arquivada com sucesso");
-        void carregarOrdens();
-      }
+      setArchiveOrderTarget(order);
     },
-    [user, carregarOrdens],
+    [user],
   );
 
-  const desarquivarOrdem = useCallback(
-    async (order: DriverServiceOrderView) => {
-      if (!user?.role.includes("admin")) return;
+  const confirmarArquivarOrdem = useCallback(async () => {
+    if (!archiveOrderTarget?.id) return;
+    setArchiveOrderLoading(true);
+    try {
+      const result = await serviceOrderCrud.remove(archiveOrderTarget.id);
+      if (!result.success) {
+        toast.error(result.error || "Erro ao arquivar ordem de serviço");
+        return;
+      }
+      toast.success("Ordem de serviço arquivada com sucesso");
+      setArchiveOrderTarget(null);
+      void carregarOrdens();
+    } finally {
+      setArchiveOrderLoading(false);
+    }
+  }, [archiveOrderTarget, carregarOrdens]);
 
-      const confirm = window.confirm(
-        `Desarquivar esta ordem de serviço?\n\nCliente (EUA): ${order.sender.usaName}\nNúmero: #${order.id}\n\nEla voltará à lista de ordens ativas.`,
-      );
-      if (!confirm) return;
-      const result = await serviceOrderCrud.restore(order.id!);
+  const solicitarDesarquivarOrdem = useCallback(
+    (order: DriverServiceOrderView) => {
+      if (!user?.role.includes("admin")) return;
+      setRestoreOrderTarget(order);
+    },
+    [user],
+  );
+
+  const confirmarDesarquivarOrdem = useCallback(async () => {
+    if (!restoreOrderTarget?.id) return;
+    setRestoreOrderLoading(true);
+    try {
+      const result = await serviceOrderCrud.restore(restoreOrderTarget.id);
       if (!result.success) {
         toast.error(result.error || "Erro ao desarquivar ordem de serviço");
         return;
       }
       toast.success("Ordem de serviço desarquivada com sucesso");
+      setRestoreOrderTarget(null);
       void carregarArquivadas();
       void carregarOrdens();
-    },
-    [user, carregarArquivadas, carregarOrdens],
-  );
+    } finally {
+      setRestoreOrderLoading(false);
+    }
+  }, [restoreOrderTarget, carregarArquivadas, carregarOrdens]);
 
   const fecharRecibo = useCallback(() => setReciboOrdem(null), []);
 
@@ -529,7 +545,7 @@ export default function OrdemDeServicoView() {
                                     variant="ghost"
                                     size="icon"
                                     title="Arquivar"
-                                    onClick={() => void excluirOrdem(o)}
+                                    onClick={() => solicitarArquivarOrdem(o)}
                                     disabled={!user?.role.includes("admin")}
                                     className={`${!user?.role.includes("admin") ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}`}
                                   >
@@ -542,7 +558,7 @@ export default function OrdemDeServicoView() {
                                   variant="ghost"
                                   size="icon"
                                   title="Desarquivar"
-                                  onClick={() => void desarquivarOrdem(o)}
+                                  onClick={() => solicitarDesarquivarOrdem(o)}
                                   disabled={!user?.role.includes("admin")}
                                   className={`${!user?.role.includes("admin") ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}`}
                                 >
@@ -649,7 +665,7 @@ export default function OrdemDeServicoView() {
                                   variant="secondary"
                                   className="flex-1 min-w-[88px]"
                                   size="sm"
-                                  onClick={() => void desarquivarOrdem(o)}
+                                  onClick={() => solicitarDesarquivarOrdem(o)}
                                 >
                                   <ArchiveRestore className="w-4 h-4 mr-1" />
                                   Desarquivar
@@ -677,6 +693,67 @@ export default function OrdemDeServicoView() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmAlertDialog
+        open={Boolean(archiveOrderTarget)}
+        onOpenChange={(open) => {
+          if (!open) setArchiveOrderTarget(null);
+        }}
+        title="Arquivar esta ordem de serviço?"
+        description={
+          archiveOrderTarget ? (
+            <div className="space-y-3">
+              <p>
+                A ordem deixa de aparecer na lista principal; produtos e itens permanecem no registo. Pode desarquivar
+                depois na aba Arquivadas.
+              </p>
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs space-y-1">
+                <p>
+                  <span className="text-muted-foreground">Cliente (EUA): </span>
+                  <span className="font-medium text-foreground">{archiveOrderTarget.sender.usaName}</span>
+                </p>
+                <p className="font-mono text-[11px] break-all text-foreground/90">
+                  <span className="text-muted-foreground font-sans">Ordem </span>#{archiveOrderTarget.id}
+                </p>
+              </div>
+            </div>
+          ) : null
+        }
+        confirmLabel="Arquivar"
+        cancelLabel="Cancelar"
+        tone="default"
+        loading={archiveOrderLoading}
+        onConfirm={confirmarArquivarOrdem}
+      />
+
+      <ConfirmAlertDialog
+        open={Boolean(restoreOrderTarget)}
+        onOpenChange={(open) => {
+          if (!open) setRestoreOrderTarget(null);
+        }}
+        title="Desarquivar esta ordem de serviço?"
+        description={
+          restoreOrderTarget ? (
+            <div className="space-y-3">
+              <p>Ela voltará à lista de ordens ativas.</p>
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs space-y-1">
+                <p>
+                  <span className="text-muted-foreground">Cliente (EUA): </span>
+                  <span className="font-medium text-foreground">{restoreOrderTarget.sender.usaName}</span>
+                </p>
+                <p className="font-mono text-[11px] break-all text-foreground/90">
+                  <span className="text-muted-foreground font-sans">Ordem </span>#{restoreOrderTarget.id}
+                </p>
+              </div>
+            </div>
+          ) : null
+        }
+        confirmLabel="Desarquivar"
+        cancelLabel="Cancelar"
+        tone="default"
+        loading={restoreOrderLoading}
+        onConfirm={confirmarDesarquivarOrdem}
+      />
 
       <ServiceOrderDetailsDialog
         open={viewOpen}

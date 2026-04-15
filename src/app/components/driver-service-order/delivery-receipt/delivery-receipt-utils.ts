@@ -24,6 +24,19 @@ export const RECIBO_CATEGORY_LABEL: Record<ReciboBoxCategory, string> = {
   personalizada: "Personalizada",
 };
 
+function toFriendlyTypeLabel(raw: unknown): string | null {
+  const value = String(raw ?? "").trim();
+  if (!value) return null;
+  const byCategory = mapCatalogProductTypeToRecibo(value);
+  if (byCategory) return RECIBO_CATEGORY_LABEL[byCategory];
+  return value
+    .toLowerCase()
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function stripDiacritics(s: string): string {
   return s.normalize("NFD").replace(/\p{M}/gu, "");
 }
@@ -120,9 +133,44 @@ export type ReciboRow = {
   tipoCadastro: string;
   weight: number | undefined;
   value: string;
+  quantityLabel?: string;
   /** Etiqueta física no container (N-LETRA), quando a linha já está vinculada. */
   etiqueta: string | null;
+  /** Linha de frete (sem etiqueta de container). */
+  isFrete?: boolean;
+  /** Quando for frete, informa se existe caixa vinculada e seus detalhes. */
+  freightHasBox?: boolean;
+  freightBoxLabel?: string | null;
+  freightBoxName?: string | null;
+  freightBoxType?: string | null;
 };
+
+function isLinhaFreteProduto(p: DriverServiceOrder["driverServiceOrderProducts"][number]): boolean {
+  const id = (p as { deliveryPriceId?: string | null }).deliveryPriceId;
+  return Boolean(id != null && String(id).trim() !== "");
+}
+
+/** Separa volumes/produtos catálogo das linhas de frete (`deliveryPriceId`). */
+export function partitionOrdemProductsByFrete(ordem: DriverServiceOrder) {
+  const list = getOrdemProductsList(ordem);
+  const volumes: typeof list = [];
+  const frete: typeof list = [];
+  for (const p of list) {
+    if (isLinhaFreteProduto(p)) frete.push(p);
+    else volumes.push(p);
+  }
+  return { volumes, frete };
+}
+
+export function sumValorVolumesProdutosOrdem(ordem: DriverServiceOrder): number {
+  const { volumes } = partitionOrdemProductsByFrete(ordem);
+  return volumes.reduce((s, p) => s + Number(p?.value ?? 0), 0);
+}
+
+export function sumValorFreteOrdem(ordem: DriverServiceOrder): number {
+  const { frete } = partitionOrdemProductsByFrete(ordem);
+  return frete.reduce((s, p) => s + Number(p?.value ?? 0), 0);
+}
 
 export function summarizeOrdemForRecibo(ordem: DriverServiceOrder) {
   const summary: Record<ReciboBoxCategory, number> = {
@@ -134,28 +182,84 @@ export function summarizeOrdemForRecibo(ordem: DriverServiceOrder) {
   };
 
   const products = getOrdemProductsList(ordem);
+  const rows: ReciboRow[] = [];
+  let fitaCount = 0;
+  let fitaPesoTotal = 0;
+  let fitaValorTotal = 0;
 
-  const rows: ReciboRow[] = products.map((p, idx) => {
+  for (let idx = 0; idx < products.length; idx += 1) {
+    const p = products[idx];
     const rawType = String(p?.type ?? "").trim();
+    if (isLinhaFreteProduto(p)) {
+      const valorF = Number(p.value ?? 0);
+      const etiquetaFrete =
+        (p as { containerBoxNumber?: string | null }).containerBoxNumber?.trim() || null;
+      const prodLinha = p.product;
+      const prodEntrega = p.deliveryPrice?.product;
+      const catalogo = prodLinha ?? prodEntrega;
+      const temCatalogo = Boolean(catalogo && String(catalogo.name ?? "").trim());
+      const freteTemCaixa = temCatalogo || Boolean(etiquetaFrete);
+      const boxName = temCatalogo ? String(catalogo!.name).trim() : null;
+      const boxType = temCatalogo
+        ? toFriendlyTypeLabel(catalogo!.type ?? (p as { productType?: string }).productType)
+        : null;
+      rows.push({
+        key: String(p.id ?? `frete-${idx}`),
+        tipoPrincipal: rawType || "Frete",
+        tipoCadastro: "FRETE",
+        weight: p.weight == null ? undefined : Number(p.weight),
+        value: `$${valorF.toFixed(2)}`,
+        etiqueta: null,
+        isFrete: true,
+        freightHasBox: freteTemCaixa,
+        freightBoxLabel: etiquetaFrete,
+        freightBoxName: boxName,
+        freightBoxType: boxType,
+      });
+      continue;
+    }
+
     const category =
       mapCatalogProductTypeToRecibo((p as { productType?: string }).productType) ??
       classifyDriverProductType(rawType);
     if (category) summary[category] += 1;
 
-    const tipoPrincipal = `${rawType}`;
-    const valor = `$${Number(p.value ?? 0).toFixed(2)}`;
+    const peso = Number(p.weight == null ? 0 : p.weight);
+    const valorNumerico = Number(p.value ?? 0);
+
+    if (category === "fita") {
+      fitaCount += 1;
+      fitaPesoTotal += Number.isFinite(peso) ? peso : 0;
+      fitaValorTotal += Number.isFinite(valorNumerico) ? valorNumerico : 0;
+      continue;
+    }
+
     const etiqueta =
       (p as { containerBoxNumber?: string | null }).containerBoxNumber?.trim() || null;
 
-    return {
+    rows.push({
       key: String(p.id ?? `box-${idx}`),
-      tipoPrincipal,
+      tipoPrincipal: `${rawType}`,
       tipoCadastro: rawType || "-",
-      weight: p.weight,
-      value: valor,
+      weight: p.weight == null ? undefined : Number(p.weight ?? 0),
+      value: `$${valorNumerico.toFixed(2)}`,
       etiqueta,
-    };
-  });
+      isFrete: false,
+    });
+  }
+
+  if (fitaCount > 0) {
+    rows.push({
+      key: "fita-adesiva-consolidada",
+      tipoPrincipal: "Fita adesiva",
+      tipoCadastro: "TAPE_ADHESIVE",
+      weight: fitaPesoTotal,
+      value: `$${fitaValorTotal.toFixed(2)}`,
+      quantityLabel: `${fitaCount}x`,
+      etiqueta: null,
+      isFrete: false,
+    });
+  }
 
   return { rows, summary, totalUnidades: products.length };
 }

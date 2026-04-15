@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { toast } from "sonner";
-import type { Caixa, DriverUser, Item, DriverServiceOrder, ProductPrice } from "../../../api";
+import type { Caixa, DeliveryPrice, DriverUser, Item, DriverServiceOrder, ProductPrice } from "../../../api";
 import { serviceOrderFormService } from "../../../api";
 import { buildDriverServiceOrderProducts, buildServiceOrderPayload } from "./service-order-form.payload";
 import { computePaymentSplitUsd, round2 } from "./service-order-form.payment";
-import { caixaTemTodosCamposPreenchidos, isCaixaPersonalizada, isFitaAdesiva } from "./service-order-form.verifications";
+import {
+  caixaTemTodosCamposPreenchidos,
+  isCaixaPersonalizada,
+  isFitaAdesiva,
+  isLinhaEntrega,
+} from "./service-order-form.verifications";
 import { serviceOrderFormCrud } from "./service-order-form.crud";
 import { resolveSignatureToMinioUrl } from "./service-order-form.signature";
 
@@ -67,6 +72,7 @@ type Params = {
   caixas: Caixa[];
   itens: Item[];
   opcoesCaixa: ProductPrice[];
+  precosEntrega: DeliveryPrice[];
   existingProductIds: Set<string>;
 };
 
@@ -122,7 +128,15 @@ export function useServiceOrderFormSave(params: Params) {
         clientSignature: params.assinaturaCliente.trim(),
         agentSignature: params.assinaturaAgente.trim(),
       },
-      caixas: params.caixas.map((c) => ({ id: c.id, productId: c.productId, type: c.type, value: c.value, weight: c.weight })),
+      caixas: params.caixas.map((c) => ({
+        id: c.id,
+        lineKind: c.lineKind,
+        productId: c.productId,
+        deliveryPriceId: c.deliveryPriceId,
+        type: c.type,
+        value: c.value,
+        weight: c.weight,
+      })),
       itens: params.itens.map((i) => ({
         id: i.id,
         caixaId: i.caixaId,
@@ -154,7 +168,11 @@ export function useServiceOrderFormSave(params: Params) {
     if (params.assinaturaAgente.trim() !== expectedAgentSig) return;
     const expectedCaixasCount = params.existingOrdem.driverServiceOrderProducts?.length ?? 0;
     if (params.caixas.length !== expectedCaixasCount) return;
-    const expectedItensCount = (params.existingOrdem.driverServiceOrderProducts ?? []).reduce((sum, p) => sum + (p.driverServiceOrderProductsItems?.length ?? 0), 0);
+    const expectedItensCount = (params.existingOrdem.driverServiceOrderProducts ?? []).reduce((sum, p) => {
+      const dpId = p.deliveryPriceId != null ? String(p.deliveryPriceId).trim() : "";
+      if (dpId) return sum;
+      return sum + (p.driverServiceOrderProductsItems?.length ?? 0);
+    }, 0);
     if (params.itens.length !== expectedItensCount) return;
     const ordem = params.existingOrdem as { driverId?: string; userId?: string; driverName?: string };
     let expectedMotoristaId = ordem.driverId || ordem.userId || "";
@@ -192,15 +210,24 @@ export function useServiceOrderFormSave(params: Params) {
     if (params.caixas.length === 0) return toast.error("Adicione pelo menos um volume ou produto");
     if (params.caixas.some((c) => !caixaTemTodosCamposPreenchidos(c))) return toast.error("Preencha todos os campos dos volumes ou produtos antes de salvar");
     const caixaSemItensObrigatorios = params.caixas.some((c) => {
+      if (isLinhaEntrega(c)) return false;
       if (isFitaAdesiva(c, params.opcoesCaixa) || isCaixaPersonalizada(c, params.opcoesCaixa)) return false;
       return params.itens.filter((i) => i.caixaId === c.id).length === 0;
     });
-    if (caixaSemItensObrigatorios) return toast.error("Cada volume precisa ter ao menos 1 item (fita adesiva e item personalizado não exigem itens)");
-    const itemInvalido = params.itens.some((i) => !String(i.name ?? "").trim() || Number(i.quantity) <= 0 || Number(i.weight) <= 0);
+    if (caixaSemItensObrigatorios)
+      return toast.error(
+        "Cada volume precisa ter ao menos 1 item (fita adesiva e item personalizado não exigem itens).",
+      );
+    const itemInvalido = params.itens.some((i) => {
+      const caixa = params.caixas.find((c) => c.id === i.caixaId);
+      if (caixa?.lineKind === "delivery") return false;
+      return !String(i.name ?? "").trim() || Number(i.quantity) <= 0 || Number(i.weight) <= 0;
+    });
     if (itemInvalido) return toast.error("Preencha todos os campos dos itens antes de salvar");
 
-    let assinaturaClienteFinal = params.assinaturaCliente?.trim() || (params.isEditMode ? (params.existingOrdem?.clientSignature ?? "") : "");
-    let assinaturaAgenteFinal = params.assinaturaAgente?.trim() || (params.isEditMode ? (params.existingOrdem?.agentSignature ?? "") : "");
+    /** Só o estado local (hidratado na edição com as URLs guardadas). Sem fallback para a ordem: se o utilizador limpar, fica vazio e deve voltar a assinar. */
+    let assinaturaClienteFinal = String(params.assinaturaCliente ?? "").trim();
+    let assinaturaAgenteFinal = String(params.assinaturaAgente ?? "").trim();
     if (!assinaturaClienteFinal) return toast.error("É necessária a assinatura do cliente");
     if (!assinaturaAgenteFinal) return toast.error("É necessária a assinatura do agente");
 
@@ -387,7 +414,9 @@ export function useServiceOrderFormSave(params: Params) {
           continue;
         }
         const caixaDiff =
+          String(cur.lineKind ?? "volume") !== String(init.lineKind ?? "volume") ||
           String(cur.productId ?? "") !== String(init.productId ?? "") ||
+          String(cur.deliveryPriceId ?? "") !== String(init.deliveryPriceId ?? "") ||
           cur.type !== init.type ||
           cur.value !== init.value ||
           cur.weight !== init.weight;

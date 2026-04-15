@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "../../ui/table";
 import { Boxes, Loader2, Package, Scale, UserRound, Weight } from "lucide-react";
-import { formatProductTypeForDisplay } from "../containers.utils";
+import { formatProductTypeForDisplay, isTapeAdhesiveType } from "../containers.utils";
 
 type Props = {
   order: DriverServiceOrder;
@@ -28,6 +28,20 @@ function sumItemsWeight(
 
 export function ServiceOrderBoxesPreview({ order, previewLabels, previewLoading }: Props) {
   const products = order.driverServiceOrderProducts ?? [];
+  const labelByProductId = new Map<string, string>();
+  let idxSequencial = 0;
+  for (const product of products) {
+    if (isTapeAdhesiveType(product.type)) continue;
+    if (!product.id) {
+      idxSequencial += 1;
+      continue;
+    }
+    const label = previewLabels[idxSequencial];
+    if (label) {
+      labelByProductId.set(product.id, label);
+    }
+    idxSequencial += 1;
+  }
   const pesoVolumes = products.reduce((s, p) => s + (p.weight ?? 0), 0);
   const pesoItensTotal = products.reduce(
     (s, p) => s + sumItemsWeight(p.driverServiceOrderProductsItems ?? []),
@@ -118,7 +132,9 @@ export function ServiceOrderBoxesPreview({ order, previewLabels, previewLoading 
                           <span className="sr-only">Calculando etiquetas…</span>
                         </span>
                       ) : (
-                        previewLabels[idx] ?? "—"
+                        isTapeAdhesiveType(p.type)
+                          ? "—"
+                          : (p.id ? labelByProductId.get(p.id) : undefined) ?? "—"
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm text-center">

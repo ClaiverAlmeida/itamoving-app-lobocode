@@ -55,7 +55,6 @@ export async function handleDeleteTransaction(params: {
     return;
   }
 
-  if (!window.confirm("Tem certeza que deseja excluir esta transação?")) return;
   const ok = await deleteTransacao(id);
   if (ok) toast.success("Transação excluída!");
 }

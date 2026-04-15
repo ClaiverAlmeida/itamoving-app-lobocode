@@ -1,4 +1,5 @@
 import type { CreateUsersDTO, UpdateUsersDTO, Usuario } from "../../api";
+import { toDateOnlyInAppTimeZone } from "../../utils";
 
 export type HrUserFormData = {
   name: string;
@@ -11,7 +12,7 @@ export type HrUserFormData = {
   hireDate: string;
   terminationDate: string | undefined;
   role: Usuario["role"];
-  salary: number;
+  salary: number | "";
   status: Usuario["status"];
   street: string;
   number: string;
@@ -29,10 +30,10 @@ export const getInitialHrUserFormData = (): HrUserFormData => ({
   phone: "",
   cpf: "",
   birthDate: "",
-  hireDate: new Date().toISOString().split("T")[0],
+  hireDate: toDateOnlyInAppTimeZone(new Date()),
   terminationDate: "",
   role: "" as Usuario["role"],
-  salary: 0,
+  salary: "",
   status: "ACTIVE",
   street: "",
   number: "",
@@ -54,7 +55,7 @@ export const buildCreateUserPayload = (formUsuario: HrUserFormData): CreateUsers
   birthDate: formUsuario.birthDate,
   hireDate: formUsuario.hireDate,
   terminationDate: formUsuario.terminationDate || undefined,
-  salary: Number(formUsuario.salary),
+  salary: Number(formUsuario.salary || 0),
   address: {
     street: formUsuario.street,
     number: formUsuario.number,
@@ -88,7 +89,7 @@ export const buildUpdateUserPayload = (
     hireDate: formUsuario.hireDate,
     terminationDate: formUsuario.terminationDate === "" ? undefined : formUsuario.terminationDate,
     role: formUsuario.role,
-    salary: Number(formUsuario.salary),
+    salary: Number(formUsuario.salary || 0),
     status: formUsuario.status,
     address: {
       street: formUsuario.street,

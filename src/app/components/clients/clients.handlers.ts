@@ -125,9 +125,7 @@ export const handleDeleteClient = async (args: {
   selectedClienteId?: string;
   setSelectedCliente: (c: Client | null) => void;
 }) => {
-  const { id, nome, remove, deleteCliente, selectedClienteId, setSelectedCliente } = args;
-  const confirm = window.confirm(`Tem certeza que deseja excluir o cliente ${nome}?`);
-  if (!confirm) return;
+  const { id, remove, deleteCliente, selectedClienteId, setSelectedCliente } = args;
   const result = await remove(id);
   if (result.success) {
     deleteCliente(id);
@@ -144,7 +142,7 @@ export const handleExportClients = async (runExport: () => Promise<any>) => {
     toast.error('Nenhum cliente cadastrado');
     return;
   }
-  toast.success('Clientes exportados com sucesso');
+  // toast.success('Clientes exportados com sucesso');
 };
 
 export const handleImportClients = async (args: {

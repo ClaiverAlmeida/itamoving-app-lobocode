@@ -58,8 +58,8 @@ export default function AtendimentosView() {
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Pipeline de Atendimentos</h1>
-              <p className="text-muted-foreground mt-1 text-sm lg:text-base">Gerenciamento de leads do WhatsApp Bot</p>
+              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Pipeline de Atendimentos - Dados Mockados</h1>
+              <p className="text-muted-foreground mt-1 text-sm lg:text-base">Gerenciamento de leads do WhatsApp Bot - Dados Fictícios para apresentação</p>
             </div>
 
             <ServicesToolbar

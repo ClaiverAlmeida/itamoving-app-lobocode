@@ -3,6 +3,12 @@ import { useDashboardData, type DashboardDataConfig } from "../hooks/useDashboar
 import { ESTOQUE_IDEAL, ESTOQUE_MINIMO } from "./stock";
 import type { ReportType } from "./reports/reports.constants";
 import { REPORT_TYPES } from "./reports/reports.constants";
+import {
+  filterAgendamentosByDateRange,
+  filterClientesByDateRange,
+  filterContainersByDateRange,
+  filterTransacoesByDateRange,
+} from "./reports/reports.filter";
 import { filterClientesBySearch, formatCurrencyUSD } from "./reports/reports.utils";
 import {
   buildCategoriasReceitaDespesa,
@@ -31,8 +37,32 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedReport, setSelectedReport] = useState<ReportType>("visao-geral");
   const [showFilters, setShowFilters] = useState(false);
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
 
   const { clientes, containers, agendamentos, estoque, transacoes } = useDashboardData(dataSources);
+
+  const dateRange = useMemo(
+    () => ({ from: filterDateFrom, to: filterDateTo }),
+    [filterDateFrom, filterDateTo],
+  );
+
+  const transacoesFiltradas = useMemo(
+    () => filterTransacoesByDateRange(transacoes, dateRange),
+    [transacoes, dateRange],
+  );
+  const clientesFiltrados = useMemo(
+    () => filterClientesByDateRange(clientes, dateRange),
+    [clientes, dateRange],
+  );
+  const containersFiltrados = useMemo(
+    () => filterContainersByDateRange(containers, dateRange),
+    [containers, dateRange],
+  );
+  const agendamentosFiltrados = useMemo(
+    () => filterAgendamentosByDateRange(agendamentos, dateRange),
+    [agendamentos, dateRange],
+  );
 
   // Estoque (normaliza porque a API pode retornar undefined nos campos).
   const estoqueSafe = {
@@ -49,30 +79,37 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
   const estoqueBaixoCount = itemKeys.filter((key) => estoqueSafe[key] < ESTOQUE_MINIMO[key]).length;
   const estoqueIdealCount = itemKeys.filter((key) => estoqueSafe[key] >= ESTOQUE_IDEAL[key]).length;
 
-  const gerarRelatorioPDF = (tipo: string) => {
-    alert(`Gerando relatório de ${tipo}... (funcionalidade demonstrativa)`);
-  };
+  const gerarRelatorioPDF = (tipo: string) => {return;};
 
   const formatCurrency = (value: number) => formatCurrencyUSD(value);
 
   const estatisticas = useMemo<EstatisticasGerais>(
-    () => buildEstatisticasGerais({ clientes, containers, agendamentos, transacoes }),
-    [clientes, containers, agendamentos, transacoes],
+    () =>
+      buildEstatisticasGerais({
+        clientes: clientesFiltrados,
+        containers: containersFiltrados,
+        agendamentos: agendamentosFiltrados,
+        transacoes: transacoesFiltradas,
+      }),
+    [clientesFiltrados, containersFiltrados, agendamentosFiltrados, transacoesFiltradas],
   );
 
-  const clientesPorEstado = useMemo(() => buildClientesPorEstado(clientes), [clientes]);
-  const receitasMensais = useMemo(() => buildReceitasMensais(transacoes), [transacoes]);
+  const clientesPorEstado = useMemo(() => buildClientesPorEstado(clientesFiltrados), [clientesFiltrados]);
+  const receitasMensais = useMemo(() => buildReceitasMensais(transacoesFiltradas), [transacoesFiltradas]);
   const performanceAtendentes = useMemo<PerformanceAtendente[]>(
-    () => buildPerformanceAtendentes({ clientes, transacoes }),
-    [clientes, transacoes],
+    () => buildPerformanceAtendentes({ clientes: clientesFiltrados, transacoes: transacoesFiltradas }),
+    [clientesFiltrados, transacoesFiltradas],
   );
 
   const categoriasReceitaDespesa = useMemo<CategoriaReceitaDespesa[]>(
-    () => buildCategoriasReceitaDespesa(transacoes),
-    [transacoes],
+    () => buildCategoriasReceitaDespesa(transacoesFiltradas),
+    [transacoesFiltradas],
   );
 
-  const filteredClientes = useMemo(() => filterClientesBySearch({ clientes, searchTerm }), [clientes, searchTerm]);
+  const filteredClientes = useMemo(
+    () => filterClientesBySearch({ clientes: clientesFiltrados, searchTerm }),
+    [clientesFiltrados, searchTerm],
+  );
 
   return (
     <div className="space-y-4 lg:space-y-6 overflow-x-hidden">
@@ -85,6 +122,14 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
         onSelectReport={(value) => {
           setSelectedReport(value);
           onNavigate?.(value);
+        }}
+        filterDateFrom={filterDateFrom}
+        filterDateTo={filterDateTo}
+        onFilterDateFromChange={setFilterDateFrom}
+        onFilterDateToChange={setFilterDateTo}
+        onClearFilters={() => {
+          setFilterDateFrom("");
+          setFilterDateTo("");
         }}
       />
 
@@ -112,7 +157,7 @@ export default function RelatoriosView({ onNavigate, dataSources }: DashboardVie
       {selectedReport === "financeiro" && (
         <FinanceiroReportSection
           estatisticas={estatisticas}
-          transacoes={transacoes}
+          transacoes={transacoesFiltradas}
           categoriasReceitaDespesa={categoriasReceitaDespesa}
           formatCurrency={formatCurrency}
           onExport={gerarRelatorioPDF}

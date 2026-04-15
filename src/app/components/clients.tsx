@@ -58,6 +58,7 @@ import {
   ClientsSidePanel,
   useClientsForm,
 } from "./clients/index";
+import { ConfirmAlertDialog } from "./ui/confirm-alert-dialog";
 
 export default function ClientesView() {
   const { user } = useAuth();
@@ -86,6 +87,11 @@ export default function ClientesView() {
     atendente: "",
     periodo: "todos" as "todos" | "semana" | "mes" | "ano",
   });
+  const [deleteClienteTarget, setDeleteClienteTarget] = useState<{
+    id: string;
+    nome: string;
+  } | null>(null);
+  const [deleteClienteLoading, setDeleteClienteLoading] = useState(false);
 
   useEffect(() => {
     const carregarClientes = async () => {
@@ -244,15 +250,27 @@ export default function ClientesView() {
     }
   };
 
-  const handleDelete = async (id: string, nome: string) =>
-    handleDeleteClient({
-      id,
-      nome,
-      remove: clientsCrud.delete,
-      deleteCliente,
-      selectedClienteId: selectedCliente?.id,
-      setSelectedCliente,
-    });
+  const openDeleteCliente = (id: string, nome: string) => {
+    setDeleteClienteTarget({ id, nome });
+  };
+
+  const confirmDeleteCliente = async () => {
+    if (!deleteClienteTarget) return;
+    setDeleteClienteLoading(true);
+    try {
+      await handleDeleteClient({
+        id: deleteClienteTarget.id,
+        nome: deleteClienteTarget.nome,
+        remove: clientsCrud.delete,
+        deleteCliente,
+        selectedClienteId: selectedCliente?.id,
+        setSelectedCliente,
+      });
+      setDeleteClienteTarget(null);
+    } finally {
+      setDeleteClienteLoading(false);
+    }
+  };
 
   const handleExport = async () => handleExportClients(clientsCrud.export);
 
@@ -773,7 +791,7 @@ export default function ClientesView() {
         brazilCityCountByState={brazilCityCountByState}
         setSelectedCliente={setSelectedCliente}
         onEdit={handleEdit}
-        onDelete={handleDelete}
+        onDelete={openDeleteCliente}
       />
 
       {filteredClientes.length > 0 && (
@@ -820,10 +838,33 @@ export default function ClientesView() {
         onCall={handleCallTelphone}
         onWhatsapp={handleWhatsAppWindow}
         onEdit={handleEdit}
-        onDelete={handleDelete}
+        onDelete={openDeleteCliente}
         getAtividadeIcon={getAtividadeIcon}
         getAtividadeColor={getAtividadeColor}
         loadHistoricoPage={loadHistoricoPageLocal}
+      />
+
+      <ConfirmAlertDialog
+        open={Boolean(deleteClienteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteClienteTarget(null);
+        }}
+        title="Excluir cliente?"
+        description={
+          deleteClienteTarget ? (
+            <>
+              <p>
+                Tem certeza que deseja excluir o cliente{" "}
+                <span className="font-semibold text-foreground">{deleteClienteTarget.nome}</span>?
+              </p>
+              <p className="text-xs">Esta ação não pode ser desfeita.</p>
+            </>
+          ) : null
+        }
+        confirmLabel="Excluir"
+        tone="destructive"
+        loading={deleteClienteLoading}
+        onConfirm={confirmDeleteCliente}
       />
     </div>
   );

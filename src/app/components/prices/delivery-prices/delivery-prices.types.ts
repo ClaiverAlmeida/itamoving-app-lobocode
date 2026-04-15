@@ -1,14 +1,12 @@
 import type { DeliveryPrice } from "../../../api";
 
 export type DeliveryPriceForm = {
-  originCity: string;
-  originState: string;
-  destinationCity: string;
-  destinationState: string;
-  pricePerKg: string;
-  minimumPrice: string;
+  routeName: string;
+  productId: string;
+  totalPrice: string;
   deliveryDeadline: string;
   active: boolean;
+  isVariablePrice: boolean;
 };
 
 export type DeliveryPricesTabProps = {

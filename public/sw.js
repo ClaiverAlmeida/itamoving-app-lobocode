@@ -13,12 +13,13 @@ self.addEventListener('push', function (event) {
   const title = payload.title || 'Itamoving';
   const options = {
     body: payload.body || '',
-    icon: payload.icon || '/assets/icons/icon-192x192.png',
-    badge: payload.badge || '/assets/icons/icon-96x96.png',
-    tag: payload.tag || 'default',
+    icon: payload.icon || '/src/assets/itamoving-logo.png',
+    badge: payload.badge || '/src/assets/itamoving-logo.png',
+    tag: payload.tag || `notification-${payload.notificationId || payload.timestamp || Date.now()}`,
+    renotify: true,
     requireInteraction: false,
     data: {
-      url: payload.url || '/',
+      url: payload.url || '/agendamentos',
       entityType: payload.entityType,
       entityId: payload.entityId,
       notificationId: payload.notificationId,

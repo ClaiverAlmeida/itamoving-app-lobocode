@@ -1,5 +1,6 @@
 import type { EstoqueMovimentacao, ProductType, StockItemConfig, StockStatistics } from "./stock.types";
 import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from "./stock.constants";
+import { getAppTimeZone } from "../../utils";
 
 export function getMovItemKey(mov: EstoqueMovimentacao) {
   return PRODUCT_TYPE_TO_ITEM_KEY[mov.product.type as ProductType];
@@ -33,9 +34,13 @@ export function filterMovimentacoes(movimentacoes: EstoqueMovimentacao[], search
   const term = searchTerm.trim().toLowerCase();
   const typeStr = (t: string) => (t === "ENTRY" ? "entrada" : "saída");
   const dateStr = (d: string) =>
-    new Date(d).toLocaleDateString("pt-BR") +
+    new Date(d).toLocaleDateString("pt-BR", { timeZone: getAppTimeZone() }) +
     " " +
-    new Date(d).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    new Date(d).toLocaleTimeString("pt-BR", {
+      timeZone: getAppTimeZone(),
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   return sorted.filter((mov) => {
     const itemKey = PRODUCT_TYPE_TO_ITEM_KEY[mov.product.type as ProductType];

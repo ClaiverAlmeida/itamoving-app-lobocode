@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
 import { Button } from "../../ui/button";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import type { DeliveryPricesPagination, DeliveryPrice } from "../../../api";
-import { getDeliveryPricesPage } from "./delivery-prices.crud";
+import type { DeliveryPricesPagination, DeliveryPrice, ProductPrice } from "../../../api";
+import { getDeliveryPricesPage, getProductPrices } from "./delivery-prices.crud";
 import {
   handleCreateDeliverySubmit,
   handleDeleteDelivery,
@@ -12,9 +12,11 @@ import {
   handleExportDeliveries,
 } from "./delivery-prices.handlers";
 import type { DeliveryPriceForm, DeliveryPricesTabProps } from "./delivery-prices.types";
-import { resetDeliveryForm, toUfBrasil, toUfEua } from "./delivery-prices.utils";
+import { resetDeliveryForm } from "./delivery-prices.utils";
 import { DeliveryPricesTable } from "./components/DeliveryPricesTable";
 import { DeliveryPricesDialogs } from "./components/DeliveryPricesDialogs";
+import { ConfirmAlertDialog } from "../../ui/confirm-alert-dialog";
+import { ITEM_LABELS, PRODUCT_TYPE_TO_ITEM_KEY } from "../../stock";
 
 export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
   const { setPrecosEntrega, deleteDeliveryPrice, className } = props;
@@ -30,6 +32,11 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
   const [pageEntrega, setPageEntrega] = useState(1);
   const [limitEntrega] = useState(10);
   const [paginationEntrega, setPaginationEntrega] = useState<DeliveryPricesPagination | null>(null);
+  const [deleteEntregaId, setDeleteEntregaId] = useState<string | null>(null);
+  const [deleteEntregaLoading, setDeleteEntregaLoading] = useState(false);
+
+  /** Valores do servidor no momento em que o usuário abriu "Editar" (base para o diff do PATCH). */
+  const editEntregaBaselineRef = useRef<DeliveryPrice | null>(null);
 
   const carregarPrecosEntrega = async (page = pageEntrega) => {
     const result = await getDeliveryPricesPage({ page, limit: limitEntrega });
@@ -42,6 +49,17 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
     }
   };
 
+  const carregarProdutos = useCallback(async (): Promise<ProductPrice[]> => {
+    const result = await getProductPrices();
+    if (result.success && result.data) {
+      return result.data.filter((p) => p.active === true && p.type !== "TAPE_ADHESIVE");
+    }
+    if (result.error) {
+      toast.error(result.error);
+    }
+    return [];
+  }, []);
+
   useEffect(() => {
     carregarPrecosEntrega(pageEntrega);
   }, [pageEntrega, limitEntrega]);
@@ -50,16 +68,26 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
 
   const entregasFiltradas = entregas.filter(
     (p) =>
-      (p.originCity ?? "")
+      (p.routeName ?? "").toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (p.totalPrice ?? 0).toString()
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      (p.destinationCity ?? "")
+      (p.deliveryDeadline ?? 0).toString()
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      (p.originState ?? "")
+      (p.product?.name)?.toString()
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      (p.destinationState ?? "")
+      (ITEM_LABELS[PRODUCT_TYPE_TO_ITEM_KEY[p.product?.type ?? ""]] ?? "").toLowerCase()
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (p.product?.type ?? "").toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (p.isVariablePrice ? "Sim" : "Não")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (p.active ? "Ativa" : "Inativa")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()),
   );
@@ -81,6 +109,7 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
       e,
       form: formEntrega,
       selectedEntrega,
+      editBaseline: editEntregaBaselineRef.current,
       setIsEditEntregaDialogOpen,
       setSelectedEntrega,
       resetFormEntrega,
@@ -89,15 +118,24 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
     });
   };
 
-  const handleDeleteEntrega = async (id: string) => {
-    await handleDeleteDelivery({
-      id,
-      selectedEntrega,
-      setSelectedEntrega,
-      pageEntrega,
-      carregarPrecosEntrega,
-      deleteDeliveryPrice,
-    });
+  const openDeleteEntrega = (id: string) => setDeleteEntregaId(id);
+
+  const confirmDeleteEntrega = async () => {
+    if (!deleteEntregaId) return;
+    setDeleteEntregaLoading(true);
+    try {
+      await handleDeleteDelivery({
+        id: deleteEntregaId,
+        selectedEntrega,
+        setSelectedEntrega,
+        pageEntrega,
+        carregarPrecosEntrega,
+        deleteDeliveryPrice,
+      });
+      setDeleteEntregaId(null);
+    } finally {
+      setDeleteEntregaLoading(false);
+    }
   };
 
   const handleExportarEntregas = async () => {
@@ -105,16 +143,23 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
   };
 
   const onEditEntrega = (entrega: DeliveryPrice) => {
+    editEntregaBaselineRef.current = {
+      id: entrega.id,
+      routeName: entrega.routeName,
+      totalPrice: entrega.totalPrice,
+      deliveryDeadline: entrega.deliveryDeadline,
+      productId: entrega.productId,
+      active: entrega.active,
+      isVariablePrice: entrega.isVariablePrice,
+    };
     setSelectedEntrega(entrega);
     setFormEntrega({
-      originCity: entrega.originCity,
-      originState: toUfEua(entrega.originState),
-      destinationCity: entrega.destinationCity,
-      destinationState: toUfBrasil(entrega.destinationState),
-      pricePerKg: entrega.pricePerKg.toString(),
-      minimumPrice: entrega.minimumPrice.toString(),
-      deliveryDeadline: entrega.deliveryDeadline.toString(),
-      active: entrega.active,
+      routeName: entrega.routeName ?? "",
+      totalPrice: String(entrega.totalPrice ?? ""),
+      deliveryDeadline: String(entrega.deliveryDeadline ?? ""),
+      productId: entrega.productId ?? "",
+      active: entrega.active ?? true,
+      isVariablePrice: entrega.isVariablePrice ?? false,
     });
     setIsEditEntregaDialogOpen(true);
   };
@@ -125,9 +170,9 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <CardTitle>Preços de Entrega por Cidade</CardTitle>
+              <CardTitle>Preços de Entrega</CardTitle>
               <CardDescription>
-                Configure os preços de frete entre cidades EUA-Brasil
+                Configure os preços de frete por produtos, preço mínimo ou prazo
               </CardDescription>
             </div>
             <Button
@@ -135,7 +180,7 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
               onClick={() => setIsEntregaDialogOpen(true)}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Nova Rota
+              Novo Frete
             </Button>
           </div>
         </CardHeader>
@@ -147,7 +192,7 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
             onExport={handleExportarEntregas}
             entregasFiltradas={entregasFiltradas}
             onEdit={onEditEntrega}
-            onDelete={handleDeleteEntrega}
+            onDelete={openDeleteEntrega}
             pagination={paginationEntrega}
             onPrevPage={() => setPageEntrega((p) => Math.max(1, p - 1))}
             onNextPage={() =>
@@ -161,29 +206,62 @@ export function DeliveryPricesTab(props: DeliveryPricesTabProps) {
 
       <DeliveryPricesDialogs
         isEntregaDialogOpen={isEntregaDialogOpen}
+        editingProductSummary={selectedEntrega?.product ?? null}
+        onCarregarProdutos={carregarProdutos}
         onOpenChangeEntrega={(open) => {
           setIsEntregaDialogOpen(open);
           if (open) {
             resetFormEntrega();
             setSelectedEntrega(null);
             setIsEditEntregaDialogOpen(false);
+          } else {
+            resetFormEntrega();
+            setSelectedEntrega(null);
           }
         }}
-        onCloseEntrega={() => setIsEntregaDialogOpen(false)}
+        onCloseEntrega={() => {
+          resetFormEntrega();
+          setIsEntregaDialogOpen(false);
+        }}
         isEditEntregaDialogOpen={isEditEntregaDialogOpen}
         onOpenChangeEditEntrega={(open) => {
           setIsEditEntregaDialogOpen(open);
           if (!open) {
+            editEntregaBaselineRef.current = null;
             setSelectedEntrega(null);
+            resetFormEntrega();
           } else {
             setIsEntregaDialogOpen(false);
           }
         }}
-        onCloseEditEntrega={() => setIsEditEntregaDialogOpen(false)}
+        onCloseEditEntrega={() => {
+          editEntregaBaselineRef.current = null;
+          resetFormEntrega();
+          setSelectedEntrega(null);
+          setIsEditEntregaDialogOpen(false);
+        }}
         formEntrega={formEntrega}
         setFormEntrega={setFormEntrega}
         onSubmitCreate={handleSubmitEntrega}
         onSubmitEdit={handleEditEntrega}
+      />
+
+      <ConfirmAlertDialog
+        open={Boolean(deleteEntregaId)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteEntregaId(null);
+        }}
+        title="Excluir preço de entrega?"
+        description={
+          <>
+            <p>Tem certeza que deseja excluir este preço de entrega?</p>
+            <p className="text-xs">Esta ação não pode ser desfeita.</p>
+          </>
+        }
+        confirmLabel="Excluir"
+        tone="destructive"
+        loading={deleteEntregaLoading}
+        onConfirm={confirmDeleteEntrega}
       />
     </>
   );

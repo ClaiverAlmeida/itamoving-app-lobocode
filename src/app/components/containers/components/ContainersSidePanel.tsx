@@ -261,6 +261,9 @@ export function ContainersSidePanel(props: Props) {
                         </Badge>
                       )}
                       <Badge variant="outline">{selectedContainer.boxes?.length || 0} volumes</Badge>
+                      <Badge variant="outline">
+                        {selectedContainer.tapesUsed?.quantity ?? 0} fitas utilizadas
+                      </Badge>
                       <Badge variant="outline">{selectedContainer.totalWeight || 0} kg</Badge>
                     </div>
                   </div>
@@ -572,14 +575,21 @@ export function ContainersSidePanel(props: Props) {
                     Carregando detalhes...
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-2 max-w-xs">
+                <div className="grid grid-cols-4 gap-2 sm:max-w-md">
                   <div className="rounded-lg border bg-muted/30 px-3 py-2">
                     <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Volumes</p>
-                    <p className="text-lg font-semibold tabular-nums leading-tight">{linkedOverview.totalBoxes}</p>
+                    <p className="text-base font-semibold tabular-nums leading-tight">{linkedOverview.totalBoxes}</p>
                   </div>
                   <div className="rounded-lg border bg-muted/30 px-3 py-2">
                     <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Itens</p>
-                    <p className="text-lg font-semibold tabular-nums leading-tight">{linkedOverview.totalItems}</p>
+                    <p className="text-base font-semibold tabular-nums leading-tight">{linkedOverview.totalItems}</p>
+                  </div>
+                  <div className="col-span-2 rounded-lg border bg-muted/30 px-3 py-3">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Fitas utilizadas</p>
+                    <p className="text-base font-semibold tabular-nums leading-tight mt-1.5">
+                      {(selectedContainer.tapesUsed?.quantity ?? 0)} un. ·{" "}
+                      {(selectedContainer.tapesUsed?.weight ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg
+                    </p>
                   </div>
                 </div>
                 {loosePhysicalBoxes.length > 0 && (

@@ -7,10 +7,10 @@ export type AppointmentFormData = {
   clientId: string;
   collectionDate: string;
   collectionTime: string;
-  value: number;
-  downPayment: number;
+  value: number | "";
+  downPayment: number | "";
   isPeriodic: boolean;
-  qtyBoxes: number;
+  qtyBoxes: number | "";
   observations: string;
   userId: string;
   status: string;
@@ -32,10 +32,10 @@ const INITIAL_FORM_DATA: AppointmentFormData = {
   clientId: '',
   collectionDate: '',
   collectionTime: '',
-  value: 0,
-  downPayment: 0,
+  value: "",
+  downPayment: "",
   isPeriodic: false,
-  qtyBoxes: 0,
+  qtyBoxes: "",
   observations: '',
   userId: '',
   status: 'CONFIRMED',

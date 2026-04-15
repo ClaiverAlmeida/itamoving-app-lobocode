@@ -12,10 +12,10 @@ type AgendamentoFormData = {
   clientId: string;
   collectionDate: string;
   collectionTime: string;
-  value: number;
-  downPayment: number;
+  value: number | "";
+  downPayment: number | "";
   isPeriodic: boolean;
-  qtyBoxes: number;
+  qtyBoxes: number | "";
   observations: string;
   userId: string;
   status: string;
@@ -81,7 +81,9 @@ export async function handleCreateAgendamento(args: {
     }
   }
 
-  if (formData.value <= formData.downPayment) {
+  const valorAgendamento = Number(formData.value || 0);
+  const valorAntecipado = Number(formData.downPayment || 0);
+  if (valorAgendamento <= valorAntecipado) {
     toast.error('O valor do agendamento não pode ser menor ou igual ao valor da antecipação.');
     return;
   }
@@ -94,8 +96,8 @@ export async function handleCreateAgendamento(args: {
     userId: formData.userId,
     collectionDate: collectionDate ? collectionDate : undefined,
     collectionTime: formData.collectionTime?.trim() ?? '',
-    value: formData?.value ?? 0,
-    downPayment: formData?.downPayment ?? 0,
+    value: Number(formData?.value || 0),
+    downPayment: Number(formData?.downPayment || 0),
     isPeriodic,
     qtyBoxes: qty,
     containerId: formData.containerId?.trim() || undefined,
@@ -185,9 +187,7 @@ export async function handleDeleteAgendamento(args: {
   setSelectedAgendamento: (ag: Appointment | null) => void;
   carregarAgendamentos: () => Promise<void>;
 }) {
-  const { id, clientName, remove, deleteAgendamento, setSelectedAgendamento, carregarAgendamentos } = args;
-  const confirm = window.confirm(`Tem certeza que deseja excluir o agendamento de ${clientName}?`);
-  if (!confirm) return null;
+  const { id, remove, deleteAgendamento, setSelectedAgendamento, carregarAgendamentos } = args;
   const result = await remove(id);
   if (!result.success) {
     toast.error(result.error ?? 'Erro ao excluir agendamento.');
@@ -265,7 +265,9 @@ export async function handleEditAgendamento(args: {
     return;
   }
 
-  if (formData.value <= formData.downPayment) {
+  const valorAgendamento = Number(formData.value || 0);
+  const valorAntecipado = Number(formData.downPayment || 0);
+  if (valorAgendamento <= valorAntecipado) {
     toast.error('O valor do agendamento não pode ser menor ou igual ao valor da antecipação.');
     return;
   }
@@ -282,8 +284,8 @@ export async function handleEditAgendamento(args: {
       userId: formData.userId,
       collectionDate: emptyStr(formData.collectionDate),
       collectionTime: emptyStr(formData.collectionTime),
-      value: formData?.value ?? 0,
-      downPayment: formData?.downPayment ?? 0,
+      value: Number(formData?.value || 0),
+      downPayment: Number(formData?.downPayment || 0),
       isPeriodic: Boolean(formData?.isPeriodic),
       qtyBoxes: qty,
       status: formData.status as Appointment['status'],

@@ -1,3 +1,5 @@
+import { toDateOnlyInAppTimeZone } from "../../utils";
+
 export function parseLocalDate(dateStr: string): Date {
   if (!dateStr || dateStr.length < 10) return new Date(NaN);
   const y = parseInt(dateStr.slice(0, 4), 10);
@@ -11,11 +13,13 @@ export function toYYYYMMDD(value: string | Date): string | null {
   if (typeof value === 'string') {
     const s = value.trim();
     if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-    const d = new Date(s);
-    if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
-    return null;
+    const normalized = toDateOnlyInAppTimeZone(s);
+    return normalized || null;
   }
-  if (!Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
+  if (!Number.isNaN(value.getTime())) {
+    const normalized = toDateOnlyInAppTimeZone(value);
+    return normalized || null;
+  }
   return null;
 }
 

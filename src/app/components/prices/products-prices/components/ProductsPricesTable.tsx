@@ -6,6 +6,8 @@ import { Badge } from "../../../ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../ui/table";
 import { Search, Download, Package, Edit, Trash2, Box, Ruler, Weight, ChevronLeft, ChevronRight, Minus } from "lucide-react";
 import type { ProductPrice, ProductPricePagination } from "../../../../api";
+import { AdhesiveTapeIcon } from "../../../ui/adhesive-tape-icon";
+import { iconClassForBoxProductType } from "../../../stock";
 
 export type ProductsPricesTableProps = {
   searchTerm: string;
@@ -30,6 +32,8 @@ function getProdutoTypeBadgeLabel(type: ProductPrice["type"]) {
       return "Caixa Grande";
     case "PERSONALIZED_ITEM":
       return "Item Personalizado";
+    case "TAPE_ADHESIVE":
+      return "Fita Adesiva";
     default:
       return "Fita Adesiva";
   }
@@ -96,12 +100,14 @@ export function ProductsPricesTable(props: ProductsPricesTableProps) {
                   <TableRow key={produto.id} className="hover:bg-muted/30">
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-2">
-                        {produto.type.includes("BOX") ? (
-                          <Box className="w-5 h-5 text-blue-600" />
+                        {produto.type?.includes("BOX") ? (
+                          <Box className={`w-5 h-5 ${iconClassForBoxProductType(produto.type)}`} aria-hidden />
                         ) : produto.type === "PERSONALIZED_ITEM" ? (
-                          <Package className="w-5 h-5 text-purple-600" />
+                          <Package className="w-5 h-5 text-purple-600" aria-hidden />
+                        ) : produto.type === "TAPE_ADHESIVE" ? (
+                          <AdhesiveTapeIcon className="h-5 w-5 shrink-0" />
                         ) : (
-                          <Package className="w-5 h-5 text-orange-600" />
+                          <Package className="w-5 h-5 text-muted-foreground" aria-hidden />
                         )}
                         <div>
                           <div className="font-medium">{produto.name}</div>
@@ -139,7 +145,7 @@ export function ProductsPricesTable(props: ProductsPricesTableProps) {
                       <span className="font-semibold text-green-700">${Number(produto.salePrice).toFixed(2)}</span>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={produto.active ? "default" : "secondary"}>
+                      <Badge className={produto.active ? "bg-green-500 text-white" : "bg-red-500 text-white"}>
                         {produto.active ? "Ativo" : "Inativo"}
                       </Badge>
                     </TableCell>

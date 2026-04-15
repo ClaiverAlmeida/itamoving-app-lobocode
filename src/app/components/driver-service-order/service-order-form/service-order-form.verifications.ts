@@ -11,7 +11,17 @@ export function novoIdItem() {
   return `item-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
+export function isLinhaEntrega(c: Caixa): boolean {
+  return c.lineKind === "delivery";
+}
+
 export function caixaTemTodosCamposPreenchidos(c: Caixa) {
+  if (isLinhaEntrega(c)) {
+    const rota =
+      Boolean(String(c.deliveryPriceId ?? "").trim()) || Boolean(String(c.type ?? "").trim());
+    const valorValido = Number.isFinite(Number(c.value)) && Number(c.value) > 0;
+    return rota && valorValido;
+  }
   const tipoValido = Boolean(String(c.type ?? "").trim());
   const valorValido = Number.isFinite(Number(c.value)) && Number(c.value) > 0;
   const pesoValido = Number.isFinite(Number(c.weight)) && Number(c.weight) > 0;
@@ -19,6 +29,9 @@ export function caixaTemTodosCamposPreenchidos(c: Caixa) {
 }
 
 export function obterTipoProdutoDaCaixa(caixa: Caixa, opcoesCaixa: ProductPrice[]) {
+  if (caixa.lineKind === "delivery" && caixa.productId) {
+    return opcoesCaixa.find((p) => p.id === caixa.productId)?.type;
+  }
   const produtoDaCaixa = opcoesCaixa.find(
     (p) =>
       p.type === caixa.type ||

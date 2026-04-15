@@ -94,9 +94,6 @@ export async function handleDelete(params: {
 }) {
   const { id, selectedProduto, setSelectedProduto, pageProduto, carregarProdutos, deleteProductPrice } = params;
 
-  const confirm = window.confirm("Tem certeza que deseja excluir este produto?");
-  if (!confirm) return;
-
   const result = await deleteProductPriceApi(id);
 
   if (result.success) {
@@ -119,8 +116,8 @@ export async function handleExport(params: { onDone?: () => void }) {
       return result;
     }
 
-    exportDocument.createPdf(result.data, "Products", "Products list");
-    toast.success("Produtos exportados com sucesso");
+    // exportDocument.createPdf(result.data, "Products", "Products list");
+    // toast.success("Produtos exportados com sucesso");
     onDone?.();
     return result;
   }

@@ -16,8 +16,9 @@ export function serviceOrderSenderDisplayName(
 import { resolveProductTypeLabel } from "../prices/products-prices/products-prices.utils";
 import type { TransferBoxCandidate } from "./transfer-boxes-dialog/transfer-boxes-dialog.types";
 import { MESES_PT } from "./containers.constants";
+import { toDateOnlyInAppTimeZone } from "../../utils";
 
-export const dataPickerBlocked = () => new Date().toISOString().split("T")[0];
+export const dataPickerBlocked = () => toDateOnlyInAppTimeZone(new Date());
 
 export const toDateOnlyForInput = (value: string | undefined | null): string => {
   if (value == null || value === "") return "";
@@ -168,6 +169,11 @@ export function formatProductTypeForDisplay(raw: string | null | undefined): str
   return resolveProductTypeLabel(raw);
 }
 
+export function isTapeAdhesiveType(raw: string | null | undefined): boolean {
+  const normalized = (raw ?? "").trim().toUpperCase();
+  return normalized === "TAPE_ADHESIVE" || normalized.includes("FITA ADESIVA");
+}
+
 /** IDs de linha de produto da OS presentes fisicamente neste container (payload `boxes`). */
 export function productIdsOnPhysicalContainer(container: Container | null | undefined): Set<string> {
   const ids = new Set<string>();
@@ -251,6 +257,8 @@ export function buildTransferBoxCandidates(
     seen.add(dspId);
 
     const found = productByDspId.get(dspId);
+    const productType = found?.product?.type ?? line.size;
+    if (isTapeAdhesiveType(productType)) continue;
     const label = found
       ? formatServiceOrderBoxLine(mergeOrderProductWithPhysicalBox(container, found.product))
       : formatServiceOrderBoxLine(line);

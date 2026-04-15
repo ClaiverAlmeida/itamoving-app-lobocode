@@ -53,7 +53,7 @@ export function StockItemsGrid({
         const percentual = (quantidade / item.ideal) * 100;
         const Icon = STOCK_ICON_BY_KEY[item.key];
         const borderClass = CARD_BORDER_CLASS_BY_COLOR[item.cor];
-        const iconClass = ICON_CLASS_BY_COLOR[item.cor];
+        const iconClass = item.iconClassName ?? ICON_CLASS_BY_COLOR[item.cor];
         const progressClass = PROGRESS_CLASS_BY_COLOR[item.cor];
         const backgroundClass = CARD_BACKGROUND_CLASS_BY_COLOR[item.cor];
         return (

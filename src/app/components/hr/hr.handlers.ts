@@ -61,8 +61,6 @@ export const handleDeleteUsuario = async (args: {
   deleteUsuario: (id: string) => void;
 }) => {
   const { id, remove, deleteUsuario } = args;
-  const confirmDelete = window.confirm("Tem certeza que deseja excluir este funcionário?");
-  if (!confirmDelete) return;
   const result = await remove(id);
   if (result.success) {
     deleteUsuario(id);

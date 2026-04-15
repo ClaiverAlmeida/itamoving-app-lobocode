@@ -8,6 +8,10 @@ import { round2 } from "../service-order-form.payment";
 
 type Props = {
   valorTotalCaixas: number;
+  /** Discriminação opcional (volumes vs frete) — mesma base que `valorTotalCaixas`. */
+  valorSubtotalVolumes?: number;
+  valorSubtotalFrete?: number;
+  temFrete?: boolean;
   valorAgendamento?: number;
   valorAntecipacao?: number;
   paymentPoolUsd: number;
@@ -19,6 +23,9 @@ type Props = {
 
 export function ServiceOrderFormPaymentCard({
   valorTotalCaixas,
+  valorSubtotalVolumes,
+  valorSubtotalFrete = 0,
+  temFrete = false,
   valorAgendamento = 0,
   valorAntecipacao = 0,
   paymentPoolUsd,
@@ -78,9 +85,28 @@ export function ServiceOrderFormPaymentCard({
                 <span className="font-bold text-green-700">$ {subtotalAgendamento.toFixed(2)}</span>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-              <span className="text-sm text-muted-foreground">Valor total dos volumes:</span>
-              <span className="text-2xl font-bold text-green-700">$ {valorTotalCaixas.toFixed(2)}</span>
+            <div className="flex flex-col gap-2 mb-4">
+              {temFrete && valorSubtotalVolumes != null ? (
+                <>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <span className="text-sm text-muted-foreground">Volumes e produtos (sem frete):</span>
+                    <span className="text-xl font-bold text-green-700 tabular-nums">$ {valorSubtotalVolumes.toFixed(2)}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <span className="text-sm text-muted-foreground">Frete:</span>
+                    <span className="text-xl font-bold text-green-700 tabular-nums">$ {valorSubtotalFrete.toFixed(2)}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-green-200">
+                    <span className="text-sm font-semibold text-muted-foreground">Total produtos + frete:</span>
+                    <span className="text-2xl font-bold text-green-800 tabular-nums">$ {valorTotalCaixas.toFixed(2)}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="text-sm text-muted-foreground">Valor total dos volumes:</span>
+                  <span className="text-2xl font-bold text-green-700">$ {valorTotalCaixas.toFixed(2)}</span>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-green-200 pt-4 space-y-4">
@@ -151,10 +177,23 @@ export function ServiceOrderFormPaymentCard({
                 <span className="text-muted-foreground">Subtotal agendamento</span>
                 <span className="font-medium tabular-nums">$ {subtotalAgendamento.toFixed(2)}</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">+ Total dos volumes</span>
-                <span className="font-medium tabular-nums">$ {valorTotalCaixas.toFixed(2)}</span>
-              </div>
+              {temFrete && valorSubtotalVolumes != null ? (
+                <>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">+ Volumes e produtos</span>
+                    <span className="font-medium tabular-nums">$ {valorSubtotalVolumes.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">+ Frete</span>
+                    <span className="font-medium tabular-nums">$ {valorSubtotalFrete.toFixed(2)}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">+ Total dos volumes</span>
+                  <span className="font-medium tabular-nums">$ {valorTotalCaixas.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between pt-2 border-t border-green-200">
                 <span className="text-base font-bold">Total geral</span>
                 <span className="text-xl font-bold text-green-800 tabular-nums">$ {totalConsolidado.toFixed(2)}</span>
