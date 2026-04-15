@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { connectSocket, getSocket, notificationsService, onceConnected } from '../api';
@@ -15,21 +15,28 @@ export interface NewNotificationPayload {
   createdAt: string;
 }
 
+const NOTIFICATIONS_LIST_LIMIT = 200;
+
 export function useNotifications() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const refreshRequestIdRef = useRef(0);
 
   const refreshNotifications = useCallback(async () => {
+    const requestId = ++refreshRequestIdRef.current;
     setLoading(true);
     try {
       const [listRes, countRes] = await Promise.all([
-        notificationsService.getList({ limit: 50 }),
+        notificationsService.getList({ limit: NOTIFICATIONS_LIST_LIMIT }),
         notificationsService.getUnreadCount(),
       ]);
+      if (requestId !== refreshRequestIdRef.current) return;
+
       if (listRes.success && listRes.data) {
-        setNotifications(listRes.data.notifications ?? []);
+        const serverNotifications = listRes.data.notifications ?? [];
+        setNotifications(serverNotifications);
       }
       if (countRes.success && countRes.data !== undefined) {
         const raw = countRes.data as { count?: number } | number;
@@ -42,7 +49,9 @@ export function useNotifications() {
     } catch {
       // ignore
     } finally {
-      setLoading(false);
+      if (requestId === refreshRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -59,11 +68,11 @@ export function useNotifications() {
         typeof payload.createdAt === 'string'
           ? payload.createdAt
           : (payload.createdAt as Date)?.toISOString?.() ?? new Date().toISOString();
-      setNotifications((prev) => [
-        { ...payload, createdAt } as NotificationItem,
-        ...prev,
-      ]);
-      setUnreadCount((c) => c + 1);
+      setNotifications((prev) => [{ ...payload, createdAt } as NotificationItem, ...prev]);
+      setUnreadCount((c) => {
+        const shouldIncrement = !payload.isRead;
+        return shouldIncrement ? c + 1 : c;
+      });
       toast.info(payload.title ?? 'Notificação', { description: payload.message });
     };
 
