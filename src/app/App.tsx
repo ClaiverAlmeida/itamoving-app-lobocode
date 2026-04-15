@@ -259,6 +259,19 @@ function MainApp() {
     [notifications],
   );
 
+  useEffect(() => {
+    if (!notificationsOpen) return;
+
+    if (notificationsTab === 'unread' && unreadNotifications.length === 0 && readNotifications.length > 0) {
+      setNotificationsTab('read');
+      return;
+    }
+
+    if (notificationsTab === 'read' && readNotifications.length === 0 && unreadNotifications.length > 0) {
+      setNotificationsTab('unread');
+    }
+  }, [notificationsOpen, notificationsTab, unreadNotifications.length, readNotifications.length]);
+
   const renderView = () => {
     // Motorista pode acessar Minhas Entregas e Ordem de Serviço
     if (user.role === 'motorista') {
